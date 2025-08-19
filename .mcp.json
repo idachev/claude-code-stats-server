@@ -1,0 +1,21 @@
+{
+	"mcpServers": {
+		"context7": {
+			"type": "stdio",
+			"command": "npx",
+			"args": ["-y", "@upstash/context7-mcp@latest"],
+			"env": {}
+		},
+		"postgres": {
+			"command": "postgres-mcp",
+			"args": ["--access-mode=unrestricted"],
+			"env": {
+				"DATABASE_URI": "postgresql://localdev:db-test-pass@localhost:9099/claude_code_stats"
+			}
+		},
+		"atlassian": {
+			"type": "sse",
+			"url": "https://mcp.atlassian.com/v1/sse"
+		}
+	}
+}

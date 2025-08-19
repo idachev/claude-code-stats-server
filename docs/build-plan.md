@@ -82,8 +82,15 @@ claude-code-stats-server/
 │   ├── build-plan.md       # This file
 │   ├── imgs/               # Reference images
 │   └── data/               # Sample data
-├── .env.example
+├── utils/
+│   └── docker-compose/     # Docker PostgreSQL setup
+│       ├── docker-compose.yaml  # PostgreSQL 17 configuration
+│       ├── docker-compose.sh     # Helper script
+│       ├── init-data-volumes.sh  # Volume initialization
+│       └── docker-secrets/       # Database password
+├── .env.template
 ├── package.json
+├── tsconfig.json
 ├── tailwind.config.js
 └── README.md
 ```
@@ -262,14 +269,17 @@ Based on the example image, the dashboard will include:
 
 ### Development
 ```bash
-# Start PostgreSQL locally (Docker)
-docker run -d --name claude-stats-db \
-  -e POSTGRES_PASSWORD=dev_password \
-  -e POSTGRES_DB=claude_stats \
-  -p 5432:5432 \
-  postgres:15-alpine
+# Start PostgreSQL using provided Docker Compose
+cd utils/docker-compose
+./init-data-volumes.sh  # Initialize volumes
+./docker-compose.sh up -d  # Start PostgreSQL 17
 
-npm run dev  # Runs with nodemon and local PostgreSQL
+# Database will be available at localhost:9099
+# User: localdev
+# Password: see utils/docker-compose/docker-secrets/db-password
+# Database: claude_code_stats
+
+npm run start:dev  # Runs with hot reload and local PostgreSQL
 ```
 
 ### Production

@@ -132,7 +132,7 @@ const { Pool } = require('pg');
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'claude_stats',
+  database: process.env.DB_NAME || 'claude_code_stats',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD,
   max: 20, // Maximum number of clients in the pool
@@ -344,7 +344,7 @@ For long-term sustainability, consider:
 #!/bin/bash
 BACKUP_DIR="/backups/postgres"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-DB_NAME="claude_stats"
+DB_NAME="claude_code_stats"
 
 pg_dump -h localhost -U postgres -d $DB_NAME | gzip > $BACKUP_DIR/backup_$TIMESTAMP.sql.gz
 
@@ -361,13 +361,13 @@ Configure PostgreSQL with WAL archiving for point-in-time recovery capabilities.
 ```sql
 -- Create read-only user for reporting
 CREATE USER stats_reader WITH PASSWORD 'secure_password';
-GRANT CONNECT ON DATABASE claude_stats TO stats_reader;
+GRANT CONNECT ON DATABASE claude_code_stats TO stats_reader;
 GRANT USAGE ON SCHEMA public TO stats_reader;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO stats_reader;
 
 -- Create application user with limited permissions
 CREATE USER app_user WITH PASSWORD 'secure_password';
-GRANT CONNECT ON DATABASE claude_stats TO app_user;
+GRANT CONNECT ON DATABASE claude_code_stats TO app_user;
 GRANT USAGE ON SCHEMA public TO app_user;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO app_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
@@ -390,7 +390,7 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_user;
 ### Health Checks
 ```sql
 -- Check database size
-SELECT pg_database_size('claude_stats') / 1024 / 1024 as size_mb;
+SELECT pg_database_size('claude_code_stats') / 1024 / 1024 as size_mb;
 
 -- Check table sizes
 SELECT 

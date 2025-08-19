@@ -1,119 +1,65 @@
-# 🚀 Express TypeScript Boilerplate 2025
+# Claude Code Stats Server
 
-[![CI](https://github.com/edwinhern/express-typescript/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/edwinhern/express-typescript-2024/actions/workflows/ci.yml)
+A simple server for collecting and visualizing Claude Code usage statistics.
 
-```code
-Hey There! 🙌
-🤾 that ⭐️ button if you like this boilerplate.
-```
+## Overview
 
-## 🌟 Introduction
+This server collects usage data from the `ccusage` command-line tool and displays beautiful statistics dashboards showing:
+- Daily token usage and costs
+- Model usage breakdown
+- User statistics
+- Weekly/monthly aggregations
 
-Welcome to Express TypeScript Boilerplate 2025 – a simple and ready-to-use starting point for building backend web services with Express.js and TypeScript.
+## Features
 
-## 💡 Why We Made This
+- **REST API** for uploading usage statistics
+- **PostgreSQL database** with TypeORM for data persistence
+- **Server-rendered HTML dashboards** using EJS templates
+- **Beautiful charts** showing usage trends over time
+- **User and model filtering** for detailed analysis
 
-This starter kit helps you:
+## API Endpoints
 
-- ✨ Start new projects faster
-- 📊 Write clean, consistent code
-- ⚡ Build things quickly
-- 🛡️ Follow best practices for security and testing
+- `GET /health` - Health check endpoint
+- `POST /claude-code-stats?username=<username>` - Upload usage statistics JSON
+- `GET /claude-code-stats` - View statistics dashboard
 
-## 🚀 What's Included
+## Tech Stack
 
-- 📁 Well-organized folders: Files grouped by feature so you can find things easily
-- 💨 Fast development: Quick code running with `tsx` and error checking with `tsc`
-- 🌐 Latest Node.js: Uses the newest stable Node.js version from `.tool-versions`
-- 🔧 Safe settings: Environment settings checked with Zod to prevent errors
-- 🔗 Short import paths: Clean code with easy imports using path shortcuts
-- 🔄 Auto-updates: Keeps dependencies up-to-date with Renovate
-- 🔒 Better security: Built-in protection with Helmet and CORS settings
-- 📊 Easy tracking: Built-in logging with `pino-http`
-- 🧪 Ready-to-test: Testing tools with Vitest and Supertest already set up
-- ✅ Clean code: Consistent coding style with `Biomejs`
-- 📃 Standard responses: Unified API responses using `ServiceResponse`
-- 🐳 Easy deployment: Ready for Docker containers
-- 📝 Input checking: Request validation using Zod
-- 🧩 API browser: Interactive API docs with Swagger UI
+- **Express.js** - Web framework
+- **TypeScript** - Type safety
+- **TypeORM** - Database ORM
+- **PostgreSQL** - Database
+- **EJS** - Server-side templating
+- **Chart.js** - Data visualization
+- **Tailwind CSS** - Styling
 
-## 🛠️ Getting Started
+## Getting Started
 
-### Video Demo
+1. Clone the repository
+2. Copy `.env.template` to `.env` and configure database settings
+3. Install dependencies: `pnpm install`
+4. Start PostgreSQL database:
+   ```bash
+   cd utils/docker-compose
+   ./init-data-volumes.sh
+   ./docker-compose.sh up -d
+   ```
+5. Run migrations: `npm run migration:run`
+6. Start development server: `npm run start:dev`
 
-For a visual guide, watch the [video demo](https://github.com/user-attachments/assets/b1698dac-d582-45a0-8d61-31131732b74e) to see the setup and running of the project.
+The PostgreSQL database will be available at `localhost:9099` with:
+- User: `localdev`
+- Password: (see `utils/docker-compose/docker-secrets/db-password`)
+- Database: `claude_code_stats`
 
-### Step-by-Step Guide
+## Development
 
-#### Step 1: 🚀 Initial Setup
+- `npm run start:dev` - Start development server with hot reload
+- `npm run build` - Build for production
+- `npm run migration:generate -- -n MigrationName` - Generate new migration
+- `npm run test` - Run tests
 
-- Clone the repository: `git clone https://github.com/edwinhern/express-typescript.git`
-- Navigate: `cd express-typescript`
-- Install dependencies: `pnpm install`
+## License
 
-#### Step 2: ⚙️ Environment Configuration
-
-- Create `.env`: Copy `.env.template` to `.env`
-- Update `.env`: Fill in necessary environment variables
-
-#### Step 3: 🏃‍♂️ Running the Project
-
-- Development Mode: `pnpm start:dev`
-- Building: `pnpm build`
-- Production Mode: Set `NODE_ENV="production"` in `.env` then `pnpm build && pnpm start:prod`
-
-## 🤝 Feedback and Contributions
-
-We'd love to hear your feedback and suggestions for further improvements. Feel free to contribute and join us in making backend development cleaner and faster!
-
-🎉 Happy coding!
-
-## 📁 Folder Structure
-
-```code
-├── biome.json
-├── Dockerfile
-├── LICENSE
-├── package.json
-├── pnpm-lock.yaml
-├── README.md
-├── src
-│   ├── api
-│   │   ├── healthCheck
-│   │   │   ├── __tests__
-│   │   │   │   └── healthCheckRouter.test.ts
-│   │   │   └── healthCheckRouter.ts
-│   │   └── user
-│   │       ├── __tests__
-│   │       │   ├── userRouter.test.ts
-│   │       │   └── userService.test.ts
-│   │       ├── userController.ts
-│   │       ├── userModel.ts
-│   │       ├── userRepository.ts
-│   │       ├── userRouter.ts
-│   │       └── userService.ts
-│   ├── api-docs
-│   │   ├── __tests__
-│   │   │   └── openAPIRouter.test.ts
-│   │   ├── openAPIDocumentGenerator.ts
-│   │   ├── openAPIResponseBuilders.ts
-│   │   └── openAPIRouter.ts
-│   ├── common
-│   │   ├── __tests__
-│   │   │   ├── errorHandler.test.ts
-│   │   │   └── requestLogger.test.ts
-│   │   ├── middleware
-│   │   │   ├── errorHandler.ts
-│   │   │   ├── rateLimiter.ts
-│   │   │   └── requestLogger.ts
-│   │   ├── models
-│   │   │   └── serviceResponse.ts
-│   │   └── utils
-│   │       ├── commonValidation.ts
-│   │       ├── envConfig.ts
-│   │       └── httpHandlers.ts
-│   ├── index.ts
-│   └── server.ts
-├── tsconfig.json
-└── vite.config.mts
-```
+MIT

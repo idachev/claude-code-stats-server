@@ -1,0 +1,47 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(gh pr:*)",
+      "Bash(git grep:*)",
+      "Bash(git help:*)",
+      "Bash(git subtree:*)",
+      "Bash(GITHUB_TOKEN= gh pr:*)",
+      "Bash(grep:*)",
+      "Bash(jar tf:*)",
+      "Bash(ls:*)",
+      "Bash(rg:*)",
+      "mcp__atlassian__atlassianUserInfo",
+      "mcp__atlassian__getAccessibleAtlassianResources",
+      "mcp__atlassian__getConfluencePage",
+      "mcp__atlassian__getJiraIssue",
+      "mcp__atlassian__searchConfluenceUsingCql",
+      "mcp__atlassian__searchJiraIssuesUsingJql",
+      "mcp__context7__resolve-library-id",
+      "mcp__javadc__decompile-from-jar",
+      "mcp__javadc__decompile-from-package",
+      "mcp__postgres__get_object_details",
+      "mcp__postgres__list_schemas",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:docs.spring.io)",
+      "WebFetch(domain:docs.quarkiverse.io)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:mapstruct.org)",
+      "WebFetch(domain:mvnrepository.com)",
+      "WebFetch(domain:quarkus.io)",
+      "WebSearch"
+    ],
+    "additionalDirectories": [
+      "../dev-hub",
+      "../commons"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "atlassian",
+    "context7",
+    "javadc",
+    "postgres"
+  ]
+}

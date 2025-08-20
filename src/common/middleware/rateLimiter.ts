@@ -1,4 +1,3 @@
-import type { Request } from "express";
 import rateLimit from "express-rate-limit";
 
 import { env } from "@/common/utils/envConfig";

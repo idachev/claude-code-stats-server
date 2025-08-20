@@ -13,6 +13,16 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Run tests
+echo "🧪 Running tests..."
+pnpm run test
+
+# Check if tests succeeded
+if [ $? -ne 0 ]; then
+  echo "❌ Tests failed. Please fix the failing tests before committing."
+  exit 1
+fi
+
 # Run the build to ensure everything compiles
 echo "🔨 Running build..."
 pnpm run build

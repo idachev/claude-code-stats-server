@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Database
+drizzle/
+*.sql
+
+# Environment files
+.env*
+
+# IDE
+.vscode/
+.idea/
+
+# Test coverage
+coverage/
+
+# Playwright
+.playwright-mcp/
+test-results/
+playwright-report/
+
+# TypeScript/JavaScript files (handled by Biome)
+*.ts
+*.tsx
+*.js
+*.jsx
+*.mjs
+*.cjs
+
+# EJS files (handled by JS-Beautify)
+*.ejs
+
+# Other
+*.md
+*.json
+!.prettierrc.json

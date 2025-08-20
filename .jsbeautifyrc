@@ -1,0 +1,19 @@
+{
+	"html": {
+		"indent_size": "1",
+		"indent_char": "\t",
+		"indent_with_tabs": true,
+		"preserve_newlines": true,
+		"max_preserve_newlines": 2,
+		"wrap_line_length": 120,
+		"wrap_attributes": "auto",
+		"wrap_attributes_indent_size": 1,
+		"unformatted": ["script", "style"],
+		"content_unformatted": ["pre", "code", "textarea"],
+		"templating": ["erb", "django", "handlebars", "php"],
+		"indent_scripts": "normal",
+		"indent_inner_html": true,
+		"indent_handlebars": true,
+		"end_with_newline": true
+	}
+}

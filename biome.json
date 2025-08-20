@@ -13,5 +13,17 @@
 		"rules": {
 			"recommended": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					}
+				}
+			}
+		}
+	]
 }

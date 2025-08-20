@@ -2,6 +2,7 @@ import path from "node:path";
 import cors from "cors";
 import express, { type Express } from "express";
 import { pino } from "pino";
+import { authRouter } from "@/api/auth/authRouter";
 import { healthRouter } from "@/api/health/healthRouter";
 import { statsRouter } from "@/api/stats/statsRouter";
 import { userRouter } from "@/api/user/userRouter";
@@ -46,6 +47,7 @@ app.use(requestLogger);
 
 // Routes
 app.use("/health", healthRouter);
+app.use("/admin", authRouter);
 app.use("/claude-code-stats", statsRouter);
 app.use("/users", userRouter);
 app.use("/", viewsRouter); // Views for dashboard and other HTML pages

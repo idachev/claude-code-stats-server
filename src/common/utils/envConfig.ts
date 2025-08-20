@@ -27,6 +27,9 @@ const envSchema = z.object({
 	TYPEORM_SYNCHRONIZE: z.coerce.boolean().default(false),
 	TYPEORM_LOGGING: z.coerce.boolean().default(false),
 	TYPEORM_MIGRATIONS_RUN: z.coerce.boolean().default(true),
+
+	// Admin authentication
+	ADMIN_API_KEY: z.string().min(1).optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

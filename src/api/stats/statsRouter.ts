@@ -2,6 +2,7 @@ import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import express, { type Request, type Response, type Router } from "express";
 import { z } from "zod";
 import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
+import { authenticateApiKey } from "@/common/middleware/apiKeyAuth";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { validateRequest } from "@/common/utils/httpHandlers";
 import { StatsService } from "./statsService";
@@ -59,7 +60,7 @@ const StatsUploadSchema = z.object({
 			.string()
 			.min(3)
 			.max(50)
-			.regex(/^[a-zA-Z0-9_-]+$/),
+			.regex(/^[a-zA-Z0-9._-]+$/),
 	}),
 });
 
@@ -77,7 +78,9 @@ statsRegistry.registerPath({
 	path: "/claude-code-stats",
 	tags: ["Statistics"],
 	summary: "Upload usage statistics",
-	description: "Upload ccusage JSON data for a specific user",
+	description:
+		"Upload ccusage JSON data for a specific user. Requires user API key authentication matching the username.",
+	security: [{ ApiKeyAuth: [] }],
 	request: {
 		query: StatsUploadSchema.shape.query,
 		body: {
@@ -94,7 +97,7 @@ statsRegistry.registerPath({
 });
 
 // Upload stats endpoint
-statsRouter.post("/", validateRequest(StatsUploadSchema), async (req: Request, res: Response) => {
+statsRouter.post("/", authenticateApiKey, validateRequest(StatsUploadSchema), async (req: Request, res: Response) => {
 	try {
 		const { username } = req.query as { username: string };
 		await statsService.uploadStats(username, req.body);

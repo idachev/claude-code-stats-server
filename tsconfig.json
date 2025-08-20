@@ -13,9 +13,6 @@
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"experimentalDecorators": true,
-		"emitDecoratorMetadata": true,
-		"strictPropertyInitialization": false,
 		"types": ["vitest/globals", "node"]
 	},
 	"include": ["src/**/*"],

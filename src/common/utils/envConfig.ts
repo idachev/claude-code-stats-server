@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { z } from "zod";
 
 dotenv.config();
@@ -15,6 +15,18 @@ const envSchema = z.object({
 	COMMON_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(1000),
 
 	COMMON_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(1000),
+
+	// Database configuration
+	DB_HOST: z.string().min(1).default("localhost"),
+	DB_PORT: z.coerce.number().int().positive().default(9099),
+	DB_NAME: z.string().min(1).default("claude_code_stats"),
+	DB_USER: z.string().min(1).default("localdev"),
+	DB_PASSWORD: z.string().min(1).default("localdev"),
+
+	// TypeORM configuration
+	TYPEORM_SYNCHRONIZE: z.coerce.boolean().default(false),
+	TYPEORM_LOGGING: z.coerce.boolean().default(false),
+	TYPEORM_MIGRATIONS_RUN: z.coerce.boolean().default(true),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

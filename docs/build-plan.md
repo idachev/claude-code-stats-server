@@ -183,51 +183,47 @@ Based on the example image, the dashboard will include:
 
 ## Implementation Phases
 
-### Phase 1: Core Setup (Day 1)
-- [ ] Initialize TypeScript Express project
-- [ ] Set up project structure with TypeORM
-- [ ] Configure TypeScript and ESLint
-- [ ] Set up TypeORM data source
-- [ ] Create entity definitions with decorators
+### Phase 1: Core Setup (1-2 hours)
+- [ ] Set up TypeORM data source configuration
+- [ ] Create entity definitions (User, UsageStats, ModelUsage)
+- [ ] Configure database connection
 - [ ] Generate and run initial migration
 - [ ] Implement basic error handling middleware
 
-### Phase 2: API Development (Day 2)
+### Phase 2: API Development (2-3 hours)
 - [ ] Implement GET /health endpoint
-- [ ] Implement POST /claude-code-stats with validation
-- [ ] Create TypeORM repositories and services
-- [ ] Implement repository pattern for data access
-- [ ] Add data processing utilities
-- [ ] Write unit tests for services and endpoints
+- [ ] Implement POST /claude-code-stats endpoint
+- [ ] Create basic validation for username and JSON body
+- [ ] Set up TypeORM repositories
+- [ ] Implement stats service for data insertion
 
-### Phase 3: Data Processing (Day 3)
+### Phase 3: Data Processing (2-3 hours)
 - [ ] Parse and validate ccusage JSON format
-- [ ] Use TypeORM query builder for aggregations
-- [ ] Create custom repository methods for statistics
-- [ ] Implement date filtering with TypeORM operators
-- [ ] Calculate totals using TypeORM aggregation functions
-- [ ] Add database indexes for performance
+- [ ] Transform JSON data to entity format
+- [ ] Implement upsert logic for daily stats
+- [ ] Create aggregation queries for statistics
+- [ ] Add proper database indexes
 
-### Phase 4: Frontend Development (Day 4-5)
-- [ ] Set up EJS templates
+### Phase 4: Frontend Development (3-4 hours)
+- [ ] Set up EJS templates and view engine
 - [ ] Configure Tailwind CSS
 - [ ] Create stats dashboard layout
 - [ ] Integrate Chart.js for visualizations
-- [ ] Implement filtering controls
-- [ ] Add responsive design
+- [ ] Implement GET /claude-code-stats view endpoint
+- [ ] Add period and user filtering
 
-### Phase 5: Testing & Polish (Day 6)
-- [ ] Integration testing
+### Phase 5: Testing & Polish (2-3 hours)
+- [ ] Write unit tests for services
+- [ ] Write integration tests for API endpoints
 - [ ] Performance optimization
 - [ ] Security hardening
-- [ ] Documentation
-- [ ] Docker containerization
+- [ ] Documentation updates
 
-### Phase 6: Deployment Preparation
+### Phase 6: Production Ready (1-2 hours)
 - [ ] Production configuration
-- [ ] PostgreSQL migration scripts
+- [ ] Docker containerization
 - [ ] Deployment documentation
-- [ ] CI/CD pipeline setup
+- [ ] Final testing
 
 ## Security Considerations
 
@@ -405,8 +401,8 @@ npm run start:dev  # Runs with hot reload and local PostgreSQL
 
 ## Timeline Estimate
 
-**V1 MVP**: 5-6 days of development
-**V2 with Optional Features**: Additional 2-3 weeks
+**V1 MVP**: 10-15 hours of focused development
+**V2 with Optional Features**: Additional 40-60 hours
 
 ## Questions for Stakeholder Review
 

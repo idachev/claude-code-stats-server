@@ -21,6 +21,7 @@ const DashboardQuerySchema = z.object({
 		user: z.string().optional(),
 		model: z.string().optional(),
 		groupBy: z.enum(["user", "model"]).optional().default("user"),
+		metric: z.enum(["cost", "tokens"]).optional().default("tokens"),
 	}),
 });
 
@@ -49,11 +50,12 @@ viewsRegistry.registerPath({
 // Dashboard view endpoint
 viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, user, model, groupBy } = req.query as {
+		const { period, user, model, groupBy, metric } = req.query as {
 			period?: "week" | "month" | "all";
 			user?: string;
 			model?: string;
 			groupBy?: "user" | "model";
+			metric?: "cost" | "tokens";
 		};
 
 		// Get stats from service (handle "all" by using "month" as fallback)
@@ -77,6 +79,7 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 				user: user || "",
 				model: model || "",
 				groupBy: groupBy || "user",
+				metric: metric || "tokens",
 			},
 		});
 	} catch (error: unknown) {

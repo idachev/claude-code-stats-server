@@ -1,11 +1,19 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="mb-6">
-		<h1 class="text-3xl font-semibold text-white mb-6">Cost</h1>
+		<h1 class="text-3xl font-semibold text-white mb-6">Stats</h1>
 
 		<!-- Filters -->
 		<div class="flex flex-wrap gap-3">
 			<form method="GET" action="/dashboard" id="dashboardForm" class="flex flex-wrap gap-3">
+				<!-- Metric Toggle -->
+				<select name="metric" id="metricSelect"
+				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+					<option value="tokens" <%= query.metric === 'tokens' || !query.metric ? 'selected' : '' %>>Show:
+						Tokens (M)</option>
+					<option value="cost" <%= query.metric === 'cost' ? 'selected' : '' %>>Show: Cost ($)</option>
+				</select>
+
 				<!-- Group By -->
 				<select name="groupBy" id="groupBySelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
@@ -61,11 +69,6 @@
 						</svg>
 					</button>
 				</div>
-
-				<!-- Export Button -->
-				<button type="button" class="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 ml-4">
-					📤 Export
-				</button>
 			</form>
 		</div>
 	</div>
@@ -73,6 +76,7 @@
 	<%
     // Calculate summary statistics
     let totalTokenCost = 0;
+    let totalTokens = 0;
     let uniqueUsers = new Set();
     let totalDays = 0;
 
@@ -80,21 +84,32 @@
         const uniqueDates = new Set();
         stats.stats.forEach(day => {
             totalTokenCost += day.totalCost || 0;
+            totalTokens += day.totalTokens || 0;
             uniqueUsers.add(day.username);
             uniqueDates.add(day.date);
         });
         totalDays = uniqueDates.size;
     }
+    
+    // Format tokens in millions
+    const totalTokensInMillions = (totalTokens / 1000000).toFixed(2);
+    const isTokensView = query.metric === 'tokens';
     %>
 
-	<!-- Cost Cards Container -->
+	<!-- Stats Cards Container -->
 	<div class="flex justify-center gap-6 flex-wrap">
-		<!-- Total Cost Card with Donut Chart -->
+		<!-- Total Stats Card with Donut Chart -->
 		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="donutChartCard">
 			<div class="flex justify-between items-start gap-2">
 				<div class="flex-1">
-					<p class="text-gray-400 text-sm mb-3">Total token cost</p>
-					<p class="text-4xl font-bold text-white">$<%= totalTokenCost.toFixed(2) %></p>
+					<p class="text-gray-400 text-sm mb-3"><%= isTokensView ? 'Total tokens' : 'Total cost' %></p>
+					<p class="text-4xl font-bold text-white">
+						<% if (isTokensView) { %>
+						<%= totalTokensInMillions %>M
+						<% } else { %>
+						$<%= totalTokenCost.toFixed(2) %>
+						<% } %>
+					</p>
 					<p class="text-gray-500 text-sm mt-2"><%= uniqueUsers.size %> users • <%= totalDays %> days</p>
 				</div>
 				<div class="chart-container-small" style="position: relative;">
@@ -105,10 +120,11 @@
 			</div>
 		</div>
 
-		<!-- Cost Distribution List Card -->
+		<!-- Stats Distribution List Card -->
 		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="costDistributionCard">
 			<div class="h-full flex flex-col">
-				<p class="text-gray-400 text-sm mb-4 flex-shrink-0">Cost Distribution</p>
+				<p class="text-gray-400 text-sm mb-4 flex-shrink-0">
+					<%= isTokensView ? 'Token Distribution' : 'Cost Distribution' %></p>
 				<div id="costDistributionList" class="flex-1 overflow-y-auto pr-2"
 				 style="max-height: calc(100% - 2rem);">
 					<!-- This will be populated by JavaScript -->
@@ -117,11 +133,10 @@
 		</div>
 	</div>
 
-	<!-- Daily Token Cost Chart -->
+	<!-- Daily Stats Chart -->
 	<div class="bg-dark-card rounded-xl p-6">
 		<div class="mb-4">
-			<h3 class="text-lg font-semibold text-white">Daily token cost</h3>
-			<p class="text-gray-400 text-sm">Includes token usage from both API and Console</p>
+			<h3 class="text-lg font-semibold text-white"><%= isTokensView ? 'Daily token usage' : 'Daily cost' %></h3>
 		</div>
 		<div class="chart-container">
 			<canvas id="dailyCostChart"></canvas>
@@ -227,9 +242,12 @@ Chart.defaults.borderColor = '#3a3a3a';
 
 // Pass server-side variables to client-side
 const totalTokenCost = <%= totalTokenCost %>;
+const totalTokens = <%= totalTokens %>;
 const stats = <%- JSON.stringify(stats) %>;
 const chartData = <%- JSON.stringify(chartData) %>;
 const groupBy = '<%= query.groupBy || "user" %>';
+const metric = '<%= query.metric || "tokens" %>';
+const isTokensView = metric === 'tokens';
 
 // Model colors mapping
 const modelColors = {
@@ -260,7 +278,7 @@ const colorPalette = [
 
 const groupColorMap = {};
 
-// Calculate totals based on groupBy parameter
+// Calculate totals based on groupBy parameter and metric
 if (stats && stats.stats) {
     if (groupBy === 'model') {
         // Group by model for donut chart
@@ -271,7 +289,13 @@ if (stats && stats.stats) {
                     if (!groupTotals[modelKey]) {
                         groupTotals[modelKey] = 0;
                     }
-                    groupTotals[modelKey] += model.cost;
+                    if (isTokensView) {
+                        // Sum tokens for model
+                        groupTotals[modelKey] += (model.inputTokens + model.outputTokens);
+                    } else {
+                        // Sum cost for model
+                        groupTotals[modelKey] += model.cost;
+                    }
                     allGroups.add(modelKey);
                 });
             }
@@ -282,7 +306,11 @@ if (stats && stats.stats) {
             if (!groupTotals[stat.username]) {
                 groupTotals[stat.username] = 0;
             }
-            groupTotals[stat.username] += stat.totalCost;
+            if (isTokensView) {
+                groupTotals[stat.username] += stat.totalTokens;
+            } else {
+                groupTotals[stat.username] += stat.totalCost;
+            }
             allGroups.add(stat.username);
         });
     }
@@ -393,9 +421,15 @@ new Chart(tokenCtx, {
                     label: function(context) {
                         const label = context.label;
                         const value = context.parsed;
-                        const percentage = ((value / totalTokenCost) * 100).toFixed(1);
-                        // Return full label text
-                        return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                        const total = isTokensView ? totalTokens : totalTokenCost;
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        // Return full label text based on metric
+                        if (isTokensView) {
+                            const valueInMillions = (value / 1000000).toFixed(2);
+                            return `${label}: ${valueInMillions}M (${percentage}%)`;
+                        } else {
+                            return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                        }
                     },
                     title: function() {
                         return null; // No title needed
@@ -406,7 +440,7 @@ new Chart(tokenCtx, {
     }
 });
 
-// Process data for stacked bar chart based on groupBy
+// Process data for stacked bar chart based on groupBy and metric
 if (stats && stats.stats) {
     if (groupBy === 'model') {
         // Group by model
@@ -421,7 +455,11 @@ if (stats && stats.stats) {
                     if (!processedData[stat.date][modelKey]) {
                         processedData[stat.date][modelKey] = 0;
                     }
-                    processedData[stat.date][modelKey] += model.cost;
+                    if (isTokensView) {
+                        processedData[stat.date][modelKey] += (model.inputTokens + model.outputTokens);
+                    } else {
+                        processedData[stat.date][modelKey] += model.cost;
+                    }
                 });
             }
         });
@@ -434,7 +472,11 @@ if (stats && stats.stats) {
             if (!processedData[stat.date][stat.username]) {
                 processedData[stat.date][stat.username] = 0;
             }
-            processedData[stat.date][stat.username] += stat.totalCost;
+            if (isTokensView) {
+                processedData[stat.date][stat.username] += stat.totalTokens;
+            } else {
+                processedData[stat.date][stat.username] += stat.totalCost;
+            }
         });
     }
 }
@@ -477,7 +519,12 @@ new Chart(dailyCtx, {
                 ticks: {
                     color: '#9CA3AF',
                     callback: function(value) {
-                        return '$' + value.toFixed(0);
+                        if (isTokensView) {
+                            // Format as millions
+                            return (value / 1000000).toFixed(1) + 'M';
+                        } else {
+                            return '$' + value.toFixed(0);
+                        }
                     }
                 }
             }
@@ -498,16 +545,25 @@ new Chart(dailyCtx, {
                         const label = context.dataset.label;
                         const value = context.parsed.y;
                         if (value > 0) {
-                            return label + ': $' + value.toFixed(2);
+                            if (isTokensView) {
+                                const valueInM = (value / 1000000).toFixed(2);
+                                return label + ': ' + valueInM + 'M';
+                            } else {
+                                return label + ': $' + value.toFixed(2);
+                            }
                         }
-                        return null; // Don't show items with $0
+                        return null; // Don't show items with 0
                     },
                     footer: function(tooltipItems) {
                         let sum = 0;
                         tooltipItems.forEach(function(tooltipItem) {
                             sum += tooltipItem.parsed.y;
                         });
-                        return 'Total: $' + sum.toFixed(2);
+                        if (isTokensView) {
+                            return 'Total: ' + (sum / 1000000).toFixed(2) + 'M';
+                        } else {
+                            return 'Total: $' + sum.toFixed(2);
+                        }
                     }
                 }
             }
@@ -545,8 +601,9 @@ if (costListContainer) {
     const sortedGroups = Object.entries(groupTotals)
         .sort((a, b) => b[1] - a[1]);
 
-    sortedGroups.forEach(([group, cost], index) => {
-        const percentage = ((cost / totalTokenCost) * 100).toFixed(1);
+    sortedGroups.forEach(([group, value], index) => {
+        const total = isTokensView ? totalTokens : totalTokenCost;
+        const percentage = ((value / total) * 100).toFixed(1);
 
         // Create list item (more compact)
         const listItem = document.createElement('div');
@@ -571,19 +628,24 @@ if (costListContainer) {
         leftDiv.appendChild(colorBox);
         leftDiv.appendChild(nameDiv);
 
-        // Right side: cost with percentage on same line
+        // Right side: value with percentage on same line
         const rightDiv = document.createElement('div');
         rightDiv.className = 'flex items-center gap-2 ml-2';
 
-        const costSpan = document.createElement('span');
-        costSpan.className = 'text-xs font-semibold text-white';
-        costSpan.textContent = `$${cost.toFixed(2)}`;
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'text-xs font-semibold text-white';
+        if (isTokensView) {
+            const valueInM = (value / 1000000).toFixed(2);
+            valueSpan.textContent = `${valueInM}M`;
+        } else {
+            valueSpan.textContent = `$${value.toFixed(2)}`;
+        }
 
         const percentSpan = document.createElement('span');
         percentSpan.className = 'text-xs text-gray-500';
         percentSpan.textContent = `(${percentage}%)`;
 
-        rightDiv.appendChild(costSpan);
+        rightDiv.appendChild(valueSpan);
         rightDiv.appendChild(percentSpan);
 
         listItem.appendChild(leftDiv);
@@ -597,10 +659,18 @@ if (costListContainer) {
     // Add total at the bottom (sticky)
     const totalDiv = document.createElement('div');
     totalDiv.className = 'flex justify-between items-center pt-2 mt-2 border-t border-dark-border sticky bottom-0 bg-dark-card';
-    totalDiv.innerHTML = `
-        <span class="text-xs font-semibold text-gray-400">Total</span>
-        <span class="text-xs font-bold text-white">$${totalTokenCost.toFixed(2)}</span>
-    `;
+    if (isTokensView) {
+        const totalInM = (totalTokens / 1000000).toFixed(2);
+        totalDiv.innerHTML = `
+            <span class="text-xs font-semibold text-gray-400">Total</span>
+            <span class="text-xs font-bold text-white">${totalInM}M</span>
+        `;
+    } else {
+        totalDiv.innerHTML = `
+            <span class="text-xs font-semibold text-gray-400">Total</span>
+            <span class="text-xs font-bold text-white">$${totalTokenCost.toFixed(2)}</span>
+        `;
+    }
     costListContainer.appendChild(totalDiv);
 
     // Match the height of the donut chart card
@@ -632,7 +702,7 @@ function getColor(index, alpha = 1) {
 // Add event listeners for form submission
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('dashboardForm');
-    const selects = ['groupBySelect', 'periodSelect', 'userSelect', 'modelSelect'];
+    const selects = ['metricSelect', 'groupBySelect', 'periodSelect', 'userSelect', 'modelSelect'];
 
     selects.forEach(selectId => {
         const selectElement = document.getElementById(selectId);

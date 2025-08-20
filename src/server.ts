@@ -14,8 +14,11 @@ import { env } from "@/common/utils/envConfig";
 const logger = pino({ name: "server start" });
 const app: Express = express();
 
-// Set the application to trust the reverse proxy
-app.set("trust proxy", true);
+// Set the application to trust the reverse proxy (only in production)
+// In test environment, we don't set trust proxy to avoid rate limiter warnings
+if (env.isProduction) {
+	app.set("trust proxy", true);
+}
 
 // Middlewares
 app.use(express.json());

@@ -1,0 +1,26 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run pnpm check (Biome linter/formatter)
+echo "📝 Running pnpm check..."
+pnpm run check
+
+# Check if pnpm check succeeded
+if [ $? -ne 0 ]; then
+  echo "❌ Check failed. Please fix the linting/formatting issues before committing."
+  exit 1
+fi
+
+# Run the build to ensure everything compiles
+echo "🔨 Running build..."
+pnpm run build
+
+# Check if build succeeded
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Please fix the compilation errors before committing."
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

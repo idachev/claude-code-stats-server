@@ -8,6 +8,7 @@ export default defineConfig({
 		},
 		globals: true,
 		restoreMocks: true,
+		exclude: ["**/node_modules/**", "**/dist/**", "tests/**"],
 	},
 	plugins: [tsconfigPaths()],
 });

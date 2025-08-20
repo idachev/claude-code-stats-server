@@ -5,17 +5,16 @@
 
 		<!-- Filters -->
 		<div class="flex flex-wrap gap-3">
-			<form method="GET" action="/dashboard" class="flex flex-wrap gap-3">
+			<form method="GET" action="/dashboard" id="dashboardForm" class="flex flex-wrap gap-3">
 				<!-- Group By -->
-				<select name="groupBy" onchange="this.form.submit()"
+				<select name="groupBy" id="groupBySelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-					<option value="user">Group by: User</option>
-					<option value="model">Group by: Model</option>
-					<option value="date">Group by: Date</option>
+					<option value="user" <%= query.groupBy === 'user' ? 'selected' : '' %>>Group by: User</option>
+					<option value="model" <%= query.groupBy === 'model' ? 'selected' : '' %>>Group by: Model</option>
 				</select>
 
 				<!-- Period Filter -->
-				<select name="period" onchange="this.form.submit()"
+				<select name="period" id="periodSelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
 					<option value="week" <%= query.period === 'week' ? 'selected' : '' %>>Last Week</option>
 					<option value="month" <%= query.period === 'month' ? 'selected' : '' %>>This Month</option>
@@ -23,7 +22,7 @@
 				</select>
 
 				<!-- User Filter -->
-				<select name="user" onchange="this.form.submit()"
+				<select name="user" id="userSelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
 					<option value="">All Users</option>
 					<% if (filters.users && filters.users.length > 0) { %>
@@ -34,7 +33,7 @@
 				</select>
 
 				<!-- Model Filter -->
-				<select name="model" onchange="this.form.submit()"
+				<select name="model" id="modelSelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
 					<option value="">All Models</option>
 					<% if (filters.models && filters.models.length > 0) { %>
@@ -88,17 +87,31 @@
     }
     %>
 
-	<!-- Total Cost Card -->
-	<div class="flex justify-center">
-		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full">
-			<div class="flex justify-between items-center">
-				<div>
+	<!-- Cost Cards Container -->
+	<div class="flex justify-center gap-6 flex-wrap">
+		<!-- Total Cost Card with Donut Chart -->
+		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="donutChartCard">
+			<div class="flex justify-between items-start gap-2">
+				<div class="flex-1">
 					<p class="text-gray-400 text-sm mb-3">Total token cost</p>
-					<p class="text-5xl font-bold text-white">$<%= totalTokenCost.toFixed(2) %></p>
+					<p class="text-4xl font-bold text-white">$<%= totalTokenCost.toFixed(2) %></p>
 					<p class="text-gray-500 text-sm mt-2"><%= uniqueUsers.size %> users • <%= totalDays %> days</p>
 				</div>
-				<div class="chart-container-small">
+				<div class="chart-container-small" style="position: relative;">
 					<canvas id="tokenCostDonut"></canvas>
+					<!-- Custom tooltip container -->
+					<div id="chartjs-tooltip"></div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Cost Distribution List Card -->
+		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="costDistributionCard">
+			<div class="h-full flex flex-col">
+				<p class="text-gray-400 text-sm mb-4 flex-shrink-0">Cost Distribution</p>
+				<div id="costDistributionList" class="flex-1 overflow-y-auto pr-2"
+				 style="max-height: calc(100% - 2rem);">
+					<!-- This will be populated by JavaScript -->
 				</div>
 			</div>
 		</div>
@@ -123,6 +136,90 @@
 </div>
 
 <!-- Chart.js Scripts -->
+<style>
+/* Custom tooltip styles */
+#chartjs-tooltip {
+    position: absolute;
+    background: rgba(26, 26, 26, 0.95);
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    color: #9CA3AF;
+    font-size: 13px;
+    padding: 12px 16px;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.1s ease;
+    display: none;
+}
+
+#chartjs-tooltip.active {
+    display: block;
+}
+
+#chartjs-tooltip .tooltip-title {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #fff;
+    border-bottom: 1px solid #3a3a3a;
+    padding-bottom: 6px;
+}
+
+#chartjs-tooltip .tooltip-body {
+    margin-top: 6px;
+}
+
+#chartjs-tooltip .tooltip-body-item {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+}
+
+#chartjs-tooltip .tooltip-body-item .color-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+#chartjs-tooltip .tooltip-body-item .label {
+    color: #e5e7eb;
+}
+
+/* Custom scrollbar for cost distribution list */
+#costDistributionList::-webkit-scrollbar {
+    width: 6px;
+}
+
+#costDistributionList::-webkit-scrollbar-track {
+    background: rgba(58, 58, 58, 0.3);
+    border-radius: 3px;
+}
+
+#costDistributionList::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 3px;
+}
+
+#costDistributionList::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
+}
+
+/* Firefox scrollbar */
+#costDistributionList {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) rgba(58, 58, 58, 0.3);
+}
+
+/* Chart container sizing - responsive */
+.chart-container-small {
+    width: 60%;
+    height: 60%;
+}
+</style>
 <script>
 // Chart defaults for dark theme
 Chart.defaults.color = '#9CA3AF';
@@ -132,6 +229,7 @@ Chart.defaults.borderColor = '#3a3a3a';
 const totalTokenCost = <%= totalTokenCost %>;
 const stats = <%- JSON.stringify(stats) %>;
 const chartData = <%- JSON.stringify(chartData) %>;
+const groupBy = '<%= query.groupBy || "user" %>';
 
 // Model colors mapping
 const modelColors = {
@@ -143,24 +241,12 @@ const modelColors = {
     'other': '#6B7280'
 };
 
-// Process data for charts (by user)
+// Process data for charts based on groupBy
 const processedData = {};
-const allUsers = new Set();
-const userTotals = {};
+const allGroups = new Set();
+const groupTotals = {};
 
-// Calculate user totals first for the donut chart
-if (stats && stats.stats) {
-    stats.stats.forEach(stat => {
-        if (!userTotals[stat.username]) {
-            userTotals[stat.username] = 0;
-        }
-        userTotals[stat.username] += stat.totalCost;
-        allUsers.add(stat.username);
-    });
-}
-
-// Define consistent colors for users
-const userColorMap = {};
+// Define consistent colors
 const colorPalette = [
     'rgba(96, 165, 250, 0.8)',   // blue
     'rgba(167, 139, 250, 0.8)',  // purple
@@ -172,20 +258,124 @@ const colorPalette = [
     'rgba(148, 163, 184, 0.8)',  // slate
 ];
 
-// Assign colors to users
-Array.from(allUsers).forEach((user, idx) => {
-    userColorMap[user] = colorPalette[idx % colorPalette.length];
+const groupColorMap = {};
+
+// Calculate totals based on groupBy parameter
+if (stats && stats.stats) {
+    if (groupBy === 'model') {
+        // Group by model for donut chart
+        stats.stats.forEach(stat => {
+            if (stat.models) {
+                stat.models.forEach(model => {
+                    const modelKey = `${model.provider}/${model.name}`;
+                    if (!groupTotals[modelKey]) {
+                        groupTotals[modelKey] = 0;
+                    }
+                    groupTotals[modelKey] += model.cost;
+                    allGroups.add(modelKey);
+                });
+            }
+        });
+    } else {
+        // Group by user (default)
+        stats.stats.forEach(stat => {
+            if (!groupTotals[stat.username]) {
+                groupTotals[stat.username] = 0;
+            }
+            groupTotals[stat.username] += stat.totalCost;
+            allGroups.add(stat.username);
+        });
+    }
+}
+
+// Assign colors to groups (users or models)
+Array.from(allGroups).forEach((group, idx) => {
+    groupColorMap[group] = colorPalette[idx % colorPalette.length];
 });
 
-// Token Cost Donut Chart (by user)
+// Custom HTML tooltip function
+function getOrCreateTooltip(chart) {
+    let tooltipEl = document.getElementById('chartjs-tooltip');
+
+    if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chartjs-tooltip';
+        document.body.appendChild(tooltipEl);
+    }
+
+    return tooltipEl;
+}
+
+function externalTooltipHandler(context) {
+    // Tooltip Element
+    const {chart, tooltip} = context;
+    const tooltipEl = getOrCreateTooltip(chart);
+
+    // Hide if no tooltip
+    if (tooltip.opacity === 0) {
+        tooltipEl.classList.remove('active');
+        return;
+    }
+
+    // Set Text
+    if (tooltip.body) {
+        const titleLines = tooltip.title || [];
+        const bodyLines = tooltip.body.map(b => b.lines);
+
+        // Clear previous content
+        tooltipEl.innerHTML = '';
+
+        // Add title only if it exists and is not null
+        if (titleLines.length > 0 && titleLines[0]) {
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'tooltip-title';
+            titleDiv.textContent = titleLines[0];
+            tooltipEl.appendChild(titleDiv);
+        }
+
+        // Add body
+        const bodyDiv = document.createElement('div');
+        bodyDiv.className = 'tooltip-body';
+
+        bodyLines.forEach((body, i) => {
+            const colors = tooltip.labelColors[i];
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'tooltip-body-item';
+
+            const colorBox = document.createElement('span');
+            colorBox.className = 'color-box';
+            colorBox.style.background = colors.backgroundColor;
+
+            const label = document.createElement('span');
+            label.className = 'label';
+            // Ensure full text is shown
+            label.textContent = body[0];
+
+            itemDiv.appendChild(colorBox);
+            itemDiv.appendChild(label);
+            bodyDiv.appendChild(itemDiv);
+        });
+
+        tooltipEl.appendChild(bodyDiv);
+    }
+
+    const {offsetLeft: positionX, offsetTop: positionY} = chart.canvas;
+
+    // Display, position, and show tooltip
+    tooltipEl.classList.add('active');
+    tooltipEl.style.left = positionX + tooltip.caretX + 'px';
+    tooltipEl.style.top = positionY + tooltip.caretY + 'px';
+}
+
+// Token Cost Donut Chart (dynamic based on groupBy)
 const tokenCtx = document.getElementById('tokenCostDonut').getContext('2d');
 new Chart(tokenCtx, {
     type: 'doughnut',
     data: {
-        labels: Object.keys(userTotals),
+        labels: Object.keys(groupTotals),
         datasets: [{
-            data: Object.values(userTotals),
-            backgroundColor: Object.keys(userTotals).map(user => userColorMap[user]),
+            data: Object.values(groupTotals),
+            backgroundColor: Object.keys(groupTotals).map(group => groupColorMap[group]),
             borderWidth: 0,
         }]
     },
@@ -196,15 +386,19 @@ new Chart(tokenCtx, {
         plugins: {
             legend: { display: false },
             tooltip: {
-                backgroundColor: '#1a1a1a',
-                borderColor: '#3a3a3a',
-                borderWidth: 1,
+                enabled: false, // Disable default tooltip
+                position: 'nearest',
+                external: externalTooltipHandler,
                 callbacks: {
                     label: function(context) {
-                        const user = context.label;
+                        const label = context.label;
                         const value = context.parsed;
                         const percentage = ((value / totalTokenCost) * 100).toFixed(1);
-                        return user + ': $' + value.toFixed(2) + ' (' + percentage + '%)';
+                        // Return full label text
+                        return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                    },
+                    title: function() {
+                        return null; // No title needed
                     }
                 }
             }
@@ -212,28 +406,47 @@ new Chart(tokenCtx, {
     }
 });
 
-// Process data for stacked bar chart (by user)
+// Process data for stacked bar chart based on groupBy
 if (stats && stats.stats) {
-    stats.stats.forEach(stat => {
-        if (!processedData[stat.date]) {
-            processedData[stat.date] = {};
-        }
-        // Group by username instead of model
-        if (!processedData[stat.date][stat.username]) {
-            processedData[stat.date][stat.username] = 0;
-        }
-        processedData[stat.date][stat.username] += stat.totalCost;
-    });
+    if (groupBy === 'model') {
+        // Group by model
+        stats.stats.forEach(stat => {
+            if (!processedData[stat.date]) {
+                processedData[stat.date] = {};
+            }
+            // Group by model
+            if (stat.models) {
+                stat.models.forEach(model => {
+                    const modelKey = `${model.provider}/${model.name}`;
+                    if (!processedData[stat.date][modelKey]) {
+                        processedData[stat.date][modelKey] = 0;
+                    }
+                    processedData[stat.date][modelKey] += model.cost;
+                });
+            }
+        });
+    } else {
+        // Group by user (default)
+        stats.stats.forEach(stat => {
+            if (!processedData[stat.date]) {
+                processedData[stat.date] = {};
+            }
+            if (!processedData[stat.date][stat.username]) {
+                processedData[stat.date][stat.username] = 0;
+            }
+            processedData[stat.date][stat.username] += stat.totalCost;
+        });
+    }
 }
 
 // Get unique dates and sort them
 const uniqueDates = Object.keys(processedData).sort();
 
-// Create datasets for stacked bar chart (one dataset per user)
-const datasets = Array.from(allUsers).map((user) => ({
-    label: user,
-    data: uniqueDates.map(date => processedData[date]?.[user] || 0),
-    backgroundColor: userColorMap[user],
+// Create datasets for stacked bar chart (one dataset per group)
+const datasets = Array.from(allGroups).map((group) => ({
+    label: group,
+    data: uniqueDates.map(date => processedData[date]?.[group] || 0),
+    backgroundColor: groupColorMap[group],
     borderWidth: 0,
 }));
 
@@ -282,12 +495,12 @@ new Chart(dailyCtx, {
                         return tooltipItems[0].label;
                     },
                     label: function(context) {
-                        const user = context.dataset.label;
+                        const label = context.dataset.label;
                         const value = context.parsed.y;
                         if (value > 0) {
-                            return user + ': $' + value.toFixed(2);
+                            return label + ': $' + value.toFixed(2);
                         }
-                        return null; // Don't show users with $0
+                        return null; // Don't show items with $0
                     },
                     footer: function(tooltipItems) {
                         let sum = 0;
@@ -304,22 +517,102 @@ new Chart(dailyCtx, {
 
 // Populate the legend
 const legendContainer = document.getElementById('chartLegend');
-Array.from(allUsers).forEach((user) => {
+Array.from(allGroups).forEach((group) => {
     const legendItem = document.createElement('div');
     legendItem.className = 'flex items-center gap-2';
 
     const colorBox = document.createElement('span');
     colorBox.className = 'w-3 h-3 rounded';
-    colorBox.style.backgroundColor = userColorMap[user];
+    colorBox.style.backgroundColor = groupColorMap[group];
 
     const label = document.createElement('span');
     label.className = 'text-gray-400';
-    label.textContent = user;
+    label.textContent = group;
 
     legendItem.appendChild(colorBox);
     legendItem.appendChild(label);
     legendContainer.appendChild(legendItem);
 });
+
+// Populate the cost distribution list
+const costListContainer = document.getElementById('costDistributionList');
+if (costListContainer) {
+    // Create a wrapper for scrollable content
+    const scrollWrapper = document.createElement('div');
+    scrollWrapper.className = 'space-y-1';
+
+    // Sort groups by cost (descending)
+    const sortedGroups = Object.entries(groupTotals)
+        .sort((a, b) => b[1] - a[1]);
+
+    sortedGroups.forEach(([group, cost], index) => {
+        const percentage = ((cost / totalTokenCost) * 100).toFixed(1);
+
+        // Create list item (more compact)
+        const listItem = document.createElement('div');
+        listItem.className = 'flex items-center justify-between py-1.5 border-b border-dark-border';
+        if (index === sortedGroups.length - 1) {
+            listItem.classList.add('border-0');
+        }
+
+        // Left side: color box and name
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'flex items-center gap-2 flex-1 min-w-0';
+
+        const colorBox = document.createElement('span');
+        colorBox.className = 'w-2.5 h-2.5 rounded flex-shrink-0';
+        colorBox.style.backgroundColor = groupColorMap[group];
+
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'truncate text-xs text-gray-300';
+        nameDiv.title = group; // Show full name on hover
+        nameDiv.textContent = group;
+
+        leftDiv.appendChild(colorBox);
+        leftDiv.appendChild(nameDiv);
+
+        // Right side: cost with percentage on same line
+        const rightDiv = document.createElement('div');
+        rightDiv.className = 'flex items-center gap-2 ml-2';
+
+        const costSpan = document.createElement('span');
+        costSpan.className = 'text-xs font-semibold text-white';
+        costSpan.textContent = `$${cost.toFixed(2)}`;
+
+        const percentSpan = document.createElement('span');
+        percentSpan.className = 'text-xs text-gray-500';
+        percentSpan.textContent = `(${percentage}%)`;
+
+        rightDiv.appendChild(costSpan);
+        rightDiv.appendChild(percentSpan);
+
+        listItem.appendChild(leftDiv);
+        listItem.appendChild(rightDiv);
+        scrollWrapper.appendChild(listItem);
+    });
+
+    // Add scrollable content to container
+    costListContainer.appendChild(scrollWrapper);
+
+    // Add total at the bottom (sticky)
+    const totalDiv = document.createElement('div');
+    totalDiv.className = 'flex justify-between items-center pt-2 mt-2 border-t border-dark-border sticky bottom-0 bg-dark-card';
+    totalDiv.innerHTML = `
+        <span class="text-xs font-semibold text-gray-400">Total</span>
+        <span class="text-xs font-bold text-white">$${totalTokenCost.toFixed(2)}</span>
+    `;
+    costListContainer.appendChild(totalDiv);
+
+    // Match the height of the donut chart card
+    setTimeout(() => {
+        const donutCard = document.getElementById('donutChartCard');
+        const distCard = document.getElementById('costDistributionCard');
+        if (donutCard && distCard) {
+            const donutHeight = donutCard.offsetHeight;
+            distCard.style.height = donutHeight + 'px';
+        }
+    }, 100);
+}
 
 // Helper function for colors
 function getColor(index, alpha = 1) {
@@ -335,4 +628,19 @@ function getColor(index, alpha = 1) {
     ];
     return colors[index % colors.length];
 }
+
+// Add event listeners for form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('dashboardForm');
+    const selects = ['groupBySelect', 'periodSelect', 'userSelect', 'modelSelect'];
+
+    selects.forEach(selectId => {
+        const selectElement = document.getElementById(selectId);
+        if (selectElement) {
+            selectElement.addEventListener('change', function() {
+                form.submit();
+            });
+        }
+    });
+});
 </script>

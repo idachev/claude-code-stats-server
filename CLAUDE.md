@@ -78,9 +78,10 @@ await db.transaction(async (tx) => {
 ### 8. Testing Endpoints
 After adding new endpoints:
 1. Restart the server
-2. Check Swagger UI at http://localhost:8080/swagger
-3. Verify your endpoints appear under correct tags
-4. Test with the "Try it out" feature
+2. The server runs on port 3000 (http://localhost:3000)
+3. Check Swagger UI at http://localhost:3000/swagger
+4. Verify your endpoints appear under correct tags
+5. Test with the "Try it out" feature
 
 ### 9. Code Style and Formatting
 
@@ -147,7 +148,7 @@ The CSP configuration is in `/src/common/middleware/helmetConfig.ts`. It allows:
 ### 12. Common Commands
 ```bash
 # Development
-pnpm start:dev          # Start dev server with hot reload
+pnpm start:dev          # Start dev server with hot reload on port 3000
 pnpm build             # Build for production
 
 # Database

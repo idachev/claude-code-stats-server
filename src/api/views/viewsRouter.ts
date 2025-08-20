@@ -19,6 +19,7 @@ const DashboardQuerySchema = z.object({
 		period: z.enum(["week", "month", "all"]).optional().default("week"),
 		user: z.string().optional(),
 		model: z.string().optional(),
+		groupBy: z.enum(["user", "model"]).optional().default("user"),
 	}),
 });
 
@@ -47,18 +48,19 @@ viewsRegistry.registerPath({
 // Dashboard view endpoint
 viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, user, model } = req.query as {
+		const { period, user, model, groupBy } = req.query as {
 			period?: "week" | "month" | "all";
 			user?: string;
 			model?: string;
+			groupBy?: "user" | "model";
 		};
 
 		// Get stats from service (handle "all" by using "month" as fallback)
 		const statsPeriod = period === "all" ? "month" : period || "week";
 		const stats = await statsService.getStats(statsPeriod, user);
 
-		// Process data for charts
-		const chartData = processStatsForCharts(stats);
+		// Process data for charts with groupBy parameter
+		const chartData = processStatsForCharts(stats, groupBy || "user");
 
 		// Get unique users and models for filters
 		const filters = await getAvailableFilters();
@@ -73,6 +75,7 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 				period: period || "week",
 				user: user || "",
 				model: model || "",
+				groupBy: groupBy || "user",
 			},
 		});
 	} catch (error: unknown) {
@@ -86,16 +89,82 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 });
 
 // Helper function to process stats for Chart.js
-function processStatsForCharts(stats: StatsResponse) {
+function processStatsForCharts(stats: StatsResponse, groupBy: "user" | "model" = "user") {
 	if (!stats || !stats.stats) {
 		return {
 			daily: { labels: [], datasets: [] },
 			models: { labels: [], datasets: [] },
 			users: { labels: [], datasets: [] },
+			groupBy: groupBy,
 		};
 	}
 
-	// Process daily costs
+	// Process daily costs based on groupBy parameter
+	if (groupBy === "model") {
+		// Group by model
+		interface ModelDailyAccumulator {
+			dates: string[];
+			models: string[];
+			costs: Record<string, Record<string, number>>;
+		}
+
+		const modelDailyData = stats.stats.reduce(
+			(acc: ModelDailyAccumulator, day: DailyStats) => {
+				const date = day.date;
+				if (!acc.dates.includes(date)) {
+					acc.dates.push(date);
+				}
+
+				// Process each model for this day
+				if (day.models) {
+					day.models.forEach((model: ModelStats) => {
+						const modelKey = `${model.provider}/${model.name}`;
+						if (!acc.models.includes(modelKey)) {
+							acc.models.push(modelKey);
+						}
+
+						if (!acc.costs[modelKey]) {
+							acc.costs[modelKey] = {};
+						}
+
+						if (!acc.costs[modelKey][date]) {
+							acc.costs[modelKey][date] = 0;
+						}
+
+						acc.costs[modelKey][date] += model.cost;
+					});
+				}
+
+				return acc;
+			},
+			{ dates: [], models: [], costs: {} },
+		);
+
+		// Sort dates
+		modelDailyData.dates.sort();
+
+		// Create dataset for daily costs chart (grouped by model)
+		const costDatasets = modelDailyData.models.map((model: string, idx: number) => ({
+			label: model,
+			data: modelDailyData.dates.map((date) => modelDailyData.costs[model]?.[date] || 0),
+			borderColor: getColor(idx),
+			backgroundColor: getColor(idx, 0.8),
+			tension: 0.1,
+		}));
+
+		// Return early for model grouping
+		return {
+			daily: {
+				labels: modelDailyData.dates,
+				datasets: costDatasets,
+			},
+			models: { labels: [], datasets: [] },
+			users: { labels: [], datasets: [] },
+			groupBy: groupBy,
+		};
+	}
+
+	// Default: Process daily costs by user
 	interface DailyAccumulator {
 		dates: string[];
 		users: string[];
@@ -135,7 +204,7 @@ function processStatsForCharts(stats: StatsResponse) {
 		label: user,
 		data: dailyData.costs[idx] || [],
 		borderColor: getColor(idx),
-		backgroundColor: getColor(idx, 0.2),
+		backgroundColor: getColor(idx, 0.8),
 		tension: 0.1,
 	}));
 
@@ -193,6 +262,7 @@ function processStatsForCharts(stats: StatsResponse) {
 		},
 		models: modelData,
 		users: userData,
+		groupBy: groupBy,
 	};
 }
 

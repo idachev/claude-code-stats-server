@@ -102,7 +102,7 @@ export class StatsService {
 		});
 	}
 
-	async getStats(period: "week" | "month", username?: string): Promise<StatsResponse> {
+	async getStats(period: "week" | "month", username?: string, model?: string): Promise<StatsResponse> {
 		const days = period === "week" ? 7 : 30;
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - days);
@@ -156,16 +156,39 @@ export class StatsService {
 			statsResults.map(async (stat: (typeof statsResults)[0]) => {
 				const models = await db.select().from(modelUsage).where(eq(modelUsage.usageStatsId, stat.statsId));
 
+				// Filter models if model parameter is provided
+				let filteredModels = models;
+				if (model) {
+					// model parameter is in format "provider/model"
+					const [provider, modelName] = model.split("/");
+					if (provider && modelName) {
+						filteredModels = models.filter((m) => m.provider === provider && m.model === modelName);
+					}
+				}
+
+				// Only include stats that have the filtered model (or all models if no filter)
+				if (model && filteredModels.length === 0) {
+					return null; // This stat doesn't have the requested model
+				}
+
+				// Recalculate totals based on filtered models
+				const recalculatedCost = filteredModels.reduce((sum, m) => sum + parseFloat(m.cost), 0);
+				const recalculatedTokens = filteredModels.reduce((sum, m) => sum + m.inputTokens + m.outputTokens, 0);
+				const recalculatedInputTokens = filteredModels.reduce((sum, m) => sum + m.inputTokens, 0);
+				const recalculatedOutputTokens = filteredModels.reduce((sum, m) => sum + m.outputTokens, 0);
+				const recalculatedCacheCreation = filteredModels.reduce((sum, m) => sum + m.cacheCreationInputTokens, 0);
+				const recalculatedCacheRead = filteredModels.reduce((sum, m) => sum + m.cacheReadInputTokens, 0);
+
 				return {
 					date: stat.date,
 					username: stat.username,
-					totalCost: parseFloat(stat.totalCost),
-					totalTokens: stat.totalTokens,
-					inputTokens: stat.inputTokens,
-					outputTokens: stat.outputTokens,
-					cacheCreationInputTokens: stat.cacheCreationInputTokens,
-					cacheReadInputTokens: stat.cacheReadInputTokens,
-					models: models.map((m) => ({
+					totalCost: model ? recalculatedCost : parseFloat(stat.totalCost),
+					totalTokens: model ? recalculatedTokens : stat.totalTokens,
+					inputTokens: model ? recalculatedInputTokens : stat.inputTokens,
+					outputTokens: model ? recalculatedOutputTokens : stat.outputTokens,
+					cacheCreationInputTokens: model ? recalculatedCacheCreation : stat.cacheCreationInputTokens,
+					cacheReadInputTokens: model ? recalculatedCacheRead : stat.cacheReadInputTokens,
+					models: filteredModels.map((m) => ({
 						name: m.model,
 						provider: m.provider,
 						cost: parseFloat(m.cost),
@@ -178,12 +201,15 @@ export class StatsService {
 			}),
 		);
 
+		// Filter out null results (stats that don't have the requested model)
+		const filteredStats = statsWithModels.filter((stat) => stat !== null);
+
 		// Transform results for response
 		return {
 			period,
 			startDate: startDate.toISOString(),
 			endDate: new Date().toISOString(),
-			stats: statsWithModels,
+			stats: filteredStats,
 		};
 	}
 }

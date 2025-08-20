@@ -5,6 +5,7 @@ import { z } from "zod";
 import { StatsService } from "@/api/stats/statsService";
 import type { DailyStats, ModelStats, StatsResponse } from "@/api/stats/statsTypes";
 import { validateRequest } from "@/common/utils/httpHandlers";
+import { db, modelUsage, users } from "@/db/index";
 
 const logger = pino({ name: "views-router" });
 
@@ -57,7 +58,7 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 
 		// Get stats from service (handle "all" by using "month" as fallback)
 		const statsPeriod = period === "all" ? "month" : period || "week";
-		const stats = await statsService.getStats(statsPeriod, user);
+		const stats = await statsService.getStats(statsPeriod, user, model);
 
 		// Process data for charts with groupBy parameter
 		const chartData = processStatsForCharts(stats, groupBy || "user");
@@ -269,11 +270,30 @@ function processStatsForCharts(stats: StatsResponse, groupBy: "user" | "model" =
 // Helper function to get available filters
 async function getAvailableFilters() {
 	try {
-		// This would query the database for unique users and models
-		// For now, returning empty arrays
+		// Get all unique users
+		const usersResult = await db
+			.select({
+				username: users.username,
+			})
+			.from(users)
+			.orderBy(users.username);
+
+		// Get all unique model combinations
+		const modelsResult = await db
+			.select({
+				provider: modelUsage.provider,
+				model: modelUsage.model,
+			})
+			.from(modelUsage)
+			.groupBy(modelUsage.provider, modelUsage.model)
+			.orderBy(modelUsage.provider, modelUsage.model);
+
+		// Format models as "provider/model"
+		const uniqueModels = modelsResult.map((m) => `${m.provider}/${m.model}`);
+
 		return {
-			users: [],
-			models: [],
+			users: usersResult.map((u) => u.username),
+			models: uniqueModels,
 		};
 	} catch (error) {
 		logger.error(error, "Failed to get filters");

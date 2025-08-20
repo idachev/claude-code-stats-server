@@ -2,7 +2,7 @@ import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import { pino } from "pino";
-import { healthCheckRouter } from "@/api/healthCheck/healthCheckRouter";
+import { healthRouter } from "@/api/health/healthRouter";
 import { statsRouter } from "@/api/stats/statsRouter";
 import { userRouter } from "@/api/user/userRouter";
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
@@ -28,7 +28,7 @@ app.use(rateLimiter);
 app.use(requestLogger);
 
 // Routes
-app.use("/health", healthCheckRouter);
+app.use("/health", healthRouter);
 app.use("/claude-code-stats", statsRouter);
 app.use("/users", userRouter);
 

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import type { DailyStats } from "../src/api/stats/statsTypes";
 
 test.describe("Claude Code Stats API", () => {
 	const baseURL = "http://localhost:3000";
@@ -98,7 +99,7 @@ test.describe("Claude Code Stats API", () => {
 
 		// Check if our uploaded data is in the response
 		const stats = json.responseObject.stats;
-		const todayStats = stats.find((s: any) => s.username === "playwright-retrieval-test");
+		const todayStats = stats.find((s: DailyStats) => s.username === "playwright-retrieval-test");
 		if (todayStats) {
 			expect(todayStats.username).toBe("playwright-retrieval-test");
 			expect(todayStats.totalTokens).toBeGreaterThanOrEqual(3000);

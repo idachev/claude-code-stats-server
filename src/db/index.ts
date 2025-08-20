@@ -27,7 +27,7 @@ export * from "./schema";
 export const checkDatabaseHealth = async (): Promise<boolean> => {
 	try {
 		const result = await pool.query("SELECT 1");
-		return result.rowCount > 0;
+		return (result.rowCount ?? 0) > 0;
 	} catch (error) {
 		logger.error(error as Error, "Database health check failed");
 		return false;

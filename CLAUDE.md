@@ -34,7 +34,7 @@ yourRegistry.registerPath({
 import { yourRegistry } from "@/api/your/yourRouter";
 // ...
 const registry = new OpenAPIRegistry([
-  healthCheckRegistry, 
+  healthRegistry, 
   userRegistry, 
   statsRegistry,
   yourRegistry  // ADD THIS

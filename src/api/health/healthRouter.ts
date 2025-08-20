@@ -6,8 +6,8 @@ import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { ServiceResponse } from "@/common/models/serviceResponse";
 import { checkDatabaseHealth } from "@/db/index";
 
-export const healthCheckRegistry = new OpenAPIRegistry();
-export const healthCheckRouter: Router = express.Router();
+export const healthRegistry = new OpenAPIRegistry();
+export const healthRouter: Router = express.Router();
 
 const HealthStatusSchema = z.object({
 	status: z.string(),
@@ -15,14 +15,14 @@ const HealthStatusSchema = z.object({
 	timestamp: z.string(),
 });
 
-healthCheckRegistry.registerPath({
+healthRegistry.registerPath({
 	method: "get",
 	path: "/health",
-	tags: ["Health Check"],
+	tags: ["Health"],
 	responses: createApiResponse(HealthStatusSchema, "Success"),
 });
 
-healthCheckRouter.get("/", async (_req: Request, res: Response) => {
+healthRouter.get("/", async (_req: Request, res: Response) => {
 	const dbHealth = await checkDatabaseHealth();
 	const healthStatus = {
 		status: dbHealth ? "ok" : "degraded",

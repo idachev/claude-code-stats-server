@@ -1,20 +1,25 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { pino } from "pino";
 import { db, modelUsage, type NewModelUsage, type NewUsageStats, usageStats, users } from "@/db/index";
+import type { CCUsageData, StatsResponse } from "./statsTypes";
 
 const logger = pino({ name: "StatsService" });
 
 export class StatsService {
-	async uploadStats(username: string, data: any): Promise<void> {
+	async uploadStats(username: string, data: unknown): Promise<void> {
 		// Validate the JSON structure
 		if (!data || typeof data !== "object") {
 			throw new Error("Invalid JSON data");
 		}
 
 		// Check if it's ccusage format with daily array
-		if (!data.daily || !Array.isArray(data.daily)) {
+		const ccData = data as { daily?: unknown };
+		if (!ccData.daily || !Array.isArray(ccData.daily)) {
 			throw new Error("Invalid ccusage format - missing daily array");
 		}
+
+		// Now we know it's a valid CCUsageData
+		const validData = ccData as CCUsageData;
 
 		// Start transaction
 		await db.transaction(async (tx) => {
@@ -28,7 +33,7 @@ export class StatsService {
 			}
 
 			// Process each day in the daily array
-			for (const dayData of data.daily) {
+			for (const dayData of validData.daily) {
 				if (!dayData.date) continue;
 
 				const date = dayData.date; // Keep as string in YYYY-MM-DD format
@@ -97,7 +102,7 @@ export class StatsService {
 		});
 	}
 
-	async getStats(period: "week" | "month", username?: string): Promise<any> {
+	async getStats(period: "week" | "month", username?: string): Promise<StatsResponse> {
 		const days = period === "week" ? 7 : 30;
 		const startDate = new Date();
 		startDate.setDate(startDate.getDate() - days);
@@ -123,13 +128,32 @@ export class StatsService {
 			.orderBy(desc(usageStats.date));
 
 		// Add username filter if provided
-		const statsResults = username
-			? await query.where(and(gte(usageStats.date, startDateStr), eq(users.username, username)))
-			: await query;
+		let statsResults: Awaited<typeof query>;
+		if (username) {
+			statsResults = await db
+				.select({
+					date: usageStats.date,
+					username: users.username,
+					totalCost: usageStats.totalCost,
+					totalTokens: usageStats.totalTokens,
+					inputTokens: usageStats.inputTokens,
+					outputTokens: usageStats.outputTokens,
+					cacheCreationInputTokens: usageStats.cacheCreationInputTokens,
+					cacheReadInputTokens: usageStats.cacheReadInputTokens,
+					userId: users.id,
+					statsId: usageStats.id,
+				})
+				.from(usageStats)
+				.innerJoin(users, eq(usageStats.userId, users.id))
+				.where(and(gte(usageStats.date, startDateStr), eq(users.username, username)))
+				.orderBy(desc(usageStats.date));
+		} else {
+			statsResults = await query;
+		}
 
 		// Get model usage for each stat
 		const statsWithModels = await Promise.all(
-			statsResults.map(async (stat) => {
+			statsResults.map(async (stat: (typeof statsResults)[0]) => {
 				const models = await db.select().from(modelUsage).where(eq(modelUsage.usageStatsId, stat.statsId));
 
 				return {

@@ -6,6 +6,17 @@ import { ServiceResponse } from "@/common/models/serviceResponse";
 import { validateRequest } from "@/common/utils/httpHandlers";
 import { StatsService } from "./statsService";
 
+// Type guard for errors with statusCode
+interface ErrorWithStatusCode extends Error {
+	statusCode: number;
+}
+
+function hasStatusCode(error: unknown): error is ErrorWithStatusCode {
+	return (
+		error instanceof Error && "statusCode" in error && typeof (error as ErrorWithStatusCode).statusCode === "number"
+	);
+}
+
 export const statsRegistry = new OpenAPIRegistry();
 export const statsRouter: Router = express.Router();
 
@@ -93,12 +104,10 @@ statsRouter.post("/", validateRequest(StatsUploadSchema), async (req: Request, r
 			null, // No additional response object needed
 		);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
-	} catch (error: any) {
-		const serviceResponse = ServiceResponse.failure(
-			error.message || "Failed to upload stats",
-			null,
-			error.statusCode || 500,
-		);
+	} catch (error: unknown) {
+		const errorMessage = error instanceof Error ? error.message : "Failed to upload stats";
+		const statusCode = hasStatusCode(error) ? error.statusCode : 500;
+		const serviceResponse = ServiceResponse.failure(errorMessage, null, statusCode);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	}
 });
@@ -115,10 +124,32 @@ statsRegistry.registerPath({
 	},
 	responses: createApiResponse(
 		z.object({
-			period: z.string(),
+			period: z.enum(["week", "month"]),
 			startDate: z.string(),
 			endDate: z.string(),
-			stats: z.array(z.any()),
+			stats: z.array(
+				z.object({
+					date: z.string(),
+					username: z.string(),
+					totalCost: z.number(),
+					totalTokens: z.number(),
+					inputTokens: z.number(),
+					outputTokens: z.number(),
+					cacheCreationInputTokens: z.number(),
+					cacheReadInputTokens: z.number(),
+					models: z.array(
+						z.object({
+							name: z.string(),
+							provider: z.string(),
+							cost: z.number(),
+							inputTokens: z.number(),
+							outputTokens: z.number(),
+							cacheCreationInputTokens: z.number(),
+							cacheReadInputTokens: z.number(),
+						}),
+					),
+				}),
+			),
 		}),
 		"Success",
 	),
@@ -132,12 +163,10 @@ statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res
 
 		const serviceResponse = ServiceResponse.success("Stats retrieved", stats);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
-	} catch (error: any) {
-		const serviceResponse = ServiceResponse.failure(
-			error.message || "Failed to retrieve stats",
-			null,
-			error.statusCode || 500,
-		);
+	} catch (error: unknown) {
+		const errorMessage = error instanceof Error ? error.message : "Failed to retrieve stats";
+		const statusCode = hasStatusCode(error) ? error.statusCode : 500;
+		const serviceResponse = ServiceResponse.failure(errorMessage, null, statusCode);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	}
 });

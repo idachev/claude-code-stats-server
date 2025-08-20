@@ -7,9 +7,8 @@ Build a simple, efficient server to collect and visualize Claude Code usage stat
 
 ### Backend Framework: **Express.js (Node.js)**
 **Why Express.js?**
-- Most popular Node.js framework with 66.388 GitHub score
+- Most popular Node.js framework with excellent community support
 - Lightweight and minimalistic - perfect for our simple REST API needs
-- Excellent ecosystem and community support
 - Fast development cycle
 - Native JSON handling
 - Easy deployment options
@@ -22,32 +21,33 @@ Build a simple, efficient server to collect and visualize Claude Code usage stat
 - Easy integration with Express.js
 - Perfect for data-driven dashboards
 
-### Database: **PostgreSQL with TypeORM**
+### Database: **PostgreSQL with Drizzle ORM**
 **Why PostgreSQL?**
 - Industry-standard for production applications
 - Excellent JSON/JSONB support for storing usage statistics
 - Advanced indexing capabilities for performance
 - Robust concurrent access handling
-- Built-in full-text search capabilities
 - Strong data integrity and ACID compliance
 
-**Why TypeORM?**
-- Type-safe database operations with TypeScript
-- Decorator-based entity definitions
-- Automatic migrations generation
-- Built-in connection pooling
-- Repository pattern for clean code organization
-- Consistent with enterprise patterns (like backoffice-backend)
+**Why Drizzle ORM?**
+- Lightweight and performant TypeScript ORM
+- Excellent ESNext/ES modules support
+- SQL-like syntax with full type safety
+- Simple migration system
+- No decorators needed (pure TypeScript)
+- Better suited for modern JavaScript runtimes
 
 ### Additional Technologies
-- **TypeORM** - Type-safe ORM for PostgreSQL
+- **Drizzle ORM** - Type-safe ORM for PostgreSQL
+- **Drizzle Kit** - CLI tool for migrations and database management
 - **Chart.js** - For rendering beautiful charts (similar to the example image)
 - **Tailwind CSS** - For modern, responsive UI styling
 - **Day.js** - For date manipulation and formatting
 - **dotenv** - For environment configuration
-- **reflect-metadata** - Required for TypeORM decorators
+- **Zod** - For schema validation and type inference
 - **Express Validator** - For input validation
 - **Helmet** - For basic security headers
+- **Playwright** - For end-to-end testing
 
 ## Project Structure
 ```
@@ -55,18 +55,18 @@ claude-code-stats-server/
 ├── src/
 │   ├── index.ts            # Application entry point
 │   ├── server.ts           # Express server setup
-│   ├── data-source.ts      # TypeORM data source configuration
+│   ├── db/
+│   │   ├── index.ts        # Database connection and exports
+│   │   └── schema.ts       # Drizzle schema definitions
 │   ├── api/
 │   │   ├── health/
 │   │   │   └── healthRouter.ts
 │   │   └── stats/
 │   │       ├── statsRouter.ts
-│   │       ├── statsController.ts
 │   │       └── statsService.ts
-│   ├── entities/
-│   │   ├── User.ts         # User entity
-│   │   ├── UsageStats.ts   # Usage statistics entity
-│   │   └── ModelUsage.ts   # Model usage entity
+│   ├── api-docs/
+│   │   ├── openAPIDocumentGenerator.ts  # Swagger documentation
+│   │   └── openAPIResponseBuilders.ts
 │   ├── views/
 │   │   ├── stats.ejs       # Main stats dashboard
 │   │   └── partials/       # Reusable EJS components
@@ -74,21 +74,30 @@ claude-code-stats-server/
 │   │   ├── css/            # Tailwind output & custom styles
 │   │   └── js/             # Client-side JavaScript for charts
 │   └── common/
+│       ├── middleware/
+│       │   ├── errorHandler.ts
+│       │   └── rateLimiter.ts
 │       └── utils/
-│           └── dataProcessor.ts
-├── migration/              # TypeORM migrations
-├── tests/                   # Unit and integration tests
+│           └── envConfig.ts
+├── drizzle/                # Drizzle migrations
+├── tests/                  # Playwright tests
+│   └── api.spec.ts        # API endpoint tests
 ├── docs/
-│   ├── build-plan.md       # This file
-│   ├── imgs/               # Reference images
-│   └── data/               # Sample data
+│   ├── build-plan.md      # This file
+│   ├── db-structure.md    # Database documentation
+│   ├── imgs/              # Reference images
+│   └── data/              # Sample data
 ├── utils/
-│   └── docker-compose/     # Docker PostgreSQL setup
+│   └── docker-compose/    # Docker PostgreSQL setup
 │       ├── docker-compose.yaml  # PostgreSQL 17 configuration
 │       ├── docker-compose.sh     # Helper script
 │       ├── init-data-volumes.sh  # Volume initialization
 │       └── docker-secrets/       # Database password
 ├── .env.template
+├── CLAUDE.md              # Technical development guide
+├── README.md              # Project overview
+├── drizzle.config.ts      # Drizzle configuration
+├── playwright.config.ts   # Playwright test configuration
 ├── package.json
 ├── tsconfig.json
 ├── tailwind.config.js
@@ -99,54 +108,97 @@ claude-code-stats-server/
 
 ### 1. GET /health
 - **Purpose**: Health check for monitoring
-- **Response**: `{ "status": "ok", "timestamp": "2025-08-19T..." }`
+- **Response**: 
+```json
+{
+  "success": true,
+  "message": "Health check",
+  "responseObject": {
+    "status": "ok",
+    "database": true,
+    "timestamp": "2025-08-19T..."
+  },
+  "statusCode": 200
+}
+```
 - **Status Code**: 200
 
 ### 2. POST /claude-code-stats
 - **Purpose**: Upload usage statistics
 - **Query Params**: `username` (required)
 - **Body**: JSON data from ccusage (see example in docs/data/)
+- **Request Body Schema**:
+```json
+{
+  "daily": [
+    {
+      "date": "YYYY-MM-DD",
+      "inputTokens": number,
+      "outputTokens": number,
+      "cacheCreationTokens": number,
+      "cacheReadTokens": number,
+      "totalTokens": number,
+      "totalCost": number,
+      "modelBreakdowns": [
+        {
+          "modelName": string,
+          "provider": string,
+          "inputTokens": number,
+          "outputTokens": number,
+          "cacheCreationTokens": number,
+          "cacheReadTokens": number,
+          "cost": number
+        }
+      ]
+    }
+  ]
+}
+```
 - **Validation**:
   - Username must be alphanumeric, 3-50 characters
   - JSON must match ccusage schema
-  - Prevent duplicate uploads (based on date + username)
-- **Response**: `{ "success": true, "message": "Stats uploaded successfully" }`
-- **Status Codes**: 200 (success), 400 (validation error), 409 (duplicate)
+  - Prevents duplicate uploads (upserts based on date + username)
+- **Response**: 
+```json
+{
+  "success": true,
+  "message": "Stats uploaded successfully",
+  "responseObject": null,
+  "statusCode": 200
+}
+```
+- **Status Codes**: 200 (success), 400 (validation error)
 
 ### 3. GET /claude-code-stats
-- **Purpose**: Display statistics dashboard
+- **Purpose**: Retrieve statistics (JSON response, dashboard view coming in Phase 4)
 - **Query Params** (optional):
   - `period`: "week" | "month" (default: "week")
   - `user`: specific username to filter
-- **Response**: Server-rendered HTML with:
-  - Cost overview (similar to example image)
-  - Daily token cost chart
-  - User breakdown
-  - Model usage distribution
-  - Filtering controls
+- **Response**: JSON with aggregated statistics
+- **Future**: Server-rendered HTML dashboard with charts
 
 ## Database Schema
 
-The complete database structure, including tables, indexes, migration strategy, and common queries, is documented in detail at [`docs/db-structure.md`](./db-structure.md).
+The complete database structure is documented in [`docs/db-structure.md`](./db-structure.md).
 
 **Key Tables:**
 - `users` - Stores unique users who upload statistics
 - `usage_stats` - Daily aggregated statistics per user
 - `model_usage` - Breakdown of usage by AI model
 
-**Technology:** PostgreSQL with TypeORM for type-safe database operations
+**Technology:** PostgreSQL with Drizzle ORM for type-safe database operations
 
-**Entity Classes:**
-- `User` - TypeORM entity with decorators
-- `UsageStats` - Entity with JSONB column for raw data
-- `ModelUsage` - Entity with relationships to UsageStats
+**Schema Definition:**
+- Defined in `/src/db/schema.ts` using Drizzle's schema builder
+- Type-safe with automatic TypeScript type inference
+- Supports relations between tables
 
-**Repository Pattern:**
-- Type-safe queries using TypeORM repositories
-- Custom repository methods for complex aggregations
-- Built-in connection pooling and transaction support
+**Migration System:**
+- Uses Drizzle Kit for migration management
+- Migrations stored in `/drizzle/` directory
+- Applied using `pnpm db:migrate` for production-like tracking
 
-## UI/UX Design
+## UI/UX Design (Phase 4 - Not Yet Implemented)
 
 ### Dashboard Layout
 Based on the example image, the dashboard will include:
@@ -175,46 +227,42 @@ Based on the example image, the dashboard will include:
    - Token Count
    - Last Active
 
-### Visual Design
-- Dark theme matching the example
-- Color palette for models (consistent across all charts)
-- Responsive design for mobile/tablet/desktop
-- Smooth animations for data updates
-
 ## Implementation Phases
 
-### Phase 1: Core Setup (1-2 hours)
-- [ ] Set up TypeORM data source configuration
-- [ ] Create entity definitions (User, UsageStats, ModelUsage)
-- [ ] Configure database connection
-- [ ] Generate and run initial migration
-- [ ] Implement basic error handling middleware
+### Phase 1: Core Setup ✅ (Completed)
+- ✅ Set up Drizzle ORM configuration
+- ✅ Create schema definitions (users, usageStats, modelUsage)
+- ✅ Configure database connection
+- ✅ Generate and run initial migration
+- ✅ Implement basic error handling middleware
 
-### Phase 2: API Development (2-3 hours)
-- [ ] Implement GET /health endpoint
-- [ ] Implement POST /claude-code-stats endpoint
-- [ ] Create basic validation for username and JSON body
-- [ ] Set up TypeORM repositories
-- [ ] Implement stats service for data insertion
+### Phase 2: API Development ✅ (Completed)
+- ✅ Implement GET /health endpoint with database check
+- ✅ Implement POST /claude-code-stats endpoint
+- ✅ Create validation for username and JSON body
+- ✅ Set up Drizzle database operations
+- ✅ Implement stats service for data insertion
+- ✅ Register endpoints in Swagger/OpenAPI
 
-### Phase 3: Data Processing (2-3 hours)
-- [ ] Parse and validate ccusage JSON format
-- [ ] Transform JSON data to entity format
-- [ ] Implement upsert logic for daily stats
-- [ ] Create aggregation queries for statistics
-- [ ] Add proper database indexes
+### Phase 3: Data Processing ✅ (Completed)
+- ✅ Parse and validate ccusage JSON format
+- ✅ Transform JSON data to schema format
+- ✅ Implement upsert logic for daily stats
+- ✅ Create aggregation queries for statistics
+- ✅ Add proper database indexes
+- ✅ Test with Playwright
 
-### Phase 4: Frontend Development (3-4 hours)
+### Phase 4: Frontend Development (2-3 hours) - TODO
 - [ ] Set up EJS templates and view engine
 - [ ] Configure Tailwind CSS
 - [ ] Create stats dashboard layout
 - [ ] Integrate Chart.js for visualizations
-- [ ] Implement GET /claude-code-stats view endpoint
-- [ ] Add period and user filtering
+- [ ] Update GET /claude-code-stats to render HTML view
+- [ ] Add period and user filtering UI
 
-### Phase 5: Testing & Polish (2-3 hours)
-- [ ] Write unit tests for services
-- [ ] Write integration tests for API endpoints
+### Phase 5: Testing & Polish (1-2 hours)
+- ✅ Write Playwright tests for API endpoints
+- [ ] Add more comprehensive test coverage
 - [ ] Performance optimization
 - [ ] Security hardening
 - [ ] Documentation updates
@@ -227,9 +275,9 @@ Based on the example image, the dashboard will include:
 
 ## Security Considerations
 
-### Current Implementation (V1)
-- Input validation on all endpoints
-- SQL injection prevention (parameterized queries)
+### Current Implementation
+- Input validation on all endpoints using Zod schemas
+- SQL injection prevention (parameterized queries via Drizzle)
 - XSS protection in templates
 - Rate limiting on upload endpoint
 - CORS configuration
@@ -238,28 +286,26 @@ Based on the example image, the dashboard will include:
 ## Performance Optimizations
 
 - Database indexing on frequently queried columns
-- Caching aggregated statistics (5-minute TTL)
-- Lazy loading for large datasets
-- Pagination for user lists
+- Connection pooling (20 connections max)
+- Transaction support for data consistency
+- Efficient upsert operations
+- Lazy loading for large datasets (planned)
 - Gzip compression for responses
-- Static asset optimization
 
 ## Testing Strategy
 
-### Unit Tests
-- API endpoint validation
-- Data processing functions
-- Database operations
+### Current Tests (Playwright)
+- ✅ Health endpoint validation
+- ✅ Stats upload with valid data
+- ✅ Stats retrieval with filtering
+- ✅ Invalid data rejection
+- ✅ Required parameter validation
 
-### Integration Tests
-- Full upload → process → display flow
-- Multi-user scenarios
+### Future Tests
+- Unit tests for services
+- Integration tests for full flow
+- Performance tests with concurrent uploads
 - Edge cases (empty data, malformed JSON)
-
-### Performance Tests
-- Load testing with multiple concurrent uploads
-- Large dataset rendering
-- Database query optimization
 
 ## Deployment Options
 
@@ -275,7 +321,11 @@ cd utils/docker-compose
 # Password: see utils/docker-compose/docker-secrets/db-password
 # Database: claude_code_stats
 
-npm run start:dev  # Runs with hot reload and local PostgreSQL
+# Run migrations
+pnpm db:migrate
+
+# Start development server
+pnpm start:dev  # Runs on port 3000 by default
 ```
 
 ### Production
@@ -287,140 +337,54 @@ npm run start:dev  # Runs with hot reload and local PostgreSQL
 ## Monitoring & Maintenance
 
 - Health check endpoint for uptime monitoring
-- Error logging with timestamps
+- Error logging with timestamps (pino logger)
 - Database backup schedule
-- Usage analytics (optional)
+- Drizzle Studio for database GUI (`pnpm db:studio`)
 
----
+## Key Technical Decisions
 
-# Optional Enhancements (V2)
+### Why we switched from TypeORM to Drizzle
+1. **ESNext/ES Module Support**: Drizzle works seamlessly with modern JavaScript module systems
+2. **Lightweight**: Smaller bundle size and faster startup
+3. **Type Safety**: Better TypeScript inference without decorators
+4. **SQL-like Syntax**: More intuitive for developers familiar with SQL
+5. **Simple Migrations**: Straightforward migration generation and application
 
-## Authentication & Authorization
-- **JWT-based authentication**
-  - User registration/login
-  - Protected upload endpoints
-  - User-specific dashboards
-- **API Key management**
-  - Generate unique API keys per user
-  - Rate limiting per key
-  - Key rotation
+### Migration Strategy
+- Always use `pnpm db:migrate` (not `db:push`) for production-like migration tracking
+- Migrations are versioned and stored in `/drizzle/` directory
+- Each migration is immutable once applied
 
-## Advanced Features
-- **Export Capabilities**
-  - CSV export of statistics
-  - PDF reports generation
-  - API for programmatic access
-  
-- **Real-time Updates**
-  - WebSocket for live dashboard updates
-  - Push notifications for cost thresholds
-  
-- **Cost Alerts**
-  - Email notifications when costs exceed threshold
-  - Daily/weekly summary emails
-  
-- **Team Features**
-  - Organization/team management
-  - Aggregated team statistics
-  - Role-based access control
-
-## Data Enhancements
-- **Historical Trends**
-  - Month-over-month comparisons
-  - Predictive cost modeling
-  - Usage pattern analysis
-  
-- **Advanced Filtering**
-  - Date range selection
-  - Model-specific views
-  - Cost breakdown by feature (web search, code execution)
-
-## Infrastructure Improvements
-- **Caching Layer**
-  - Redis for session management
-  - Cached aggregations
-  
-- **Message Queue**
-  - Process uploads asynchronously
-  - Handle large batch uploads
-  
-- **Multi-database Support**
-  - Read replicas for scaling
-  - Data archival strategy
-
-## Developer Experience
-- **API Documentation**
-  - OpenAPI/Swagger specification
-  - Interactive API explorer
-  
-- **SDK/CLI Tools**
-  - Node.js SDK for uploads
-  - CLI for bulk operations
-  
-- **Webhooks**
-  - Notify external systems of new data
-  - Integration with Slack/Discord
-
-## Compliance & Governance
-- **Data Privacy**
-  - GDPR compliance
-  - Data retention policies
-  - User data export/deletion
-  
-- **Audit Logging**
-  - Track all data modifications
-  - Access logs
-  - Compliance reporting
-
-## AI/ML Features
-- **Anomaly Detection**
-  - Identify unusual usage patterns
-  - Cost spike alerts
-  
-- **Optimization Suggestions**
-  - Recommend cost-saving strategies
-  - Model selection optimization
+### API Documentation
+- All endpoints must be registered in OpenAPI/Swagger
+- Available at http://localhost:3000/swagger
+- Provides interactive testing interface
 
 ---
 
 ## Success Metrics
 
-### V1 Success Criteria
-- Successfully accepts and stores ccusage JSON uploads
-- Displays accurate statistics matching the example visualization
-- Handles multiple users without data conflicts
+### Current Implementation
+- ✅ Successfully accepts and stores ccusage JSON uploads
+- ✅ Returns accurate statistics via API
+- ✅ Handles multiple users without data conflicts
+- ✅ All Playwright tests passing
+- ✅ Swagger documentation complete for existing endpoints
+
+### Remaining Goals
+- Display statistics in beautiful HTML dashboard
 - Page load time < 2 seconds
+- Support for data export
 - 99.9% uptime
 
-### V2 Success Criteria
-- User authentication working securely
-- Export functionality operational
-- Real-time updates functioning
-- Alert system reliable
-- API documentation complete
+## Timeline
 
-## Timeline Estimate
-
-**V1 MVP**: 10-15 hours of focused development
-**V2 with Optional Features**: Additional 40-60 hours
-
-## Questions for Stakeholder Review
-
-1. Should we prioritize any specific V2 features for earlier implementation?
-2. What is the expected number of users and upload frequency?
-3. Are there any specific compliance requirements?
-4. Preferred deployment platform?
-5. Budget constraints for infrastructure?
+**Phases 1-3**: ✅ Completed
+**Phase 4 (Frontend)**: 2-3 hours estimated
+**Phase 5-6 (Polish & Production)**: 3-4 hours estimated
 
 ---
 
-## Next Steps
-
-1. Review and approve this build plan
-2. Set up development environment
-3. Begin Phase 1 implementation
-4. Schedule regular progress reviews
-
-**Document Version**: 1.0
-**Last Updated**: 2025-08-19
-**Author**: AI Assistant
+**Document Version**: 2.0
+**Last Updated**: 2025-08-20
+**Status**: Core API Complete, Frontend Pending

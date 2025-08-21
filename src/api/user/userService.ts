@@ -17,7 +17,7 @@ export class UserService {
 		try {
 			const users = await this.userRepository.findAllAsync();
 			if (!users || users.length === 0) {
-				return ServiceResponse.failure("No Users found", null, StatusCodes.NOT_FOUND);
+				return ServiceResponse.success<User[]>("No users found", []);
 			}
 			return ServiceResponse.success<User[]>("Users found", users);
 		} catch (ex) {

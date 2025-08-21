@@ -46,7 +46,7 @@ describe("userService", () => {
 			expect(result.responseObject).toEqual(mockUsers);
 		});
 
-		it("returns a not found error for no users found", async () => {
+		it("returns an empty array for no users found", async () => {
 			// Arrange
 			(userRepositoryInstance.findAllAsync as Mock).mockReturnValue(null);
 
@@ -54,10 +54,10 @@ describe("userService", () => {
 			const result = await userServiceInstance.findAll();
 
 			// Assert
-			expect(result.statusCode).toEqual(StatusCodes.NOT_FOUND);
-			expect(result.success).toBeFalsy();
-			expect(result.message).equals("No Users found");
-			expect(result.responseObject).toBeNull();
+			expect(result.statusCode).toEqual(StatusCodes.OK);
+			expect(result.success).toBeTruthy();
+			expect(result.message).equals("No users found");
+			expect(result.responseObject).toEqual([]);
 		});
 
 		it("handles errors for findAllAsync", async () => {

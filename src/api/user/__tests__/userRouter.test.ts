@@ -42,7 +42,7 @@ describe("User API Endpoints", () => {
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.OK);
 			expect(responseBody.success).toBeTruthy();
-			expect(responseBody.message).toContain("Users found");
+			expect(responseBody.message).toMatch(/users found/i);
 			expect(Array.isArray(responseBody.responseObject)).toBeTruthy();
 		});
 	});

@@ -1,0 +1,31 @@
+services:
+  claude-code-stats-db:
+    image: postgres:17-alpine
+    container_name: claude-code-stats-db
+    environment:
+      POSTGRES_USER: "localdev"
+      POSTGRES_PASSWORD_FILE: "/run/secrets/db-password"
+      POSTGRES_DB: "claude_code_stats"
+    ports:
+      - 9099:5432
+    volumes:
+      - ./docker-secrets:/run/secrets
+      - claude-code-stats-db-data:/var/lib/postgresql/data
+
+  claude-code-stats-server:
+    image: claude-code-stats-server:latest
+    container_name: claude-code-stats-server
+    env_file:
+      - ../../.env
+    environment:
+        - DB_HOST=claude-code-stats-db
+        - DB_PORT=5432
+        - DB_USER=localdev
+        - DB_PASSWORD=db-test-pass
+        - DB_NAME=claude_code_stats
+    ports:
+      - 3000:3000
+
+volumes:
+  claude-code-stats-db-data:
+    external: true

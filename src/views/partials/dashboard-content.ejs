@@ -132,10 +132,10 @@
 	<div class="flex justify-center gap-6 flex-wrap">
 		<!-- Total Stats Card with Donut Chart -->
 		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="donutChartCard">
-			<div class="flex justify-between items-start gap-2">
-				<div class="flex-1">
-					<p class="text-gray-400 text-sm mb-3"><%= isTokensView ? 'Total tokens' : 'Total cost' %></p>
-					<p class="text-4xl font-bold text-white">
+			<div class="flex flex-col items-center">
+				<div class="w-full text-center mb-4">
+					<p class="text-gray-400 text-base mb-3"><%= isTokensView ? 'Total tokens' : 'Total cost' %></p>
+					<p class="text-5xl font-bold text-white">
 						<% if (isTokensView) { %>
 						<%= totalTokensInMillions %>M
 						<% } else { %>
@@ -144,7 +144,7 @@
 					</p>
 					<p class="text-gray-500 text-sm mt-2"><%= uniqueUsers.size %> users • <%= totalDays %> days</p>
 				</div>
-				<div class="chart-container-small" style="position: relative;">
+				<div class="chart-container-small" style="position: relative; width: 180px; height: 180px;">
 					<canvas id="tokenCostDonut"></canvas>
 					<!-- Custom tooltip container -->
 					<div id="chartjs-tooltip"></div>
@@ -154,11 +154,10 @@
 
 		<!-- Stats Distribution List Card -->
 		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="costDistributionCard">
-			<div class="h-full flex flex-col">
-				<p class="text-gray-400 text-sm mb-4 flex-shrink-0">
+			<div class="flex flex-col" style="height: max(270px, 18vh);">
+				<p class="text-gray-400 text-base mb-4 flex-shrink-0">
 					<%= isTokensView ? 'Token Distribution' : 'Cost Distribution' %></p>
-				<div id="costDistributionList" class="flex-1 overflow-y-auto pr-2"
-				 style="max-height: calc(100% - 2rem);">
+				<div id="costDistributionList" class="flex-1 overflow-y-auto pr-2">
 					<!-- This will be populated by JavaScript -->
 				</div>
 			</div>
@@ -175,8 +174,10 @@
 		</div>
 
 		<!-- Legend -->
-		<div class="mt-4 flex flex-wrap gap-4 text-xs" id="chartLegend">
-			<!-- Legend will be dynamically populated by JavaScript -->
+		<div class="mt-4 overflow-y-auto" style="max-height: 6em;" id="chartLegendContainer">
+			<div class="flex flex-wrap gap-4 text-xs" id="chartLegend">
+				<!-- Legend will be dynamically populated by JavaScript -->
+			</div>
 		</div>
 	</div>
 </div>
@@ -236,35 +237,40 @@
     color: #e5e7eb;
 }
 
-/* Custom scrollbar for cost distribution list */
-#costDistributionList::-webkit-scrollbar {
+/* Custom scrollbar for cost distribution list and legend */
+#costDistributionList::-webkit-scrollbar,
+#chartLegendContainer::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
 }
 
-#costDistributionList::-webkit-scrollbar-track {
+#costDistributionList::-webkit-scrollbar-track,
+#chartLegendContainer::-webkit-scrollbar-track {
     background: rgba(58, 58, 58, 0.3);
     border-radius: 3px;
 }
 
-#costDistributionList::-webkit-scrollbar-thumb {
+#costDistributionList::-webkit-scrollbar-thumb,
+#chartLegendContainer::-webkit-scrollbar-thumb {
     background: rgba(156, 163, 175, 0.3);
     border-radius: 3px;
 }
 
-#costDistributionList::-webkit-scrollbar-thumb:hover {
+#costDistributionList::-webkit-scrollbar-thumb:hover,
+#chartLegendContainer::-webkit-scrollbar-thumb:hover {
     background: rgba(156, 163, 175, 0.5);
 }
 
 /* Firefox scrollbar */
-#costDistributionList {
+#costDistributionList,
+#chartLegendContainer {
     scrollbar-width: thin;
     scrollbar-color: rgba(156, 163, 175, 0.3) rgba(58, 58, 58, 0.3);
 }
 
 /* Chart container sizing - responsive */
 .chart-container-small {
-    width: 60%;
-    height: 60%;
+    /* Size is now set inline in the HTML */
 }
 </style>
 <script>
@@ -705,15 +711,7 @@ if (costListContainer) {
     }
     costListContainer.appendChild(totalDiv);
 
-    // Match the height of the donut chart card
-    setTimeout(() => {
-        const donutCard = document.getElementById('donutChartCard');
-        const distCard = document.getElementById('costDistributionCard');
-        if (donutCard && distCard) {
-            const donutHeight = donutCard.offsetHeight;
-            distCard.style.height = donutHeight + 'px';
-        }
-    }, 100);
+    // The height is now fixed in CSS, no need to match dynamically
 }
 
 // Helper function for colors

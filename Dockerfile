@@ -22,8 +22,13 @@ RUN pnpm run build
 # Final stage - combine production dependencies and build output
 FROM node:23.11.1-alpine AS runner
 WORKDIR /app
+
+# Set NODE_ENV to production
+ENV NODE_ENV=production
+
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/src/views ./src/views
 
 # Use the node user from the image
 USER node

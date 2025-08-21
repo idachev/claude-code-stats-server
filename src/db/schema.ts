@@ -6,7 +6,7 @@ export const users = pgTable(
 	"users",
 	{
 		id: serial("id").primaryKey(),
-		username: varchar("username", { length: 50 }).notNull().unique(),
+		username: varchar("username", { length: 128 }).notNull().unique(),
 		apiKeyHash: varchar("api_key_hash", { length: 255 }),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at").defaultNow().notNull(),

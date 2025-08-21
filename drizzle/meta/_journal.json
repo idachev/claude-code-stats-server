@@ -15,6 +15,13 @@
       "when": 1755681035940,
       "tag": "0001_sloppy_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755753737170,
+      "tag": "0002_smart_franklin_richards",
+      "breakpoints": true
     }
   ]
 }

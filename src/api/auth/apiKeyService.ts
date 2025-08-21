@@ -13,12 +13,19 @@ export class ApiKeyService {
 	private readonly API_KEY_EXPECTED_LENGTH = this.API_KEY_PREFIX.length + this.API_KEY_RANDOM_BYTES * 2; // prefix + hex chars
 
 	/**
-	 * Generates a new API key for a user
-	 * Creates the user if they don't exist
+	 * Creates a new user with an API key
+	 * Throws error if user already exists
 	 * Returns the raw API key (to be shown once) and stores the hash in DB
 	 */
-	async generateApiKey(username: string): Promise<string> {
+	async createUserWithApiKey(username: string): Promise<string> {
 		try {
+			// Check if user already exists
+			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+
+			if (existingUser) {
+				throw new Error(`User ${username} already exists`);
+			}
+
 			// Generate a secure random API key
 			// Format: prefix + 32 random bytes as hex
 			const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
@@ -27,37 +34,68 @@ export class ApiKeyService {
 			// Hash the API key using bcrypt
 			const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
 
-			// Check if user exists
-			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+			// Create new user with the hashed API key
+			await db.insert(users).values({
+				username,
+				apiKeyHash,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			});
 
-			if (existingUser) {
-				// Update existing user with the new hashed API key
-				await db
-					.update(users)
-					.set({
-						apiKeyHash,
-						updatedAt: new Date(),
-					})
-					.where(eq(users.username, username));
-
-				logger.info(`Updated API key for existing user: ${username}`);
-			} else {
-				// Create new user with the hashed API key
-				await db.insert(users).values({
-					username,
-					apiKeyHash,
-					createdAt: new Date(),
-					updatedAt: new Date(),
-				});
-
-				logger.info(`Created new user with API key: ${username}`);
-			}
+			logger.info(`Created new user with API key: ${username}`);
 
 			// Return the raw API key (to be shown to user once)
 			return apiKey;
 		} catch (error) {
-			logger.error(error, `Failed to generate API key for user: ${username}`);
-			throw new Error("Failed to generate API key");
+			if (error instanceof Error && error.message.includes("already exists")) {
+				throw error;
+			}
+			logger.error(error, `Failed to create user with API key: ${username}`);
+			throw new Error("Failed to create user with API key");
+		}
+	}
+
+	/**
+	 * Regenerates API key for an existing user
+	 * Throws error if user doesn't exist
+	 * Returns the raw API key (to be shown once) and stores the hash in DB
+	 */
+	async regenerateApiKey(username: string): Promise<string> {
+		try {
+			// Check if user exists
+			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+
+			if (!existingUser) {
+				throw new Error(`User ${username} not found`);
+			}
+
+			// Generate a secure random API key
+			// Format: prefix + 32 random bytes as hex
+			const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
+			const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
+
+			// Hash the API key using bcrypt
+			const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
+
+			// Update existing user with the new hashed API key
+			await db
+				.update(users)
+				.set({
+					apiKeyHash,
+					updatedAt: new Date(),
+				})
+				.where(eq(users.username, username));
+
+			logger.info(`Regenerated API key for user: ${username}`);
+
+			// Return the raw API key (to be shown to user once)
+			return apiKey;
+		} catch (error) {
+			if (error instanceof Error && error.message.includes("not found")) {
+				throw error;
+			}
+			logger.error(error, `Failed to regenerate API key for user: ${username}`);
+			throw new Error("Failed to regenerate API key");
 		}
 	}
 

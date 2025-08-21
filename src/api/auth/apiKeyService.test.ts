@@ -47,7 +47,7 @@ describe("ApiKeyService", () => {
 			(db.select as any).mockImplementation(mockSelect);
 			(db.insert as any).mockImplementation(mockInsert);
 
-			const apiKey = await apiKeyService.generateApiKey("testuser");
+			const apiKey = await apiKeyService.createUserWithApiKey("testuser");
 
 			// Check API key format
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
@@ -113,7 +113,7 @@ describe("ApiKeyService", () => {
 		});
 	});
 
-	describe("generateApiKey", () => {
+	describe("createUserWithApiKey", () => {
 		it("should create new user when user doesn't exist", async () => {
 			// Mock database - user doesn't exist
 			const mockSelect = vi.fn().mockReturnValue({
@@ -127,7 +127,7 @@ describe("ApiKeyService", () => {
 			(db.select as any).mockImplementation(mockSelect);
 			(db.insert as any).mockImplementation(mockInsert);
 
-			const apiKey = await apiKeyService.generateApiKey("newuser");
+			const apiKey = await apiKeyService.createUserWithApiKey("newuser");
 
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
 			expect(mockInsert).toHaveBeenCalledWith(users);
@@ -139,7 +139,7 @@ describe("ApiKeyService", () => {
 			);
 		});
 
-		it("should update existing user when user exists", async () => {
+		it("should throw error when user already exists", async () => {
 			// Mock database - user exists
 			const mockSelect = vi.fn().mockReturnValue({
 				from: vi.fn().mockReturnValue({
@@ -159,10 +159,51 @@ describe("ApiKeyService", () => {
 			(db.select as any).mockImplementation(mockSelect);
 			(db.update as any).mockImplementation(mockUpdate);
 
-			const apiKey = await apiKeyService.generateApiKey("existinguser");
+			await expect(apiKeyService.createUserWithApiKey("existinguser")).rejects.toThrow(
+				"User existinguser already exists",
+			);
+
+			expect(mockUpdate).not.toHaveBeenCalled();
+		});
+	});
+
+	describe("regenerateApiKey", () => {
+		it("should regenerate API key for existing user", async () => {
+			// Mock database - user exists
+			const mockSelect = vi.fn().mockReturnValue({
+				from: vi.fn().mockReturnValue({
+					where: vi.fn().mockResolvedValue([
+						{
+							username: "existinguser",
+							apiKeyHash: "old_hash",
+						},
+					]),
+				}),
+			});
+			const mockUpdate = vi.fn().mockReturnValue({
+				set: vi.fn().mockReturnValue({
+					where: vi.fn().mockResolvedValue(undefined),
+				}),
+			});
+			(db.select as any).mockImplementation(mockSelect);
+			(db.update as any).mockImplementation(mockUpdate);
+
+			const apiKey = await apiKeyService.regenerateApiKey("existinguser");
 
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
 			expect(mockUpdate).toHaveBeenCalledWith(users);
+		});
+
+		it("should throw error when user doesn't exist", async () => {
+			// Mock database - user doesn't exist
+			const mockSelect = vi.fn().mockReturnValue({
+				from: vi.fn().mockReturnValue({
+					where: vi.fn().mockResolvedValue([]),
+				}),
+			});
+			(db.select as any).mockImplementation(mockSelect);
+
+			await expect(apiKeyService.regenerateApiKey("nonexistent")).rejects.toThrow("User nonexistent not found");
 		});
 	});
 
@@ -270,7 +311,7 @@ describe("ApiKeyService", () => {
 			(db.insert as any).mockImplementation(mockInsert);
 
 			// Generate API key
-			const apiKey = await apiKeyService.generateApiKey("testuser");
+			const apiKey = await apiKeyService.createUserWithApiKey("testuser");
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
 			expect(storedHash).toBeTruthy();
 

@@ -17,6 +17,7 @@
 		"format:ejs": "find src/views -name '*.ejs' -type f -exec js-beautify --type html --config .jsbeautifyrc --replace {} \\;",
 		"format:check": "find src -name '*.css' -type f -print -quit | grep -q . && prettier --check 'src/**/*.css' || echo 'No CSS files to check'",
 		"test": "vitest run",
+		"test:watch": "vitest",
 		"test:cov": "vitest run --coverage",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",

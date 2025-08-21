@@ -2,6 +2,10 @@
 [ "$1" = -x ] && shift && set -x
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Script to upload Claude Code usage statistics
+# Usage: ./upload-stats.sh [stats-file.json]
+# If no file is provided, will collect stats using ccusage
+
 # Check required environment variables
 if [[ -z "${CLAUDE_CODE_STATS_SERVER_URL}" ]]; then
   echo "Error: CLAUDE_CODE_STATS_SERVER_URL environment variable is not set"
@@ -19,26 +23,57 @@ if [[ -z "${CLAUDE_CODE_STATS_SERVER_USERNAME}" ]]; then
   exit 1
 fi
 
-echo "Collecting Claude Code usage statistics..."
+# Check if a file argument was provided
+if [[ -n "$1" ]]; then
+  # Use provided file
+  STATS_FILE="$1"
 
-# Create a temporary file for the stats
-TMP_FILE=$(mktemp /tmp/claude-stats-XXXXXX.json)
+  if [[ ! -f "${STATS_FILE}" ]]; then
+    echo "Error: File '${STATS_FILE}' does not exist"
+    exit 1
+  fi
 
-# Cleanup function to remove temp file
+  if [[ ! -s "${STATS_FILE}" ]]; then
+    echo "Error: File '${STATS_FILE}' is empty"
+    exit 1
+  fi
+
+  # Validate it's JSON
+  if ! jq empty "${STATS_FILE}" 2>/dev/null; then
+    echo "Error: File '${STATS_FILE}' is not valid JSON"
+    exit 1
+  fi
+
+  echo "Using provided stats file: ${STATS_FILE}"
+  TMP_FILE="${STATS_FILE}"
+  CLEANUP_TMP=false
+else
+  # No file provided, collect stats using ccusage
+  echo "Collecting Claude Code usage statistics..."
+
+  # Create a temporary file for the stats
+  TMP_FILE=$(mktemp /tmp/claude-stats-XXXXXX.json)
+  CLEANUP_TMP=true
+
+  # Run ccusage and save to temp file
+  npx ccusage --json > "${TMP_FILE}" 2>/dev/null
+
+  if [[ ! -s "${TMP_FILE}" ]]; then
+    echo "Error: Failed to get usage data from ccusage or data is empty"
+    rm -f "${TMP_FILE}"
+    exit 1
+  fi
+fi
+
+# Cleanup function to remove temp file (only if we created it)
 cleanup() {
-  rm -f "${TMP_FILE}"
+  if [[ "${CLEANUP_TMP}" == "true" ]]; then
+    rm -f "${TMP_FILE}"
+  fi
 }
 
 # Set trap to cleanup on exit
 trap cleanup EXIT
-
-# Run ccusage and save to temp file
-npx ccusage --json > "${TMP_FILE}" 2>/dev/null
-
-if [[ ! -s "${TMP_FILE}" ]]; then
-  echo "Error: Failed to get usage data from ccusage or data is empty"
-  exit 1
-fi
 
 # Get file size for informational purposes
 FILE_SIZE=$(du -h "${TMP_FILE}" | cut -f1)

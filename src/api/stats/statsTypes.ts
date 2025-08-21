@@ -49,9 +49,17 @@ export interface DailyStats {
 	models: ModelStats[];
 }
 
+export interface StatsSummary {
+	totalCost: number;
+	totalTokens: number;
+	uniqueUsers: number;
+	totalDays: number;
+}
+
 export interface StatsResponse {
-	period: "week" | "month";
+	period: "week" | "month" | "custom" | "all";
 	startDate: string;
 	endDate: string;
 	stats: DailyStats[];
+	summary?: StatsSummary;
 }

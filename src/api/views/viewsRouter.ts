@@ -1,4 +1,21 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
+import {
+	addMonths,
+	addWeeks,
+	endOfMonth,
+	endOfWeek,
+	format,
+	getMonth,
+	getWeek,
+	getYear,
+	isAfter,
+	isSameMonth,
+	isSameWeek,
+	startOfMonth,
+	startOfWeek,
+	subMonths,
+	subWeeks,
+} from "date-fns";
 import express, { type Request, type Response, type Router } from "express";
 import { pino } from "pino";
 import { z } from "zod";
@@ -14,10 +31,29 @@ export const viewsRouter: Router = express.Router();
 
 const statsService = new StatsService();
 
+// Month names for validation
+const MONTH_NAMES = [
+	"january",
+	"february",
+	"march",
+	"april",
+	"may",
+	"june",
+	"july",
+	"august",
+	"september",
+	"october",
+	"november",
+	"december",
+] as const;
+
 // Schema for dashboard query parameters
 const DashboardQuerySchema = z.object({
 	query: z.object({
 		period: z.enum(["week", "month", "all"]).optional().default("week"),
+		year: z.coerce.number().optional(),
+		month: z.enum(MONTH_NAMES).optional(),
+		week: z.coerce.number().min(1).max(53).optional(),
 		user: z.string().optional(),
 		model: z.string().optional(),
 		groupBy: z.enum(["user", "model"]).optional().default("user"),
@@ -50,17 +86,148 @@ viewsRegistry.registerPath({
 // Dashboard view endpoint
 viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, user, model, groupBy, metric } = req.query as {
+		const { period, year, month, week, user, model, groupBy, metric } = req.query as {
 			period?: "week" | "month" | "all";
+			year?: number;
+			month?: (typeof MONTH_NAMES)[number];
+			week?: number;
 			user?: string;
 			model?: string;
 			groupBy?: "user" | "model";
 			metric?: "cost" | "tokens";
 		};
 
-		// Get stats from service (handle "all" by using "month" as fallback)
-		const statsPeriod = period === "all" ? "month" : period || "week";
-		const stats = await statsService.getStats(statsPeriod, user, model);
+		const today = new Date();
+		const currentYear = getYear(today);
+		const currentWeek = getWeek(today, { weekStartsOn: 0 }); // Sunday as start
+		const currentMonth = getMonth(today); // 0-indexed
+
+		let displayDate = "";
+		let dateRange: { start: Date; end: Date } | null = null;
+		const navigationParams: {
+			prev: Record<string, string | number> | null;
+			next: Record<string, string | number> | null;
+			current: Record<string, string | number>;
+		} = {
+			prev: null,
+			next: null,
+			current: {},
+		};
+
+		if (period === "all") {
+			// For "all" view, show "All Time" and disable navigation
+			displayDate = "All Time";
+			navigationParams.current = { period: "all" };
+		} else if (period === "month") {
+			// Handle month view
+			const navYear = year || currentYear;
+			const navMonth = month ? MONTH_NAMES.indexOf(month) : currentMonth;
+
+			const navDate = new Date(navYear, navMonth, 1);
+			const monthStart = startOfMonth(navDate);
+			const monthEnd = endOfMonth(navDate);
+
+			dateRange = { start: monthStart, end: monthEnd };
+			displayDate = format(navDate, "MMMM yyyy");
+
+			// Calculate prev month
+			const prevMonth = subMonths(navDate, 1);
+			navigationParams.prev = {
+				period: "month",
+				year: getYear(prevMonth),
+				month: MONTH_NAMES[getMonth(prevMonth)],
+			};
+
+			// Calculate next month (only if not current month)
+			if (!isSameMonth(navDate, today)) {
+				const nextMonth = addMonths(navDate, 1);
+				// Only allow next if it's not in the future
+				if (!isAfter(nextMonth, today)) {
+					navigationParams.next = {
+						period: "month",
+						year: getYear(nextMonth),
+						month: MONTH_NAMES[getMonth(nextMonth)],
+					};
+				}
+			}
+
+			navigationParams.current = {
+				period: "month",
+				year: navYear,
+				month: MONTH_NAMES[navMonth],
+			};
+		} else {
+			// Handle week view (default)
+			const navYear = year || currentYear;
+			const navWeek = week || currentWeek;
+
+			// Calculate the date for this week number
+			// Start with January 1st of the year
+			const yearStart = new Date(navYear, 0, 1);
+			const januaryFirstWeek = getWeek(yearStart, { weekStartsOn: 0 });
+
+			// Calculate how many weeks to add from January 1st
+			const weeksToAdd = navWeek - januaryFirstWeek;
+			const targetDate = addWeeks(yearStart, weeksToAdd);
+
+			const weekStart = startOfWeek(targetDate, { weekStartsOn: 0 });
+			const weekEnd = endOfWeek(targetDate, { weekStartsOn: 0 });
+
+			dateRange = { start: weekStart, end: weekEnd };
+			displayDate = `${format(weekStart, "MMM d")} - ${format(weekEnd, "MMM d, yyyy")}`;
+
+			// Calculate prev week
+			const prevWeekDate = subWeeks(weekStart, 1);
+			const prevWeekNum = getWeek(prevWeekDate, { weekStartsOn: 0 });
+			const prevWeekYear = getYear(prevWeekDate);
+
+			navigationParams.prev = {
+				period: "week",
+				year: prevWeekYear,
+				week: prevWeekNum,
+			};
+
+			// Calculate next week (only if not current week)
+			if (!isSameWeek(weekStart, today, { weekStartsOn: 0 })) {
+				const nextWeekDate = addWeeks(weekStart, 1);
+				// Only allow next if it's not in the future
+				if (!isAfter(nextWeekDate, today)) {
+					const nextWeekNum = getWeek(nextWeekDate, { weekStartsOn: 0 });
+					const nextWeekYear = getYear(nextWeekDate);
+
+					navigationParams.next = {
+						period: "week",
+						year: nextWeekYear,
+						week: nextWeekNum,
+					};
+				}
+			}
+
+			navigationParams.current = {
+				period: "week",
+				year: navYear,
+				week: navWeek,
+			};
+		}
+
+		// Get stats from service with the date range
+		let stats: StatsResponse;
+		if (period === "all") {
+			// For "all" view, get all data
+			stats = await statsService.getAllStats(user, model);
+		} else if (dateRange) {
+			// For week/month view, pass the date range
+			stats = await statsService.getStatsForDateRange(dateRange.start, dateRange.end, user, model);
+		} else {
+			// Fallback to empty stats (should not happen with proper validation)
+			stats = {
+				period: "custom",
+				startDate: new Date().toISOString(),
+				endDate: new Date().toISOString(),
+				stats: [],
+				summary: { totalCost: 0, totalTokens: 0, uniqueUsers: 0, totalDays: 0 },
+			};
+		}
 
 		// Process data for charts with groupBy parameter
 		const chartData = processStatsForCharts(stats, groupBy || "user");
@@ -80,6 +247,14 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 				model: model || "",
 				groupBy: groupBy || "user",
 				metric: metric || "tokens",
+				...navigationParams.current,
+			},
+			navigation: {
+				displayDate,
+				prev: navigationParams.prev,
+				next: navigationParams.next,
+				current: navigationParams.current,
+				canNavigate: period !== "all",
 			},
 		});
 	} catch (error: unknown) {

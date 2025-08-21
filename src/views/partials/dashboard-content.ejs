@@ -1,11 +1,21 @@
 <div class="space-y-6">
 	<!-- Header -->
 	<div class="mb-6">
-		<h1 class="text-3xl font-semibold text-white mb-6">Stats</h1>
+		<!-- Filters with title on same row -->
+		<div class="flex flex-wrap items-center gap-3">
+			<h1 class="text-3xl font-semibold text-white mr-6">Stats</h1>
+			<form method="GET" action="/dashboard" id="dashboardForm" class="flex flex-wrap gap-3 flex-1">
+				<!-- Hidden inputs for period navigation parameters -->
+				<% if (query.year) { %>
+				<input type="hidden" name="year" value="<%= query.year %>" />
+				<% } %>
+				<% if (query.month) { %>
+				<input type="hidden" name="month" value="<%= query.month %>" />
+				<% } %>
+				<% if (query.week) { %>
+				<input type="hidden" name="week" value="<%= query.week %>" />
+				<% } %>
 
-		<!-- Filters -->
-		<div class="flex flex-wrap gap-3">
-			<form method="GET" action="/dashboard" id="dashboardForm" class="flex flex-wrap gap-3">
 				<!-- Metric Toggle -->
 				<select name="metric" id="metricSelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
@@ -24,8 +34,8 @@
 				<!-- Period Filter -->
 				<select name="period" id="periodSelect"
 				 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-					<option value="week" <%= query.period === 'week' ? 'selected' : '' %>>Last Week</option>
-					<option value="month" <%= query.period === 'month' ? 'selected' : '' %>>This Month</option>
+					<option value="week" <%= query.period === 'week' ? 'selected' : '' %>>Week</option>
+					<option value="month" <%= query.period === 'month' ? 'selected' : '' %>>Month</option>
 					<option value="all" <%= query.period === 'all' ? 'selected' : '' %>>All Time</option>
 				</select>
 
@@ -53,21 +63,43 @@
 
 				<!-- Date Navigation -->
 				<div class="flex items-center gap-2 ml-auto">
-					<button type="button" class="p-2 text-gray-400 hover:text-white">
+					<% if (navigation.canNavigate && navigation.prev) { %>
+					<button type="button" id="prevDateBtn" data-params='<%= JSON.stringify(navigation.prev) %>'
+					 class="p-2 text-gray-400 hover:text-white transition-colors">
 						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
 							</path>
 						</svg>
 					</button>
-					<span class="text-gray-300 px-3">
-						<%= new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) %>
+					<% } else { %>
+					<button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+							</path>
+						</svg>
+					</button>
+					<% } %>
+
+					<span class="text-gray-300 px-3 min-w-[150px] text-center">
+						<%= navigation.displayDate %>
 					</span>
-					<button type="button" class="p-2 text-gray-400 hover:text-white">
+
+					<% if (navigation.canNavigate && navigation.next) { %>
+					<button type="button" id="nextDateBtn" data-params='<%= JSON.stringify(navigation.next) %>'
+					 class="p-2 text-gray-400 hover:text-white transition-colors">
 						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
 							</path>
 						</svg>
 					</button>
+					<% } else { %>
+					<button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+							</path>
+						</svg>
+					</button>
+					<% } %>
 				</div>
 			</form>
 		</div>
@@ -90,7 +122,7 @@
         });
         totalDays = uniqueDates.size;
     }
-    
+
     // Format tokens in millions
     const totalTokensInMillions = (totalTokens / 1000000).toFixed(2);
     const isTokensView = query.metric === 'tokens';
@@ -702,8 +734,9 @@ function getColor(index, alpha = 1) {
 // Add event listeners for form submission
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('dashboardForm');
-    const selects = ['metricSelect', 'groupBySelect', 'periodSelect', 'userSelect', 'modelSelect'];
 
+    // Setup form auto-submit for select changes (except period which has custom handler)
+    const selects = ['metricSelect', 'groupBySelect', 'userSelect', 'modelSelect'];
     selects.forEach(selectId => {
         const selectElement = document.getElementById(selectId);
         if (selectElement) {
@@ -712,5 +745,63 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+
+    // Handle period change to reset date navigation
+    const periodSelect = document.getElementById('periodSelect');
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+            // Remove hidden navigation inputs before submitting
+            const form = document.getElementById('dashboardForm');
+            const hiddenInputs = form.querySelectorAll('input[name="year"], input[name="month"], input[name="week"]');
+            hiddenInputs.forEach(input => input.remove());
+
+            // Submit the form normally - this will reset to current period
+            form.submit();
+        });
+    }
+
+    // Setup date navigation buttons
+    const prevBtn = document.getElementById('prevDateBtn');
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function() {
+            const navParams = JSON.parse(this.getAttribute('data-params'));
+            navigateWithParams(navParams);
+        });
+    }
+
+    const nextBtn = document.getElementById('nextDateBtn');
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function() {
+            const navParams = JSON.parse(this.getAttribute('data-params'));
+            navigateWithParams(navParams);
+        });
+    }
 });
+
+// Navigation function for date picker
+function navigateWithParams(navParams) {
+    const currentUrl = new URL(window.location.href);
+    const params = new URLSearchParams(currentUrl.search);
+
+    // Clear old navigation params
+    params.delete('year');
+    params.delete('month');
+    params.delete('week');
+
+    // Set new navigation params
+    Object.keys(navParams).forEach(key => {
+        params.set(key, navParams[key]);
+    });
+
+    // Preserve other parameters from current form state
+    ['metric', 'groupBy', 'user', 'model'].forEach(field => {
+        const element = document.getElementById(field + 'Select');
+        if (element && element.value) {
+            params.set(field, element.value);
+        }
+    });
+
+    // Navigate to the new URL
+    window.location.href = currentUrl.pathname + '?' + params.toString();
+}
 </script>

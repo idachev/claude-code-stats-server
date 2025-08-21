@@ -1,4 +1,5 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
+import { endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import express, { type Request, type Response, type Router } from "express";
 import { z } from "zod";
 import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
@@ -127,7 +128,7 @@ statsRegistry.registerPath({
 	},
 	responses: createApiResponse(
 		z.object({
-			period: z.enum(["week", "month"]),
+			period: z.enum(["week", "month", "custom", "all"]),
 			startDate: z.string(),
 			endDate: z.string(),
 			stats: z.array(
@@ -153,6 +154,14 @@ statsRegistry.registerPath({
 					),
 				}),
 			),
+			summary: z
+				.object({
+					totalCost: z.number(),
+					totalTokens: z.number(),
+					uniqueUsers: z.number(),
+					totalDays: z.number(),
+				})
+				.optional(),
 		}),
 		"Success",
 	),
@@ -162,7 +171,22 @@ statsRegistry.registerPath({
 statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res: Response) => {
 	try {
 		const { period, user } = req.query as { period?: "week" | "month"; user?: string };
-		const stats = await statsService.getStats(period || "week", user);
+
+		// Calculate date range based on period
+		const now = new Date();
+		let startDate: Date;
+		let endDate: Date;
+
+		if (period === "month") {
+			startDate = startOfMonth(now);
+			endDate = endOfMonth(now);
+		} else {
+			// Default to week
+			startDate = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
+			endDate = endOfWeek(now, { weekStartsOn: 0 }); // Saturday
+		}
+
+		const stats = await statsService.getStatsForDateRange(startDate, endDate, user);
 
 		const serviceResponse = ServiceResponse.success("Stats retrieved", stats);
 		res.status(serviceResponse.statusCode).send(serviceResponse);

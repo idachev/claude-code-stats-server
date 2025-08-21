@@ -113,18 +113,21 @@ curl -X POST \
 
 ## 🔑 User Management
 
-Create users and manage API keys through the admin endpoints:
+Use our helper scripts for easy user and API key management:
 
 ```bash
-# Create a new user
-curl -X POST \
-  -H "X-Admin-Key: your-admin-key" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "developer1"}' \
-  http://your-server:3000/admin/users
+# Set admin credentials
+export CLAUDE_CODE_STATS_SERVER_URL="http://your-server:3000"
+export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="your-admin-key"
 
-# Response includes the generated API key for the user
+# Create a new user
+./utils/helpers/create-user.sh developer1
+
+# Regenerate API key for existing user
+./utils/helpers/regenerate-user.sh developer1
 ```
+
+See [User Management Scripts](utils/helpers/README.md) for detailed documentation and troubleshooting.
 
 ## 🛠️ Development
 

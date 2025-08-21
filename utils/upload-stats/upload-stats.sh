@@ -1,5 +1,6 @@
 #!/bin/bash
-set -e
+[ "$1" = -x ] && shift && set -x
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Check required environment variables
 if [[ -z "${CLAUDE_CODE_STATS_SERVER_URL}" ]]; then

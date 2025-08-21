@@ -1,5 +1,5 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
-import { endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
+import { addWeeks, endOfMonth, endOfWeek, getMonth, getWeek, getYear, startOfMonth, startOfWeek } from "date-fns";
 import express, { type Request, type Response, type Router } from "express";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
@@ -7,6 +7,7 @@ import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/
 import { authenticateApiKey } from "@/common/middleware/apiKeyAuth";
 import { createErrorResponse, validateRequest } from "@/common/utils/httpHandlers";
 import { StatsService } from "./statsService";
+import type { StatsResponse } from "./statsTypes";
 
 // Type guard for errors with statusCode
 interface ErrorWithStatusCode extends Error {
@@ -65,11 +66,31 @@ const StatsUploadSchema = z.object({
 	}),
 });
 
+// Month names for validation
+const MONTH_NAMES = [
+	"january",
+	"february",
+	"march",
+	"april",
+	"may",
+	"june",
+	"july",
+	"august",
+	"september",
+	"october",
+	"november",
+	"december",
+] as const;
+
 // Schema for query parameters
 const StatsQuerySchema = z.object({
 	query: z.object({
-		period: z.enum(["week", "month"]).optional().default("week"),
+		period: z.enum(["week", "month", "all"]).optional().default("week"),
+		year: z.coerce.number().optional(),
+		month: z.enum(MONTH_NAMES).optional(),
+		week: z.coerce.number().min(1).max(53).optional(),
 		user: z.string().optional(),
+		model: z.string().optional(),
 	}),
 });
 
@@ -126,7 +147,7 @@ statsRegistry.registerPath({
 	path: "/claude-code-stats",
 	tags: ["Statistics"],
 	summary: "Retrieve usage statistics",
-	description: "Get aggregated usage statistics for a specific period and optionally filter by user",
+	description: "Get aggregated usage statistics for a specific period with optional filters by user and model",
 	request: {
 		query: StatsQuerySchema.shape.query,
 	},
@@ -174,23 +195,58 @@ statsRegistry.registerPath({
 // Get stats endpoint (JSON for now)
 statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, user } = req.query as { period?: "week" | "month"; user?: string };
+		const { period, year, month, week, user, model } = req.query as {
+			period?: "week" | "month" | "all";
+			year?: number;
+			month?: (typeof MONTH_NAMES)[number];
+			week?: number;
+			user?: string;
+			model?: string;
+		};
 
-		// Calculate date range based on period
-		const now = new Date();
-		let startDate: Date;
-		let endDate: Date;
+		const today = new Date();
+		const currentYear = getYear(today);
+		const currentWeek = getWeek(today, { weekStartsOn: 0 }); // Sunday as start
+		const currentMonth = getMonth(today); // 0-indexed
 
-		if (period === "month") {
-			startDate = startOfMonth(now);
-			endDate = endOfMonth(now);
+		let stats: StatsResponse;
+
+		if (period === "all") {
+			// For "all" view, get all data
+			stats = await statsService.getAllStats(user, model);
 		} else {
-			// Default to week
-			startDate = startOfWeek(now, { weekStartsOn: 0 }); // Sunday
-			endDate = endOfWeek(now, { weekStartsOn: 0 }); // Saturday
-		}
+			// Calculate date range based on period and navigation parameters
+			let startDate: Date;
+			let endDate: Date;
 
-		const stats = await statsService.getStatsForDateRange(startDate, endDate, user);
+			if (period === "month") {
+				// Handle month view
+				const navYear = year || currentYear;
+				const navMonth = month ? MONTH_NAMES.indexOf(month) : currentMonth;
+
+				const navDate = new Date(navYear, navMonth, 1);
+				startDate = startOfMonth(navDate);
+				endDate = endOfMonth(navDate);
+			} else {
+				// Handle week view (default)
+				const navYear = year || currentYear;
+				const navWeek = week || currentWeek;
+
+				// Calculate the date for this week number
+				// Start with January 1st of the year
+				const yearStart = new Date(navYear, 0, 1);
+				const januaryFirstWeek = getWeek(yearStart, { weekStartsOn: 0 });
+
+				// Calculate how many weeks to add from January 1st
+				const weeksToAdd = navWeek - januaryFirstWeek;
+				const targetDate = addWeeks(yearStart, weeksToAdd);
+
+				startDate = startOfWeek(targetDate, { weekStartsOn: 0 });
+				endDate = endOfWeek(targetDate, { weekStartsOn: 0 });
+			}
+
+			stats = await statsService.getStatsForDateRange(startDate, endDate, user, model);
+		}
 
 		// Return stats directly
 		res.status(StatusCodes.OK).json(stats);

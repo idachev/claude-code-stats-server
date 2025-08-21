@@ -2,7 +2,7 @@ name: Docker Build and Push
 
 on:
   push:
-    branches: [ master ]
+    branches: [ release ]
   workflow_dispatch: # Allow manual triggering
 
 env:

@@ -1,130 +1,146 @@
 # Claude Code Stats Server
 
-A simple server for collecting and visualizing Claude Code usage statistics.
+> 📊 **Track, visualize, and optimize your Claude Code AI assistant usage with powerful analytics**
 
-## Overview
+Transform your Claude Code usage data into actionable insights. 
+Monitor costs, track token consumption, and identify usage patterns across your team with beautiful, 
+interactive dashboards.
 
-This server collects usage data from the `ccusage` command-line tool and displays beautiful statistics dashboards showing:
-- Daily token usage and costs
-- Model usage breakdown
-- User statistics
-- Weekly/monthly aggregations
+## 🎯 Why Claude Code Stats Server?
 
-## Features
+[Claude Code](https://www.anthropic.com/claude-code) is Anthropic's command-line AI coding assistant that embeds 
+Claude Code directly into your terminal. While it turns hours-long workflows into single commands, 
+understanding your usage patterns and costs can be challenging. This server solves that by:
 
-- **REST API** for uploading usage statistics
-- **PostgreSQL database** with Drizzle ORM for data persistence
-- **Interactive HTML dashboards** with dark theme UI
-- **Real-time charts** using Chart.js for data visualization
-- **User and model filtering** for detailed analysis
-- **Stacked bar charts** showing daily usage breakdown by user
-- **Donut charts** for cost distribution analysis
-- **Responsive design** with Tailwind CSS
+- **📈 Real-time Cost Tracking** - Know exactly how much you're spending daily, weekly, and monthly
+- **👥 Multi-user Support** - Track usage across your entire development team
+- **🎨 Beautiful Dashboards** - Interactive charts that make data analysis effortless
+- **🔄 Automated Collection** - Set up once, track forever with our upload script
+- **🐳 Docker Ready** - Deploy in minutes with our pre-built Docker image
 
-## Endpoints
+## 📸 Dashboard Preview
 
-### API Endpoints
-- `GET /health` - Health check endpoint
-- `POST /claude-code-stats?username=<username>` - Upload usage statistics JSON
-  - Requires `X-API-Key` header with user's API key
-  - Returns 204 No Content on success
-- `GET /claude-code-stats` - Get statistics data as JSON (with optional filters)
-  - Query parameters: `period`, `user`, `model`
+![Claude Code Stats Server Dashboard](docs/imgs/claude-code-stats-server-dashboard.png)
 
-### Admin Endpoints (Protected)
-- `GET /admin/users` - List all users (requires X-Admin-Key header)
-- `POST /admin/users` - Create new user with API key
-- `GET /admin/users/:username` - Get specific user details
-- `POST /admin/users/:username/api-key/regenerate` - Regenerate user's API key
-- `POST /admin/users/:username/api-key/check` - Validate user's API key
+The dashboard provides comprehensive insights into your Claude Code usage:
 
-### Dashboard Views
-- `GET /dashboard` - Interactive statistics dashboard with charts
-  - Query parameters:
-    - `period`: `week` (default), `month`, or `all`
-    - `user`: Filter by specific username
-    - `groupBy`: Group data by `user`, `model`, or `date`
-- `GET /error` - Error page for handling exceptions
+### Main Dashboard Features:
+- **📊 Daily Usage Chart** - Stacked bar chart showing token costs per user over time
+- **🍩 Cost Distribution** - Donut charts breaking down total, input, and output token costs
+- **👤 User Breakdown** - Individual user contributions to total costs
+- **📅 Time Period Filters** - View last week, current month, or all-time data
+- **🔍 Advanced Filtering** - Focus on specific users or models
 
-## Tech Stack
+### Dashboard URL
+Access your dashboard at: `http://your-server:3000/dashboard`
 
-### Core
-- **Express.js** - Web framework
-- **TypeScript** - Type safety
-- **PostgreSQL** - Database
-- **Drizzle ORM** - Lightweight, type-safe ORM with SQL-like syntax
+Query parameters:
+- `?period=week` (default) - Show last 7 days
+- `?period=month` - Show current month
+- `?period=all` - Show all data
+- `?user=username` - Filter by specific user
 
-### Frontend
-- **EJS** - Server-side templating
-- **Chart.js** - Interactive charts and data visualization
-- **Tailwind CSS** - Utility-first CSS framework (via CDN)
+## 🚀 Quick Start
 
-### Development Tools
-- **Biome** - Fast JavaScript/TypeScript formatter and linter
-- **Prettier** - CSS formatting
-- **JS-Beautify** - EJS template formatting
-- **Vitest** - Unit testing
-- **Playwright** - E2E testing
+### Using Docker (Recommended)
 
-## Getting Started
+Pull and run the official Docker image:
+
+```bash
+docker run -d \
+  --name claude-stats \
+  -p 3000:3000 \
+  -e DB_HOST="your-postgres-host" \
+  -e DB_PORT="5432" \
+  -e DB_NAME="claude_code_stats" \
+  -e DB_USER="postgres" \
+  -e DB_PASSWORD="your-password" \
+  -e ADMIN_API_KEY="your-secret-admin-key" \
+  idachev/claude-code-stats-server:latest
+```
+
+See [Docker Image Documentation](docs/docker-image.md) for detailed setup instructions.
+
+Docker Hub: [idachev/claude-code-stats-server](https://hub.docker.com/r/idachev/claude-code-stats-server/tags)
+
+### Manual Installation
 
 1. Clone the repository
-2. Copy `.env.template` to `.env` and configure database settings
+2. Copy `.env.template` to `.env` and configure
 3. Install dependencies: `pnpm install`
-4. Start PostgreSQL database:
-   ```bash
-   cd utils/docker-compose
-   ./init-data-volumes.sh
-   ./docker-compose.sh up -d
-   ```
+4. Setup PostgreSQL database
 5. Run migrations: `pnpm db:migrate`
-6. Start development server: `pnpm start:dev`
+6. Start server: `pnpm start`
 
-The PostgreSQL database will be available at `localhost:9099` with:
-- User: `localdev`
-- Password: (see `utils/docker-compose/docker-secrets/db-password`)
-- Database: `claude_code_stats`
+## 📤 Uploading Your Stats
 
-## Development
+The stats server ingests data from [ccusage](https://github.com/ryoppippi/ccusage), a Claude Code usage tracking CLI tool 
+that provides detailed JSON output of your token consumption and costs.
 
-### Commands
-- `pnpm start:dev` - Start development server with hot reload
-- `pnpm build` - Build for production
-- `pnpm check` - Run all formatters and linters
-- `pnpm test` - Run tests
+### Automatic Upload Script
 
-### Database
-- `pnpm db:generate` - Generate new migration from schema changes
-- `pnpm db:migrate` - Apply migrations to database
-- `pnpm db:studio` - Open Drizzle Studio for database GUI
+Use our convenient upload script to send your Claude Code usage data to the server:
 
-### Code Formatting
-- `pnpm format:all` - Format all CSS and EJS files
-- `pnpm format:ejs` - Format EJS templates with JS-Beautify
-- `pnpm format:css` - Format CSS files with Prettier
+```bash
+# Set environment variables
+export CLAUDE_CODE_STATS_SERVER_URL="http://your-server:3000"
+export CLAUDE_CODE_STATS_SERVER_USERNAME="your-username"
+export CLAUDE_CODE_STATS_SERVER_API_KEY="your-api-key"
 
-## Dashboard Features
+# Run the upload script
+./utils/upload-stats/upload-stats.sh
+```
 
-The dashboard (`/dashboard`) provides:
-- **Daily Usage Chart**: Stacked bar chart showing token costs per user
-- **Cost Distribution**: Donut charts for total, input, and output token costs
-- **User Breakdown**: See individual user contributions to total costs
-- **Time Period Filters**: View last week, current month, or all-time data
-- **User Filters**: Focus on specific user's usage patterns
+The script will:
+1. Collect usage data using `ccusage --json`
+2. Securely upload to your stats server
+3. Confirm successful upload
 
-## Configuration
+See [Upload Script Documentation](utils/upload-stats/README.md) for automation with cron and detailed configuration.
 
-### Environment Variables
-See `.env.template` for required environment variables.
+### Manual Upload
 
-### Content Security Policy
-The application uses Helmet for security with a configured CSP that allows:
-- CDN resources for Tailwind CSS and Chart.js
-- Inline scripts for Chart.js initialization
-- Inline styles for Tailwind utility classes
+You can also upload stats manually using the API:
 
-Configuration is in `/src/common/middleware/helmetConfig.ts`.
+```bash
+npx ccusage --json > stats.json
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: your-api-key" \
+  --data-binary @stats.json \
+  "http://your-server:3000/claude-code-stats?username=your-username"
+```
 
-## License
+## 🔑 User Management
+
+Create users and manage API keys through the admin endpoints:
+
+```bash
+# Create a new user
+curl -X POST \
+  -H "X-Admin-Key: your-admin-key" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "developer1"}' \
+  http://your-server:3000/admin/users
+
+# Response includes the generated API key for the user
+```
+
+## 🛠️ Development
+
+For development setup, API documentation, and contribution guidelines, see:
+- [Development Guide](docs/dev.md) - Setup, commands, and project structure
+- [CLAUDE.md](CLAUDE.md) - Important development guidelines
+
+## 🐳 Docker & Deployment
+
+- [Docker Image Documentation](docs/docker-image.md) - Complete Docker deployment guide
+- [GitHub Secrets](docs/github-secrets.md) - Setting up automated Docker builds
+
+## 📝 License
 
 MIT
+
+---
+
+Built with ❤️ to help teams optimize their AI-assisted development workflows

@@ -39,8 +39,7 @@ Instead of using your Docker Hub password, create an access token:
 ## Workflow Trigger
 
 The workflow will:
-- Run automatically on pushes to the `master` branch
-- Run automatically every 12 hours (00:00 and 12:00 UTC)
+- Run automatically on pushes to the `release` branch
 - Can be triggered manually from the Actions tab
 - Automatically increment the patch version from the latest git tag
 - Build and push with both the new version tag and `latest` tag

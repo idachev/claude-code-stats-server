@@ -111,14 +111,9 @@ claude-code-stats-server/
 - **Response**: 
 ```json
 {
-  "success": true,
-  "message": "Health check",
-  "responseObject": {
-    "status": "ok",
-    "database": true,
-    "timestamp": "2025-08-19T..."
-  },
-  "statusCode": 200
+  "status": "ok",
+  "database": true,
+  "timestamp": "2025-08-19T..."
 }
 ```
 - **Status Code**: 200
@@ -158,24 +153,64 @@ claude-code-stats-server/
   - Username must be alphanumeric, 3-50 characters
   - JSON must match ccusage schema
   - Prevents duplicate uploads (upserts based on date + username)
-- **Response**: 
+- **Response**: No content (204 No Content status)
+- **Status Codes**: 204 (success), 400 (validation error), 500 (server error)
+- **Error Response Format**:
 ```json
 {
-  "success": true,
-  "message": "Stats uploaded successfully",
-  "responseObject": null,
-  "statusCode": 200
+  "error": "Error message",
+  "timestamp": "2025-08-19T...",
+  "status": 400
 }
 ```
-- **Status Codes**: 200 (success), 400 (validation error)
 
 ### 3. GET /claude-code-stats
-- **Purpose**: Retrieve statistics (JSON response, dashboard view coming in Phase 4)
+- **Purpose**: Retrieve statistics as JSON
 - **Query Params** (optional):
   - `period`: "week" | "month" (default: "week")
   - `user`: specific username to filter
+  - `model`: filter by model (format: "provider/model-name")
 - **Response**: JSON with aggregated statistics
-- **Future**: Server-rendered HTML dashboard with charts
+
+### 4. Admin Endpoints (Protected with X-Admin-Key header)
+
+#### GET /admin/users
+- **Purpose**: List all users
+- **Authentication**: Requires `X-Admin-Key` header
+- **Response**: Array of user objects
+
+#### POST /admin/users
+- **Purpose**: Create new user with API key
+- **Authentication**: Requires `X-Admin-Key` header
+- **Body**: `{ "username": "string" }`
+- **Response**: User with generated API key
+
+#### GET /admin/users/:username
+- **Purpose**: Get specific user details
+- **Authentication**: Requires `X-Admin-Key` header
+- **Response**: User object
+
+#### POST /admin/users/:username/api-key/regenerate
+- **Purpose**: Regenerate user's API key
+- **Authentication**: Requires `X-Admin-Key` header
+- **Response**: New API key
+
+#### POST /admin/users/:username/api-key/check
+- **Purpose**: Validate user's API key
+- **Authentication**: Requires `X-Admin-Key` header
+- **Body**: `{ "apiKey": "string" }`
+- **Response**: Validation result
+
+### 5. Dashboard Views
+
+#### GET /dashboard
+- **Purpose**: Interactive statistics dashboard with charts
+- **Query Params** (optional):
+  - `period`: "week" | "month" | "all" (default: "week")
+  - `user`: specific username to filter
+  - `model`: filter by model
+  - `groupBy`: "user" | "model" | "date"
+- **Response**: Server-rendered HTML with Chart.js visualizations
 
 ## Database Schema
 
@@ -252,13 +287,16 @@ Based on the example image, the dashboard will include:
 - ✅ Add proper database indexes
 - ✅ Test with Playwright
 
-### Phase 4: Frontend Development (2-3 hours) - TODO
-- [ ] Set up EJS templates and view engine
-- [ ] Configure Tailwind CSS
-- [ ] Create stats dashboard layout
-- [ ] Integrate Chart.js for visualizations
-- [ ] Update GET /claude-code-stats to render HTML view
-- [ ] Add period and user filtering UI
+### Phase 4: Frontend Development ✅ (Completed)
+- ✅ Set up EJS templates and view engine
+- ✅ Configure Tailwind CSS (via CDN)
+- ✅ Create stats dashboard layout with dark theme
+- ✅ Integrate Chart.js for visualizations
+- ✅ Implement GET /dashboard route for HTML view
+- ✅ Add period and user filtering UI
+- ✅ Add model filtering and groupBy options
+- ✅ Implement stacked bar charts for daily usage
+- ✅ Add donut charts for cost distribution
 
 ### Phase 5: Testing & Polish (1-2 hours)
 - ✅ Write Playwright tests for API endpoints
@@ -282,6 +320,8 @@ Based on the example image, the dashboard will include:
 - Rate limiting on upload endpoint
 - CORS configuration
 - Helmet.js for security headers
+- API key authentication for stats upload
+- Admin authentication for user management endpoints
 
 ## Performance Optimizations
 
@@ -385,6 +425,6 @@ pnpm start:dev  # Runs on port 3000 by default
 
 ---
 
-**Document Version**: 2.0
-**Last Updated**: 2025-08-20
-**Status**: Core API Complete, Frontend Pending
+**Document Version**: 3.0
+**Last Updated**: 2025-08-21
+**Status**: Complete - All phases implemented including dashboard, authentication, and admin endpoints

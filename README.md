@@ -26,7 +26,17 @@ This server collects usage data from the `ccusage` command-line tool and display
 ### API Endpoints
 - `GET /health` - Health check endpoint
 - `POST /claude-code-stats?username=<username>` - Upload usage statistics JSON
-- `GET /api/claude-code-stats` - Get statistics data as JSON (with optional filters)
+  - Requires `X-API-Key` header with user's API key
+  - Returns 204 No Content on success
+- `GET /claude-code-stats` - Get statistics data as JSON (with optional filters)
+  - Query parameters: `period`, `user`, `model`
+
+### Admin Endpoints (Protected)
+- `GET /admin/users` - List all users (requires X-Admin-Key header)
+- `POST /admin/users` - Create new user with API key
+- `GET /admin/users/:username` - Get specific user details
+- `POST /admin/users/:username/api-key/regenerate` - Regenerate user's API key
+- `POST /admin/users/:username/api-key/check` - Validate user's API key
 
 ### Dashboard Views
 - `GET /dashboard` - Interactive statistics dashboard with charts

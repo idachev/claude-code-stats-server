@@ -25,8 +25,13 @@ yourRegistry.registerPath({
   path: "/your-endpoint",
   tags: ["YourTag"],
   request: { /* schema */ },
-  responses: createApiResponse(/* schema */, "Success"),
+  responses: createApiResponseWithErrors(/* schema */, "Success"),
 });
+// Or for custom error responses:
+responses: {
+  [StatusCodes.NO_CONTENT]: { description: "Success" },
+  ...createErrorApiResponse("Bad Request", StatusCodes.BAD_REQUEST),
+}
 ```
 
 3. **CRITICAL**: Add your registry to `/src/api-docs/openAPIDocumentGenerator.ts`:

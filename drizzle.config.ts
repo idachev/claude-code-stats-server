@@ -15,6 +15,10 @@ export default {
 		database: process.env.DB_NAME || "claude_code_stats",
 		ssl: false,
 	},
+	migrations: {
+		table: "__drizzle_migrations",
+		schema: "public", // Move migrations table to public schema
+	},
 	verbose: true,
 	strict: true,
 } satisfies Config;

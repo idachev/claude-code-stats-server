@@ -8,9 +8,9 @@ class UserController {
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	};
 
-	public getUser: RequestHandler = async (req: Request, res: Response) => {
-		const id = Number.parseInt(req.params.id as string, 10);
-		const serviceResponse = await userService.findById(id);
+	public getUserByUsername: RequestHandler = async (req: Request, res: Response) => {
+		const username = req.params.username as string;
+		const serviceResponse = await userService.findByUsername(username);
 		res.status(serviceResponse.statusCode).send(serviceResponse);
 	};
 }

@@ -48,8 +48,8 @@ app.use(requestLogger);
 // Routes
 app.use("/health", healthRouter);
 app.use("/admin", authRouter);
+app.use("/admin/users", userRouter);
 app.use("/claude-code-stats", statsRouter);
-app.use("/users", userRouter);
 app.use("/", viewsRouter); // Views for dashboard and other HTML pages
 
 // Swagger UI

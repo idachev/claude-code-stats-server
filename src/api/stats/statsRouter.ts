@@ -1,11 +1,11 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import { endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import express, { type Request, type Response, type Router } from "express";
+import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
-import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
+import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateApiKey } from "@/common/middleware/apiKeyAuth";
-import { ServiceResponse } from "@/common/models/serviceResponse";
-import { validateRequest } from "@/common/utils/httpHandlers";
+import { createErrorResponse, validateRequest } from "@/common/utils/httpHandlers";
 import { StatsService } from "./statsService";
 
 // Type guard for errors with statusCode
@@ -94,7 +94,14 @@ statsRegistry.registerPath({
 			required: true,
 		},
 	},
-	responses: createApiResponse(z.null(), "Success"),
+	responses: {
+		[StatusCodes.NO_CONTENT]: {
+			description: "Stats uploaded successfully",
+		},
+		...createErrorApiResponse("Bad Request", StatusCodes.BAD_REQUEST),
+		...createErrorApiResponse("Unauthorized", StatusCodes.UNAUTHORIZED),
+		...createErrorApiResponse("Internal Server Error", StatusCodes.INTERNAL_SERVER_ERROR),
+	},
 });
 
 // Upload stats endpoint
@@ -103,16 +110,13 @@ statsRouter.post("/", authenticateApiKey, validateRequest(StatsUploadSchema), as
 		const { username } = req.query as { username: string };
 		await statsService.uploadStats(username, req.body);
 
-		const serviceResponse = ServiceResponse.success(
-			"Stats uploaded successfully",
-			null, // No additional response object needed
-		);
-		res.status(serviceResponse.statusCode).send(serviceResponse);
+		// Return 204 No Content for success (no response body needed)
+		res.status(StatusCodes.NO_CONTENT).send();
 	} catch (error: unknown) {
 		const errorMessage = error instanceof Error ? error.message : "Failed to upload stats";
-		const statusCode = hasStatusCode(error) ? error.statusCode : 500;
-		const serviceResponse = ServiceResponse.failure(errorMessage, null, statusCode);
-		res.status(serviceResponse.statusCode).send(serviceResponse);
+		const statusCode = hasStatusCode(error) ? error.statusCode : StatusCodes.INTERNAL_SERVER_ERROR;
+		const errorResponse = createErrorResponse(errorMessage, statusCode);
+		res.status(statusCode).json(errorResponse);
 	}
 });
 
@@ -126,7 +130,7 @@ statsRegistry.registerPath({
 	request: {
 		query: StatsQuerySchema.shape.query,
 	},
-	responses: createApiResponse(
+	responses: createApiResponseWithErrors(
 		z.object({
 			period: z.enum(["week", "month", "custom", "all"]),
 			startDate: z.string(),
@@ -188,12 +192,12 @@ statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res
 
 		const stats = await statsService.getStatsForDateRange(startDate, endDate, user);
 
-		const serviceResponse = ServiceResponse.success("Stats retrieved", stats);
-		res.status(serviceResponse.statusCode).send(serviceResponse);
+		// Return stats directly
+		res.status(StatusCodes.OK).json(stats);
 	} catch (error: unknown) {
 		const errorMessage = error instanceof Error ? error.message : "Failed to retrieve stats";
-		const statusCode = hasStatusCode(error) ? error.statusCode : 500;
-		const serviceResponse = ServiceResponse.failure(errorMessage, null, statusCode);
-		res.status(serviceResponse.statusCode).send(serviceResponse);
+		const statusCode = hasStatusCode(error) ? error.statusCode : StatusCodes.INTERNAL_SERVER_ERROR;
+		const errorResponse = createErrorResponse(errorMessage, statusCode);
+		res.status(statusCode).json(errorResponse);
 	}
 });

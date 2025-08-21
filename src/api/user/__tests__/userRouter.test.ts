@@ -4,7 +4,7 @@ import request from "supertest";
 import { afterEach, beforeEach } from "vitest";
 
 import type { User } from "@/api/user/userModel";
-import type { ServiceResponse } from "@/common/models/serviceResponse";
+import type { ErrorResponse } from "@/common/models/errorResponse";
 import { db, users } from "@/db/index";
 import { app } from "@/server";
 
@@ -37,13 +37,11 @@ describe("User API Endpoints", () => {
 		it("should return a list of users with valid admin API key", async () => {
 			// Act
 			const response = await request(app).get("/admin/users").set("X-Admin-Key", adminApiKey);
-			const responseBody: ServiceResponse<User[]> = response.body;
+			const responseBody: User[] = response.body;
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.OK);
-			expect(responseBody.success).toBeTruthy();
-			expect(responseBody.message).toMatch(/users found/i);
-			expect(Array.isArray(responseBody.responseObject)).toBeTruthy();
+			expect(Array.isArray(responseBody)).toBeTruthy();
 		});
 	});
 
@@ -70,25 +68,25 @@ describe("User API Endpoints", () => {
 
 			// Act
 			const response = await request(app).get(`/admin/users/${testUsername}`).set("X-Admin-Key", adminApiKey);
-			const responseBody: ServiceResponse = response.body;
+			const responseBody: ErrorResponse = response.body;
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.NOT_FOUND);
-			expect(responseBody.success).toBeFalsy();
-			expect(responseBody.message).toContain("User not found");
-			expect(responseBody.responseObject).toBeNull();
+			expect(responseBody.error).toContain("User not found");
+			expect(responseBody.status).toEqual(StatusCodes.NOT_FOUND);
+			expect(responseBody.timestamp).toBeDefined();
 		});
 
 		it("should return a bad request for invalid username format", async () => {
 			// Act
 			const invalidUsername = "a"; // too short
 			const response = await request(app).get(`/admin/users/${invalidUsername}`).set("X-Admin-Key", adminApiKey);
-			const responseBody: ServiceResponse = response.body;
+			const responseBody: ErrorResponse = response.body;
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
-			expect(responseBody.success).toBeFalsy();
-			expect(responseBody.message).toContain("Invalid input");
+			expect(responseBody.error).toContain("Invalid input");
+			expect(responseBody.status).toEqual(StatusCodes.BAD_REQUEST);
 		});
 
 		it("should return user details for existing username with valid admin API key", async () => {
@@ -97,17 +95,14 @@ describe("User API Endpoints", () => {
 
 			// Act
 			const response = await request(app).get("/admin/users/test-getuser").set("X-Admin-Key", adminApiKey);
-			const responseBody: ServiceResponse<User> = response.body;
+			const responseBody: User = response.body;
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.OK);
-			expect(responseBody.success).toBeTruthy();
-			expect(responseBody.message).toContain("User found");
-			expect(responseBody.responseObject).toBeDefined();
-			expect(responseBody.responseObject?.username).toEqual("test-getuser");
-			expect(responseBody.responseObject?.id).toBeDefined();
-			expect(responseBody.responseObject?.createdAt).toBeDefined();
-			expect(responseBody.responseObject?.updatedAt).toBeDefined();
+			expect(responseBody.username).toEqual("test-getuser");
+			expect(responseBody.id).toBeDefined();
+			expect(responseBody.createdAt).toBeDefined();
+			expect(responseBody.updatedAt).toBeDefined();
 		});
 	});
 
@@ -166,8 +161,8 @@ describe("User API Endpoints", () => {
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
-			expect(response.body.success).toBe(false);
-			expect(response.body.message).toContain("Invalid input");
+			expect(response.body.error).toContain("Invalid input");
+			expect(response.body.status).toEqual(StatusCodes.BAD_REQUEST);
 		});
 
 		it("should return 400 for missing username", async () => {
@@ -176,8 +171,8 @@ describe("User API Endpoints", () => {
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
-			expect(response.body.success).toBe(false);
-			expect(response.body.message).toContain("Invalid input");
+			expect(response.body.error).toContain("Invalid input");
+			expect(response.body.status).toEqual(StatusCodes.BAD_REQUEST);
 		});
 	});
 

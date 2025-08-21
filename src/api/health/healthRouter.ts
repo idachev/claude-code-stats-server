@@ -1,9 +1,9 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import express, { type Request, type Response, type Router } from "express";
+import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 
-import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
-import { ServiceResponse } from "@/common/models/serviceResponse";
+import { createApiResponseWithErrors } from "@/api-docs/openAPIResponseBuilders";
 import { checkDatabaseHealth } from "@/db/index";
 
 export const healthRegistry = new OpenAPIRegistry();
@@ -19,7 +19,7 @@ healthRegistry.registerPath({
 	method: "get",
 	path: "/health",
 	tags: ["Health"],
-	responses: createApiResponse(HealthStatusSchema, "Success"),
+	responses: createApiResponseWithErrors(HealthStatusSchema, "Success"),
 });
 
 healthRouter.get("/", async (_req: Request, res: Response) => {
@@ -30,6 +30,5 @@ healthRouter.get("/", async (_req: Request, res: Response) => {
 		timestamp: new Date().toISOString(),
 	};
 
-	const serviceResponse = ServiceResponse.success("Health check", healthStatus);
-	res.status(serviceResponse.statusCode).send(serviceResponse);
+	res.status(StatusCodes.OK).json(healthStatus);
 });

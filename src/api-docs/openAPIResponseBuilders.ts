@@ -1,7 +1,7 @@
 import { StatusCodes } from "http-status-codes";
 import type { z } from "zod";
 
-import { ServiceResponseSchema } from "@/common/models/serviceResponse";
+import { ErrorResponseSchema } from "@/common/models/errorResponse";
 
 export function createApiResponse(schema: z.ZodTypeAny, description: string, statusCode = StatusCodes.OK) {
 	return {
@@ -9,10 +9,31 @@ export function createApiResponse(schema: z.ZodTypeAny, description: string, sta
 			description,
 			content: {
 				"application/json": {
-					schema: ServiceResponseSchema(schema),
+					schema,
 				},
 			},
 		},
+	};
+}
+
+export function createErrorApiResponse(description: string, statusCode: number) {
+	return {
+		[statusCode]: {
+			description,
+			content: {
+				"application/json": {
+					schema: ErrorResponseSchema,
+				},
+			},
+		},
+	};
+}
+
+export function createApiResponseWithErrors(schema: z.ZodTypeAny, description: string, statusCode = StatusCodes.OK) {
+	return {
+		...createApiResponse(schema, description, statusCode),
+		...createErrorApiResponse("Bad Request", StatusCodes.BAD_REQUEST),
+		...createErrorApiResponse("Internal Server Error", StatusCodes.INTERNAL_SERVER_ERROR),
 	};
 }
 

@@ -10,7 +10,7 @@ import {
 	RegenerateApiKeySchema,
 	UserSchema,
 } from "@/api/user/userModel";
-import { createApiResponse } from "@/api-docs/openAPIResponseBuilders";
+import { createApiResponseWithErrors } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateAdmin } from "@/common/middleware/adminAuth";
 import { validateRequest } from "@/common/utils/httpHandlers";
 import { userController } from "./userController";
@@ -30,7 +30,7 @@ userRegistry.registerPath({
 	summary: "Get all users",
 	description: "Retrieves all users from the database. Requires admin authentication.",
 	security: [{ AdminKeyAuth: [] }],
-	responses: createApiResponse(z.array(UserSchema), "Success"),
+	responses: createApiResponseWithErrors(z.array(UserSchema), "Success"),
 });
 
 userRouter.get("/", authenticateAdmin, userController.getUsers);
@@ -53,7 +53,7 @@ userRegistry.registerPath({
 			},
 		},
 	},
-	responses: createApiResponse(ApiKeyResponseSchema, "User created successfully"),
+	responses: createApiResponseWithErrors(ApiKeyResponseSchema, "User created successfully"),
 });
 
 userRouter.post("/", authenticateAdmin, validateRequest(CreateUserSchema), userController.createUser);
@@ -67,7 +67,7 @@ userRegistry.registerPath({
 	description: "Retrieves a user by their username. Requires admin authentication.",
 	security: [{ AdminKeyAuth: [] }],
 	request: { params: GetUserByUsernameSchema.shape.params },
-	responses: createApiResponse(UserSchema, "Success"),
+	responses: createApiResponseWithErrors(UserSchema, "Success"),
 });
 
 userRouter.get(
@@ -87,7 +87,7 @@ userRegistry.registerPath({
 		"Regenerates the API key for an existing user. Returns the new raw API key which should be stored securely. The old key will be invalidated. Requires admin authentication.",
 	security: [{ AdminKeyAuth: [] }],
 	request: { params: RegenerateApiKeySchema.shape.params },
-	responses: createApiResponse(ApiKeyResponseSchema, "API key regenerated successfully"),
+	responses: createApiResponseWithErrors(ApiKeyResponseSchema, "API key regenerated successfully"),
 });
 
 userRouter.post(
@@ -116,7 +116,7 @@ userRegistry.registerPath({
 			},
 		},
 	},
-	responses: createApiResponse(ApiKeyCheckResponseSchema, "API key validation result"),
+	responses: createApiResponseWithErrors(ApiKeyCheckResponseSchema, "API key validation result"),
 });
 
 userRouter.post(

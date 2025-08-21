@@ -4,12 +4,16 @@ import { healthRegistry } from "@/api/health/healthRouter";
 import { statsRegistry } from "@/api/stats/statsRouter";
 import { userRegistry } from "@/api/user/userRouter";
 import { viewsRegistry } from "@/api/views/viewsRouter";
+import { ErrorResponseSchema } from "@/common/models/errorResponse";
 import { registerSecuritySchemes } from "./securitySchemes";
 
 export type OpenAPIDocument = ReturnType<OpenApiGeneratorV3["generateDocument"]>;
 
 export function generateOpenAPIDocument(): OpenAPIDocument {
 	const registry = new OpenAPIRegistry([healthRegistry, userRegistry, statsRegistry, viewsRegistry]);
+
+	// Register common schemas
+	registry.register("ErrorResponse", ErrorResponseSchema);
 
 	// Register security schemes
 	registerSecuritySchemes(registry);

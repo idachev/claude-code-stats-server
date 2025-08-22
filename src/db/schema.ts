@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import { date, decimal, index, integer, pgTable, serial, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { TAG_MAX_LENGTH } from "@/api/tags/tagSchemas";
 
 // Users table
 export const users = pgTable(
@@ -70,7 +71,7 @@ export const tags = pgTable(
 		userId: integer("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
-		name: varchar("name", { length: 64 }).notNull(),
+		name: varchar("name", { length: TAG_MAX_LENGTH }).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => ({

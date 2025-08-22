@@ -66,6 +66,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toBe("Invalid admin API key");
 		});
 
 		it("should return 400 for invalid userId", async () => {
@@ -73,6 +74,8 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain("Invalid input");
+			expect(response.body.error).toContain("params.userId");
 		});
 	});
 
@@ -163,6 +166,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain("Tag name must be at least 2 characters");
 		});
 
 		it("should return 400 for tag names too long", async () => {
@@ -174,6 +178,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain("Tag name cannot exceed 64 characters");
 		});
 
 		it("should return 400 for missing tags field", async () => {
@@ -184,6 +189,8 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain("Invalid input");
+			expect(response.body.error).toContain("body.tags");
 		});
 
 		it("should return 401 without admin auth", async () => {
@@ -192,6 +199,8 @@ describe("Tag Router Integration Tests", () => {
 				.send({ tags: ["test"] });
 
 			expect(response.status).toBe(401);
+			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
 		});
 	});
 
@@ -249,6 +258,9 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain(
+				"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+			);
 		});
 
 		it("should return 401 without admin auth", async () => {
@@ -257,6 +269,8 @@ describe("Tag Router Integration Tests", () => {
 				.send({ tags: ["test"] });
 
 			expect(response.status).toBe(401);
+			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
 		});
 	});
 
@@ -314,12 +328,17 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toContain(
+				"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+			);
 		});
 
 		it("should return 401 without admin auth", async () => {
 			const response = await request(app).delete(`/admin/users/${testUser.id}/tags/test`);
 
 			expect(response.status).toBe(401);
+			expect(response.body).toHaveProperty("error");
+			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
 		});
 	});
 

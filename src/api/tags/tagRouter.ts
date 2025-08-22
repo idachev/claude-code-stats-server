@@ -100,7 +100,7 @@ tagRouter.post(
 			// Create a map for case-insensitive duplicate checking
 			// Keep the first occurrence of each tag (case-insensitive)
 			const tagMap = new Map<string, string>();
-			
+
 			// Add existing tags first (they have priority)
 			for (const tag of existingTags) {
 				const key = tag.toLowerCase();
@@ -108,7 +108,7 @@ tagRouter.post(
 					tagMap.set(key, tag);
 				}
 			}
-			
+
 			// Add new tags only if they don't exist (case-insensitive)
 			for (const tag of newTags) {
 				const key = tag.toLowerCase();

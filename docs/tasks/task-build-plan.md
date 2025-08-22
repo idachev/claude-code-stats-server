@@ -83,7 +83,8 @@ claude-code-stats-server/
 ├── tests/                  # Playwright tests
 │   └── api.spec.ts        # API endpoint tests
 ├── docs/
-│   ├── build-plan.md      # This file
+│   ├── tasks/
+│   │   └── task-build-plan.md  # This file
 │   ├── db-structure.md    # Database documentation
 │   ├── imgs/              # Reference images
 │   └── data/              # Sample data
@@ -214,7 +215,7 @@ claude-code-stats-server/
 
 ## Database Schema
 
-The complete database structure is documented in [`docs/db-structure.md`](./db-structure.md).
+The complete database structure is documented in [`docs/db-structure.md`](../db-structure.md).
 
 **Key Tables:**
 - `users` - Stores unique users who upload statistics

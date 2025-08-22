@@ -4,6 +4,7 @@ import express, { type Express } from "express";
 import { pino } from "pino";
 import { healthRouter } from "@/api/health/healthRouter";
 import { statsRouter } from "@/api/stats/statsRouter";
+import { tagRouter } from "@/api/tags/tagRouter";
 import { userRouter } from "@/api/user/userRouter";
 import { viewsRouter } from "@/api/views/viewsRouter";
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
@@ -47,6 +48,7 @@ app.use(requestLogger);
 // Routes
 app.use("/health", healthRouter);
 app.use("/admin/users", userRouter);
+app.use("/", tagRouter); // Tag routes are under /admin/users/:userId/tags
 app.use("/claude-code-stats", statsRouter);
 app.use("/", viewsRouter); // Views for dashboard and other HTML pages
 

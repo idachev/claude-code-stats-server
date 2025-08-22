@@ -150,7 +150,20 @@ The CSP configuration is in `/src/common/middleware/helmetConfig.ts`. It allows:
 - Inline scripts (required for Chart.js)
 - Inline styles (required for Tailwind)
 
-### 12. Common Commands
+### 12. Testing Philosophy
+
+**IMPORTANT: Do NOT mock the database in tests**
+- Use real database connections for integration tests
+- Database mocks hide critical issues with:
+  - Schema mismatches
+  - Index performance
+  - Transaction behavior
+  - Constraint violations
+  - SQL syntax errors
+- Tests should use a test database or transactions that rollback
+- This ensures tests catch real database-related bugs
+
+### 13. Common Commands
 ```bash
 # Development
 pnpm start:dev          # Start dev server with hot reload on port 3000

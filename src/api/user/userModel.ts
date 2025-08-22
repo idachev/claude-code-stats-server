@@ -15,6 +15,7 @@ export const UsernameValidation = z.string().min(USERNAME_MIN_LENGTH).max(USERNA
 export const UserSchema = z.object({
 	id: z.number(),
 	username: z.string(),
+	tags: z.array(z.string()),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });

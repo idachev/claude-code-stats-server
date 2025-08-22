@@ -1,12 +1,45 @@
 import { format } from "date-fns";
-import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { pino } from "pino";
+import { TagService } from "@/api/tags/tagService";
 import { db, modelUsage, type NewModelUsage, type NewUsageStats, usageStats, users } from "@/db/index";
 import type { CCUsageData, DailyStats, StatsResponse } from "./statsTypes";
 
 const logger = pino({ name: "StatsService" });
 
 export class StatsService {
+	private tagService: TagService;
+
+	constructor() {
+		this.tagService = new TagService();
+	}
+
+	// Helper method to get user IDs filtered by tags
+	private async getUserIdsByTags(tags: string[]): Promise<number[] | null> {
+		if (tags.length === 0) {
+			return null; // No tag filter
+		}
+
+		// Get users that have ALL specified tags
+		return await this.tagService.getUsersByTags(tags);
+	}
+
+	// Helper method to create empty stats response
+	private createEmptyStatsResponse(period: "custom" | "all", startDate?: Date, endDate?: Date): StatsResponse {
+		return {
+			period,
+			startDate: startDate?.toISOString() || new Date().toISOString(),
+			endDate: endDate?.toISOString() || new Date().toISOString(),
+			stats: [],
+			summary: {
+				totalCost: 0,
+				totalTokens: 0,
+				uniqueUsers: 0,
+				totalDays: 0,
+			},
+		};
+	}
+
 	// Helper method to fetch base stats data
 	private async fetchStatsData(conditions: SQL[]): Promise<
 		Array<{
@@ -222,6 +255,7 @@ export class StatsService {
 		endDate: Date,
 		username?: string,
 		model?: string,
+		tags?: string[],
 	): Promise<StatsResponse> {
 		const startDateStr = format(startDate, "yyyy-MM-dd");
 		const endDateStr = format(endDate, "yyyy-MM-dd");
@@ -233,6 +267,17 @@ export class StatsService {
 
 		if (username) {
 			conditions.push(eq(users.username, username));
+		}
+
+		// Add tag filtering if tags are provided
+		if (tags && tags.length > 0) {
+			const userIds = await this.getUserIdsByTags(tags);
+			if (userIds && userIds.length > 0) {
+				conditions.push(inArray(users.id, userIds));
+			} else {
+				// No users found with the specified tags
+				return this.createEmptyStatsResponse("custom", startDate, endDate);
+			}
 		}
 
 		// Fetch stats data
@@ -257,13 +302,24 @@ export class StatsService {
 		};
 	}
 
-	async getAllStats(username?: string, model?: string): Promise<StatsResponse> {
+	async getAllStats(username?: string, model?: string, tags?: string[]): Promise<StatsResponse> {
 		logger.info(`Querying all stats`);
 
 		// Build query conditions
 		const conditions: SQL[] = [];
 		if (username) {
 			conditions.push(eq(users.username, username));
+		}
+
+		// Add tag filtering if tags are provided
+		if (tags && tags.length > 0) {
+			const userIds = await this.getUserIdsByTags(tags);
+			if (userIds && userIds.length > 0) {
+				conditions.push(inArray(users.id, userIds));
+			} else {
+				// No users found with the specified tags
+				return this.createEmptyStatsResponse("all");
+			}
 		}
 
 		// Fetch stats data

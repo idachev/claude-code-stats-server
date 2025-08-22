@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UsernameSchema } from "@/api/user/userModel";
 
 // Tag constraints
 export const TAG_MIN_LENGTH = 2;
@@ -25,9 +26,9 @@ export type AssignTagsDto = z.infer<typeof AssignTagsSchema>;
 // Response schema for tag list
 export const TagListSchema = z.array(z.string());
 
-// User ID parameter schema
-export const UserIdParamSchema = z.object({
-	userId: z.coerce.number().positive(),
+// Username parameter schema
+export const UsernameParamSchema = z.object({
+	username: UsernameSchema,
 });
 
 // Tag name parameter schema
@@ -37,6 +38,6 @@ export const TagNameParamSchema = z.object({
 
 // Combined params for delete endpoint
 export const DeleteTagParamsSchema = z.object({
-	userId: z.coerce.number().positive(),
+	username: UsernameSchema,
 	tagName: TagNameSchema,
 });

@@ -7,7 +7,7 @@ import {
 	TAG_NAME_PATTERN,
 	TagListSchema,
 	TagNameSchema,
-	UserIdParamSchema,
+	UsernameParamSchema,
 } from "../tagSchemas";
 
 describe("Tag Validation Schemas", () => {
@@ -219,71 +219,65 @@ describe("Tag Validation Schemas", () => {
 		});
 	});
 
-	describe("UserIdParamSchema", () => {
-		it("should accept valid numeric userId", () => {
-			const validIds = ["1", "123", "999999"];
+	describe("UsernameParamSchema", () => {
+		it("should accept valid usernames", () => {
+			const validUsernames = ["john", "john-doe", "user_123", "test.user", "alice123"];
 
-			validIds.forEach((id) => {
-				const result = UserIdParamSchema.safeParse({ userId: id });
+			validUsernames.forEach((username) => {
+				const result = UsernameParamSchema.safeParse({ username });
 				expect(result.success).toBe(true);
 				if (result.success) {
-					expect(result.data.userId).toBe(Number(id));
+					expect(result.data.username).toBe(username);
 				}
 			});
 		});
 
-		it("should coerce string numbers to numbers", () => {
-			const result = UserIdParamSchema.safeParse({ userId: "42" });
-			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data.userId).toBe(42);
-				expect(typeof result.data.userId).toBe("number");
-			}
-		});
+		it("should reject usernames that are too short", () => {
+			const shortUsernames = ["ab", "a", ""];
 
-		it("should reject non-numeric userId", () => {
-			// z.coerce.number() can convert some strings, so we need to test actual non-numeric values
-			// Note: Infinity is actually a valid number in JavaScript and passes z.coerce.number()
-			const invalidIds = ["abc", "NaN", "", "  ", "1.2.3", "text123"];
-
-			invalidIds.forEach((id) => {
-				const result = UserIdParamSchema.safeParse({ userId: id });
+			shortUsernames.forEach((username) => {
+				const result = UsernameParamSchema.safeParse({ username });
 				expect(result.success).toBe(false);
 			});
 		});
 
-		it("should reject missing userId", () => {
-			const result = UserIdParamSchema.safeParse({});
+		it("should reject usernames that are too long", () => {
+			const longUsername = "a".repeat(129);
+			const result = UsernameParamSchema.safeParse({ username: longUsername });
 			expect(result.success).toBe(false);
 		});
 
-		it("should reject negative userId", () => {
-			const result = UserIdParamSchema.safeParse({ userId: "-1" });
-			expect(result.success).toBe(false);
+		it("should reject usernames with invalid characters", () => {
+			const invalidUsernames = ["user@name", "user name", "user#123", "user$test"];
+
+			invalidUsernames.forEach((username) => {
+				const result = UsernameParamSchema.safeParse({ username });
+				expect(result.success).toBe(false);
+			});
 		});
 
-		it("should reject zero userId", () => {
-			const result = UserIdParamSchema.safeParse({ userId: "0" });
+		it("should reject missing username", () => {
+			const result = UsernameParamSchema.safeParse({});
 			expect(result.success).toBe(false);
 		});
 	});
 
 	describe("DeleteTagParamsSchema", () => {
-		it("should accept valid userId and tagName", () => {
+		it("should accept valid username and tagName", () => {
 			const result = DeleteTagParamsSchema.safeParse({
-				userId: "123",
+				username: "john-doe",
 				tagName: "frontend",
 			});
 			expect(result.success).toBe(true);
 			if (result.success) {
-				expect(result.data.userId).toBe(123);
+				expect(result.data.username).toBe("john-doe");
 				expect(result.data.tagName).toBe("frontend");
 			}
 		});
 
-		it("should reject invalid userId", () => {
+		it("should reject invalid username", () => {
 			const result = DeleteTagParamsSchema.safeParse({
-				userId: "abc",
+				username: "ab", // too short
 				tagName: "frontend",
 			});
 			expect(result.success).toBe(false);
@@ -291,7 +285,7 @@ describe("Tag Validation Schemas", () => {
 
 		it("should reject invalid tagName", () => {
 			const result = DeleteTagParamsSchema.safeParse({
-				userId: "123",
+				username: "john-doe",
 				tagName: "@invalid",
 			});
 			expect(result.success).toBe(false);
@@ -299,7 +293,7 @@ describe("Tag Validation Schemas", () => {
 
 		it("should reject missing fields", () => {
 			const results = [
-				DeleteTagParamsSchema.safeParse({ userId: "123" }),
+				DeleteTagParamsSchema.safeParse({ username: "john-doe" }),
 				DeleteTagParamsSchema.safeParse({ tagName: "frontend" }),
 				DeleteTagParamsSchema.safeParse({}),
 			];

@@ -2,6 +2,7 @@ import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import express, { type Request, type Response, type Router } from "express";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
+import { UserService } from "@/api/user/userService";
 import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateAdmin } from "@/common/middleware/adminAuth";
 import { createErrorResponse, validateRequest } from "@/common/utils/httpHandlers";
@@ -10,7 +11,7 @@ import {
 	AssignTagsSchema,
 	DeleteTagParamsSchema,
 	TagListSchema,
-	UserIdParamSchema,
+	UsernameParamSchema,
 } from "./tagSchemas";
 import { TagService } from "./tagService";
 
@@ -18,29 +19,36 @@ export const tagRegistry = new OpenAPIRegistry();
 export const tagRouter: Router = express.Router();
 
 const tagService = new TagService();
+const userService = new UserService();
 
-// GET /admin/users/:userId/tags - Get tags for a specific user
+// GET /admin/users/:username/tags - Get tags for a specific user
 tagRegistry.registerPath({
 	method: "get",
-	path: "/admin/users/{userId}/tags",
+	path: "/admin/users/{username}/tags",
 	tags: ["Admin", "Tags"],
 	summary: "Get user tags",
 	description: "Retrieve all tags assigned to a specific user",
 	security: [{ AdminAuth: [] }],
 	request: {
-		params: UserIdParamSchema,
+		params: UsernameParamSchema,
 	},
 	responses: createApiResponseWithErrors(TagListSchema, "User tags retrieved successfully"),
 });
 
 tagRouter.get(
-	"/admin/users/:userId/tags",
+	"/admin/users/:username/tags",
 	authenticateAdmin,
-	validateRequest(z.object({ params: UserIdParamSchema })),
+	validateRequest(z.object({ params: UsernameParamSchema })),
 	async (req: Request, res: Response) => {
 		try {
-			const { userId } = req.params as { userId: string };
-			const tags = await tagService.getUserTags(Number(userId));
+			const { username } = req.params as { username: string };
+			const userResult = await userService.findByUsername(username);
+			if (!userResult.success || !userResult.responseObject) {
+				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
+			}
+			const user = userResult.responseObject;
+			const tags = await tagService.getUserTags(user.id);
 			res.status(StatusCodes.OK).json(tags);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Failed to get user tags";
@@ -50,16 +58,16 @@ tagRouter.get(
 	},
 );
 
-// POST /admin/users/:userId/tags - Assign/create tags for user
+// POST /admin/users/:username/tags - Assign/create tags for user
 tagRegistry.registerPath({
 	method: "post",
-	path: "/admin/users/{userId}/tags",
+	path: "/admin/users/{username}/tags",
 	tags: ["Admin", "Tags"],
 	summary: "Assign tags to user",
 	description: "Assign new tags to a user (adds to existing tags)",
 	security: [{ AdminAuth: [] }],
 	request: {
-		params: UserIdParamSchema,
+		params: UsernameParamSchema,
 		body: {
 			content: {
 				"application/json": {
@@ -81,21 +89,28 @@ tagRegistry.registerPath({
 });
 
 tagRouter.post(
-	"/admin/users/:userId/tags",
+	"/admin/users/:username/tags",
 	authenticateAdmin,
 	validateRequest(
 		z.object({
-			params: UserIdParamSchema,
+			params: UsernameParamSchema,
 			body: AssignTagsSchema,
 		}),
 	),
 	async (req: Request, res: Response) => {
 		try {
-			const { userId } = req.params as { userId: string };
+			const { username } = req.params as { username: string };
 			const { tags: newTags } = req.body as AssignTagsDto;
 
+			const userResult = await userService.findByUsername(username);
+			if (!userResult.success || !userResult.responseObject) {
+				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
+			}
+			const user = userResult.responseObject;
+
 			// Get existing tags
-			const existingTags = await tagService.getUserTags(Number(userId));
+			const existingTags = await tagService.getUserTags(user.id);
 
 			// Create a map for case-insensitive duplicate checking
 			// Keep the first occurrence of each tag (case-insensitive)
@@ -121,7 +136,7 @@ tagRouter.post(
 			const allTags = Array.from(tagMap.values());
 
 			// Set all tags
-			await tagService.setUserTags(Number(userId), allTags);
+			await tagService.setUserTags(user.id, allTags);
 
 			res.status(StatusCodes.NO_CONTENT).send();
 		} catch (error) {
@@ -136,16 +151,16 @@ tagRouter.post(
 	},
 );
 
-// PUT /admin/users/:userId/tags - Replace all tags for user
+// PUT /admin/users/:username/tags - Replace all tags for user
 tagRegistry.registerPath({
 	method: "put",
-	path: "/admin/users/{userId}/tags",
+	path: "/admin/users/{username}/tags",
 	tags: ["Admin", "Tags"],
 	summary: "Replace user tags",
 	description: "Replace all existing tags for a user with new ones",
 	security: [{ AdminAuth: [] }],
 	request: {
-		params: UserIdParamSchema,
+		params: UsernameParamSchema,
 		body: {
 			content: {
 				"application/json": {
@@ -167,20 +182,27 @@ tagRegistry.registerPath({
 });
 
 tagRouter.put(
-	"/admin/users/:userId/tags",
+	"/admin/users/:username/tags",
 	authenticateAdmin,
 	validateRequest(
 		z.object({
-			params: UserIdParamSchema,
+			params: UsernameParamSchema,
 			body: AssignTagsSchema,
 		}),
 	),
 	async (req: Request, res: Response) => {
 		try {
-			const { userId } = req.params as { userId: string };
+			const { username } = req.params as { username: string };
 			const { tags } = req.body as AssignTagsDto;
 
-			await tagService.setUserTags(Number(userId), tags);
+			const userResult = await userService.findByUsername(username);
+			if (!userResult.success || !userResult.responseObject) {
+				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
+			}
+			const user = userResult.responseObject;
+
+			await tagService.setUserTags(user.id, tags);
 
 			res.status(StatusCodes.NO_CONTENT).send();
 		} catch (error) {
@@ -195,10 +217,10 @@ tagRouter.put(
 	},
 );
 
-// DELETE /admin/users/:userId/tags/:tagName - Remove specific tag from user
+// DELETE /admin/users/:username/tags/:tagName - Remove specific tag from user
 tagRegistry.registerPath({
 	method: "delete",
-	path: "/admin/users/{userId}/tags/{tagName}",
+	path: "/admin/users/{username}/tags/{tagName}",
 	tags: ["Admin", "Tags"],
 	summary: "Remove tag from user",
 	description: "Remove a specific tag from a user",
@@ -217,14 +239,21 @@ tagRegistry.registerPath({
 });
 
 tagRouter.delete(
-	"/admin/users/:userId/tags/:tagName",
+	"/admin/users/:username/tags/:tagName",
 	authenticateAdmin,
 	validateRequest(z.object({ params: DeleteTagParamsSchema })),
 	async (req: Request, res: Response) => {
 		try {
-			const { userId, tagName } = req.params as { userId: string; tagName: string };
+			const { username, tagName } = req.params as { username: string; tagName: string };
 
-			await tagService.removeTagFromUser(Number(userId), tagName);
+			const userResult = await userService.findByUsername(username);
+			if (!userResult.success || !userResult.responseObject) {
+				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
+			}
+			const user = userResult.responseObject;
+
+			await tagService.removeTagFromUser(user.id, tagName);
 
 			res.status(StatusCodes.NO_CONTENT).send();
 		} catch (error) {

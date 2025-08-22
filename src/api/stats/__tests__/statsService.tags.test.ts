@@ -254,12 +254,23 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			// Get stats for backend users
 			const result = await statsService.getAllStats(undefined, undefined, ["backend"]);
 
-			// Verify summary calculations
-			expect(result.summary?.uniqueUsers).toBe(2); // userBackend and userFullstack
+			// Filter to only our test users
+			const testUserStats = result.stats.filter((s) => s.username.startsWith("test-stats-tags-"));
+			const uniqueTestUsers = new Set(testUserStats.map((s) => s.username));
+
+			// Verify we have the correct test users with backend tag
+			expect(uniqueTestUsers.has(userBackend.username)).toBe(true);
+			expect(uniqueTestUsers.has(userFullstack.username)).toBe(true);
+			expect(uniqueTestUsers.has(userFrontend.username)).toBe(false);
+			expect(uniqueTestUsers.has(userNoTags.username)).toBe(false);
+
+			// The summary includes ALL users with backend tag (including from other tests)
+			// So we just verify it has at least our 2 test users
+			expect(result.summary?.uniqueUsers).toBeGreaterThanOrEqual(2);
 			expect(result.summary?.totalTokens).toBeGreaterThan(0);
 			expect(result.summary?.totalCost).toBeGreaterThan(0);
 
-			// Total cost should be sum of backend and fullstack users
+			// Total cost should include at least our test users' costs
 			const expectedMinCost = 0.03 + 0.0225; // Today's costs for backend and fullstack
 			expect(result.summary?.totalCost).toBeGreaterThanOrEqual(expectedMinCost);
 		});

@@ -306,7 +306,7 @@ describe("Tag Validation Schemas", () => {
 		it("should handle URL-encoded tag names", () => {
 			// This is typically decoded by Express before reaching validation
 			const result = DeleteTagParamsSchema.safeParse({
-				userId: "123",
+				username: "john-doe",
 				tagName: "tag with spaces",
 			});
 			expect(result.success).toBe(true);

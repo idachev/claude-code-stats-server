@@ -35,26 +35,28 @@ describe("Tag Router Integration Tests", () => {
 		}
 	});
 
-	describe("GET /admin/users/:userId/tags", () => {
+	describe("GET /admin/users/:username/tags", () => {
 		it("should get user tags with admin auth", async () => {
 			// Setup: Add tags to user
 			await tagService.setUserTags(testUser.id, ["frontend", "react", "typescript"]);
 
-			const response = await request(app).get(`/admin/users/${testUser.id}/tags`).set("X-Admin-Key", adminApiKey);
+			const response = await request(app).get(`/admin/users/${testUser.username}/tags`).set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(200);
 			expect(response.body).toEqual(["frontend", "react", "typescript"]);
 		});
 
 		it("should return empty array when user has no tags", async () => {
-			const response = await request(app).get(`/admin/users/${testUser2.id}/tags`).set("X-Admin-Key", adminApiKey);
+			const response = await request(app)
+				.get(`/admin/users/${testUser2.username}/tags`)
+				.set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(200);
 			expect(response.body).toEqual([]);
 		});
 
 		it("should return 401 without admin auth", async () => {
-			const response = await request(app).get(`/admin/users/${testUser.id}/tags`);
+			const response = await request(app).get(`/admin/users/${testUser.username}/tags`);
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
@@ -62,20 +64,22 @@ describe("Tag Router Integration Tests", () => {
 		});
 
 		it("should return 401 with invalid API key", async () => {
-			const response = await request(app).get(`/admin/users/${testUser.id}/tags`).set("X-Admin-Key", "invalid-key");
+			const response = await request(app)
+				.get(`/admin/users/${testUser.username}/tags`)
+				.set("X-Admin-Key", "invalid-key");
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
 			expect(response.body.error).toBe("Invalid admin API key");
 		});
 
-		it("should return 400 for invalid userId", async () => {
-			const response = await request(app).get("/admin/users/not-a-number/tags").set("X-Admin-Key", adminApiKey);
+		it("should return 400 for invalid username", async () => {
+			const response = await request(app).get("/admin/users/ab/tags").set("X-Admin-Key", adminApiKey); // Too short
 
 			expect(response.status).toBe(400);
 			expect(response.body).toHaveProperty("error");
 			expect(response.body.error).toContain("Invalid input");
-			expect(response.body.error).toContain("params.userId");
+			expect(response.body.error).toContain("params.username");
 		});
 	});
 
@@ -85,7 +89,7 @@ describe("Tag Router Integration Tests", () => {
 			await tagService.setUserTags(testUser.id, []);
 
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["backend", "nodejs"] });
 
@@ -101,7 +105,7 @@ describe("Tag Router Integration Tests", () => {
 			await tagService.setUserTags(testUser.id, ["frontend", "react"]);
 
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["react", "typescript", "nodejs"] });
 
@@ -117,7 +121,7 @@ describe("Tag Router Integration Tests", () => {
 			await tagService.setUserTags(testUser.id, ["Frontend"]);
 
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["backend", "nodejs"] }); // Different tags that won't conflict
 
@@ -135,7 +139,7 @@ describe("Tag Router Integration Tests", () => {
 
 			// Try to add same tag with different case
 			const response = await request(app)
-				.post(`/admin/users/${testUser2.id}/tags`)
+				.post(`/admin/users/${testUser2.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["frontend"] }); // Same tag, different case
 
@@ -149,7 +153,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 400 for invalid tag names", async () => {
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["valid-tag", "invalid@tag", "another_valid"] });
 
@@ -160,7 +164,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 400 for tag names too short", async () => {
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["a"] });
 
@@ -172,7 +176,7 @@ describe("Tag Router Integration Tests", () => {
 		it("should return 400 for tag names too long", async () => {
 			const longTag = "a".repeat(65);
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: [longTag] });
 
@@ -183,7 +187,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 400 for missing tags field", async () => {
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({});
 
@@ -195,7 +199,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 401 without admin auth", async () => {
 			const response = await request(app)
-				.post(`/admin/users/${testUser.id}/tags`)
+				.post(`/admin/users/${testUser.username}/tags`)
 				.send({ tags: ["test"] });
 
 			expect(response.status).toBe(401);
@@ -204,13 +208,13 @@ describe("Tag Router Integration Tests", () => {
 		});
 	});
 
-	describe("PUT /admin/users/:userId/tags", () => {
+	describe("PUT /admin/users/:username/tags", () => {
 		it("should replace all user tags", async () => {
 			// Setup: Add initial tags
 			await tagService.setUserTags(testUser.id, ["old1", "old2", "old3"]);
 
 			const response = await request(app)
-				.put(`/admin/users/${testUser.id}/tags`)
+				.put(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["new1", "new2"] });
 
@@ -226,7 +230,7 @@ describe("Tag Router Integration Tests", () => {
 			await tagService.setUserTags(testUser.id, ["tag1", "tag2"]);
 
 			const response = await request(app)
-				.put(`/admin/users/${testUser.id}/tags`)
+				.put(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: [] });
 
@@ -239,7 +243,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should handle duplicate tags in request", async () => {
 			const response = await request(app)
-				.put(`/admin/users/${testUser.id}/tags`)
+				.put(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["duplicate", "duplicate", "unique"] });
 
@@ -252,7 +256,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 400 for invalid tags", async () => {
 			const response = await request(app)
-				.put(`/admin/users/${testUser.id}/tags`)
+				.put(`/admin/users/${testUser.username}/tags`)
 				.set("X-Admin-Key", adminApiKey)
 				.send({ tags: ["valid", "inv@lid"] });
 
@@ -265,7 +269,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 401 without admin auth", async () => {
 			const response = await request(app)
-				.put(`/admin/users/${testUser.id}/tags`)
+				.put(`/admin/users/${testUser.username}/tags`)
 				.send({ tags: ["test"] });
 
 			expect(response.status).toBe(401);
@@ -274,13 +278,13 @@ describe("Tag Router Integration Tests", () => {
 		});
 	});
 
-	describe("DELETE /admin/users/:userId/tags/:tagName", () => {
+	describe("DELETE /admin/users/:username/tags/:tagName", () => {
 		it("should remove specific tag from user", async () => {
 			// Setup: Add tags
 			await tagService.setUserTags(testUser.id, ["keep1", "remove", "keep2"]);
 
 			const response = await request(app)
-				.delete(`/admin/users/${testUser.id}/tags/remove`)
+				.delete(`/admin/users/${testUser.username}/tags/remove`)
 				.set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(204);
@@ -295,7 +299,7 @@ describe("Tag Router Integration Tests", () => {
 			await tagService.setUserTags(testUser.id, ["tag1", "tag2"]);
 
 			const response = await request(app)
-				.delete(`/admin/users/${testUser.id}/tags/nonexistent`)
+				.delete(`/admin/users/${testUser.username}/tags/nonexistent`)
 				.set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(204);
@@ -311,7 +315,7 @@ describe("Tag Router Integration Tests", () => {
 
 			// Remove tag with spaces (URL encoded)
 			const response = await request(app)
-				.delete(`/admin/users/${testUser.id}/tags/tag%20with%20spaces`)
+				.delete(`/admin/users/${testUser.username}/tags/tag%20with%20spaces`)
 				.set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(204);
@@ -323,7 +327,7 @@ describe("Tag Router Integration Tests", () => {
 
 		it("should return 400 for invalid tag name format", async () => {
 			const response = await request(app)
-				.delete(`/admin/users/${testUser.id}/tags/inv@lid`)
+				.delete(`/admin/users/${testUser.username}/tags/inv@lid`)
 				.set("X-Admin-Key", adminApiKey);
 
 			expect(response.status).toBe(400);
@@ -350,28 +354,29 @@ describe("Tag Router Integration Tests", () => {
 			// Send multiple concurrent requests with unique tags to avoid race conditions
 			const promises = [
 				request(app)
-					.post(`/admin/users/${testUser.id}/tags`)
+					.post(`/admin/users/${testUser.username}/tags`)
 					.set("X-Admin-Key", adminApiKey)
 					.send({ tags: ["concurrent1", "concurrent2"] }),
 				request(app)
-					.post(`/admin/users/${testUser.id}/tags`)
+					.post(`/admin/users/${testUser.username}/tags`)
 					.set("X-Admin-Key", adminApiKey)
 					.send({ tags: ["concurrent3", "concurrent4"] }),
 				request(app)
-					.post(`/admin/users/${testUser.id}/tags`)
+					.post(`/admin/users/${testUser.username}/tags`)
 					.set("X-Admin-Key", adminApiKey)
 					.send({ tags: ["concurrent5", "concurrent6"] }),
 			];
 
 			const responses = await Promise.all(promises);
 
-			// Due to race conditions, some might fail but at least one should succeed
+			// At least one should succeed, but due to potential race conditions not all might
 			const successCount = responses.filter((r) => r.status === 204).length;
 			expect(successCount).toBeGreaterThan(0);
 
-			// Verify we have some tags added
+			// Verify tags were added
 			const userTags = await tagService.getUserTags(testUser.id);
 			expect(userTags.length).toBeGreaterThan(0);
+			expect(userTags.length).toBeLessThanOrEqual(6); // At most 6 tags
 
 			// All tags that made it should be from our concurrent operations
 			userTags.forEach((tag) => {

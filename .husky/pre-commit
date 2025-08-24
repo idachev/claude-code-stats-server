@@ -33,4 +33,14 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# Run E2E tests
+echo "🎭 Running E2E tests..."
+pnpm run test:e2e
+
+# Check if E2E tests succeeded
+if [ $? -ne 0 ]; then
+  echo "❌ E2E tests failed. Please fix the failing E2E tests before committing."
+  exit 1
+fi
+
 echo "✅ All pre-commit checks passed!"

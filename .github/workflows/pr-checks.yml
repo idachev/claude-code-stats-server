@@ -58,7 +58,7 @@ jobs:
           echo "DB_PASSWORD=postgres" >> .env
 
       - name: Run database migrations
-        run: pnpm run db:push
+        run: pnpm run db:migrate
         env:
           DB_HOST: localhost
           DB_PORT: 5432

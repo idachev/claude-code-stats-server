@@ -42,17 +42,25 @@ tagRouter.get(
 	async (req: Request, res: Response) => {
 		try {
 			const { username } = req.params as { username: string };
+
 			const userResult = await userService.findByUsername(username);
+
 			if (!userResult.success || !userResult.responseObject) {
 				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+
 				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
 			}
+
 			const user = userResult.responseObject;
+
 			const tags = await tagService.getUserTags(user.id);
+
 			res.status(StatusCodes.OK).json(tags);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Failed to get user tags";
+
 			const errorResponse = createErrorResponse(errorMessage, StatusCodes.INTERNAL_SERVER_ERROR);
+
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(errorResponse);
 		}
 	},
@@ -100,13 +108,17 @@ tagRouter.post(
 	async (req: Request, res: Response) => {
 		try {
 			const { username } = req.params as { username: string };
+
 			const { tags: newTags } = req.body as AssignTagsDto;
 
 			const userResult = await userService.findByUsername(username);
+
 			if (!userResult.success || !userResult.responseObject) {
 				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+
 				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
 			}
+
 			const user = userResult.responseObject;
 
 			// Get existing tags
@@ -119,6 +131,7 @@ tagRouter.post(
 			// Add existing tags first (they have priority)
 			for (const tag of existingTags) {
 				const key = tag.toLowerCase();
+
 				if (!tagMap.has(key)) {
 					tagMap.set(key, tag);
 				}
@@ -127,6 +140,7 @@ tagRouter.post(
 			// Add new tags only if they don't exist (case-insensitive)
 			for (const tag of newTags) {
 				const key = tag.toLowerCase();
+
 				if (!tagMap.has(key)) {
 					tagMap.set(key, tag);
 				}
@@ -141,11 +155,14 @@ tagRouter.post(
 			res.status(StatusCodes.NO_CONTENT).send();
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Failed to assign tags";
+
 			const statusCode =
 				error instanceof Error && error.message.includes("cannot")
 					? StatusCodes.BAD_REQUEST
 					: StatusCodes.INTERNAL_SERVER_ERROR;
+
 			const errorResponse = createErrorResponse(errorMessage, statusCode);
+
 			res.status(statusCode).json(errorResponse);
 		}
 	},
@@ -193,13 +210,17 @@ tagRouter.put(
 	async (req: Request, res: Response) => {
 		try {
 			const { username } = req.params as { username: string };
+
 			const { tags } = req.body as AssignTagsDto;
 
 			const userResult = await userService.findByUsername(username);
+
 			if (!userResult.success || !userResult.responseObject) {
 				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+
 				return res.status(StatusCodes.NOT_FOUND).json(errorResponse);
 			}
+
 			const user = userResult.responseObject;
 
 			await tagService.setUserTags(user.id, tags);
@@ -207,11 +228,14 @@ tagRouter.put(
 			res.status(StatusCodes.NO_CONTENT).send();
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Failed to replace tags";
+
 			const statusCode =
 				error instanceof Error && error.message.includes("cannot")
 					? StatusCodes.BAD_REQUEST
 					: StatusCodes.INTERNAL_SERVER_ERROR;
+
 			const errorResponse = createErrorResponse(errorMessage, statusCode);
+
 			res.status(statusCode).json(errorResponse);
 		}
 	},

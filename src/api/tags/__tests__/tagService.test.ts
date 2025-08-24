@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { TagService } from "@/api/tags/tagService";
 import { db, type NewUser, tags, users } from "@/db/index";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 
 describe("TagService Integration Tests", () => {
 	let tagService: TagService;
@@ -24,17 +25,12 @@ describe("TagService Integration Tests", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test data
-		if (testUserId) {
-			await db.delete(users).where(eq(users.id, testUserId));
-		}
-		if (testUserId2) {
-			await db.delete(users).where(eq(users.id, testUserId2));
-		}
+		await cleanupTestDatabase();
 	});
 
 	beforeEach(async () => {
 		tagService = new TagService();
+
 		// Clean up any existing tags for test users
 		await db.delete(tags).where(eq(tags.userId, testUserId));
 		await db.delete(tags).where(eq(tags.userId, testUserId2));
@@ -63,9 +59,6 @@ describe("TagService Integration Tests", () => {
 		});
 
 		it("should return empty array when no tags exist", async () => {
-			// Get all existing tags
-			const _existingTags = await tagService.getTags();
-
 			// Clean up all tags for our test users (already done in beforeEach)
 			// Just verify no tags exist for our test users
 			const userTags = await tagService.getUserTags(testUserId);

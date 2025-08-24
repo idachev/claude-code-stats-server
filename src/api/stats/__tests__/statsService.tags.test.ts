@@ -1,8 +1,9 @@
-import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { StatsService } from "@/api/stats/statsService";
+import type { StatsResponse } from "@/api/stats/statsTypes";
 import { TagService } from "@/api/tags/tagService";
-import { db, modelUsage, type NewUsageStats, type NewUser, usageStats, users } from "@/db/index";
+import { db, type NewUsageStats, type NewUser, usageStats, users } from "@/db/index";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 
 describe("StatsService Tag Filtering Integration Tests", () => {
 	let statsService: StatsService;
@@ -14,9 +15,68 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 	let userFullstack: { id: number; username: string };
 	let userNoTags: { id: number; username: string };
 
+	function assertEmptyStatsResult(result: StatsResponse): void {
+		expect(result.stats).toHaveLength(0);
+		expect(result.summary?.totalCost).toBe(0);
+		expect(result.summary?.totalTokens).toBe(0);
+		expect(result.summary?.uniqueUsers).toBe(0);
+	}
+
+	function assertExactTestUsers(result: StatsResponse, expectedUsernames: string[]): void {
+		const usernames = [...new Set(result.stats.map((s) => s.username))];
+		expect(usernames).toHaveLength(expectedUsernames.length);
+		expectedUsernames.forEach((username) => {
+			expect(usernames).toContain(username);
+		});
+		expect(usernames.sort()).toEqual(expectedUsernames.sort());
+
+		// Calculate expected totals based on which users are expected
+		let expectedTotalTokens = 0;
+		let expectedTotalCost = 0;
+
+		if (expectedUsernames.includes(userFrontend.username)) {
+			// Frontend user has 2 days of stats: today (1500) + yesterday (1200) = 2700 tokens
+			expectedTotalTokens += 2700;
+			expectedTotalCost += 0.027; // 0.015 + 0.012
+		}
+		if (expectedUsernames.includes(userBackend.username)) {
+			// Backend user has 1 day: today (3000 tokens)
+			expectedTotalTokens += 3000;
+			expectedTotalCost += 0.03;
+		}
+		if (expectedUsernames.includes(userFullstack.username)) {
+			// Fullstack user has 1 day: today (2250 tokens)
+			expectedTotalTokens += 2250;
+			expectedTotalCost += 0.0225;
+		}
+		if (expectedUsernames.includes(userNoTags.username)) {
+			// NoTags user has 1 day: today (750 tokens)
+			expectedTotalTokens += 750;
+			expectedTotalCost += 0.0075;
+		}
+
+		// Assert the summary matches expected totals
+		if (result.summary) {
+			expect(result.summary.uniqueUsers).toBe(expectedUsernames.length);
+			expect(result.summary.totalTokens).toBe(expectedTotalTokens);
+			expect(result.summary.totalCost).toBeCloseTo(expectedTotalCost, 4);
+		}
+	}
+
+	function assertAllTestUsers(result: StatsResponse): void {
+		assertExactTestUsers(result, [
+			userFrontend.username,
+			userBackend.username,
+			userFullstack.username,
+			userNoTags.username,
+		]);
+	}
+
 	beforeAll(async () => {
 		statsService = new StatsService();
 		tagService = new TagService();
+
+		await cleanupTestDatabase();
 
 		// Create test users
 		const testUsers: NewUser[] = [
@@ -103,25 +163,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test data
-		// Delete in order of dependencies
-		for (const user of [userFrontend, userBackend, userFullstack, userNoTags]) {
-			if (user) {
-				// Get all usage stats for this user
-				const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
-
-				// Delete model usage for each stat
-				for (const stat of stats) {
-					await db.delete(modelUsage).where(eq(modelUsage.usageStatsId, stat.id));
-				}
-
-				// Delete usage stats
-				await db.delete(usageStats).where(eq(usageStats.userId, user.id));
-
-				// Delete user (tags will cascade delete)
-				await db.delete(users).where(eq(users.id, user.id));
-			}
-		}
+		await cleanupTestDatabase();
 	});
 
 	describe("getStatsForDateRange with tags", () => {
@@ -133,12 +175,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			const result = await statsService.getStatsForDateRange(startDate, endDate, undefined, undefined, ["frontend"]);
 
 			// Should return stats for userFrontend and userFullstack
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toHaveLength(2);
-			expect(usernames).toContain(userFrontend.username);
-			expect(usernames).toContain(userFullstack.username);
-			expect(usernames).not.toContain(userBackend.username);
-			expect(usernames).not.toContain(userNoTags.username);
+			assertExactTestUsers(result, [userFrontend.username, userFullstack.username]);
 		});
 
 		it("should filter stats by multiple tags (AND logic)", async () => {
@@ -152,9 +189,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			]);
 
 			// Should only return stats for userFullstack
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toHaveLength(1);
-			expect(usernames).toContain(userFullstack.username);
+			assertExactTestUsers(result, [userFullstack.username]);
 		});
 
 		it("should return empty stats when no users have all specified tags", async () => {
@@ -170,10 +205,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 				["frontend", "postgres"], // No user has both
 			);
 
-			expect(result.stats).toHaveLength(0);
-			expect(result.summary?.totalCost).toBe(0);
-			expect(result.summary?.totalTokens).toBe(0);
-			expect(result.summary?.uniqueUsers).toBe(0);
+			assertEmptyStatsResult(result);
 		});
 
 		it("should combine username and tag filters", async () => {
@@ -186,9 +218,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			]);
 
 			// Should return stats only for userFullstack (has the tag and matches username)
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toHaveLength(1);
-			expect(usernames[0]).toBe(userFullstack.username);
+			assertExactTestUsers(result, [userFullstack.username]);
 		});
 
 		it("should return empty when username doesn't have specified tags", async () => {
@@ -200,7 +230,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 				"backend",
 			]);
 
-			expect(result.stats).toHaveLength(0);
+			assertEmptyStatsResult(result);
 		});
 	});
 
@@ -210,10 +240,7 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			const result = await statsService.getAllStats(undefined, undefined, ["javascript"]);
 
 			// Should return stats for userFrontend and userFullstack
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toHaveLength(2);
-			expect(usernames).toContain(userFrontend.username);
-			expect(usernames).toContain(userFullstack.username);
+			assertExactTestUsers(result, [userFrontend.username, userFullstack.username]);
 		});
 
 		it("should filter all stats by multiple tags", async () => {
@@ -221,23 +248,15 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			const result = await statsService.getAllStats(undefined, undefined, ["javascript", "python"]);
 
 			// Should only return stats for userFullstack
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toHaveLength(1);
-			expect(usernames).toContain(userFullstack.username);
+			assertExactTestUsers(result, [userFullstack.username]);
 		});
 
 		it("should return all stats when no tags specified", async () => {
-			// Get all stats without tag filter
+			// Get all stats without tag filter - should include all our test users
 			const result = await statsService.getAllStats();
 
-			// Should return stats for all users (including our test users)
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-
-			// Check that our test users are included
-			const testUsernames = [userFrontend.username, userBackend.username, userFullstack.username, userNoTags.username];
-
-			const hasTestUsers = testUsernames.some((username) => usernames.includes(username));
-			expect(hasTestUsers).toBe(true);
+			// Verify all test users are present with correct totals
+			assertAllTestUsers(result);
 		});
 
 		it("should handle case-insensitive tag filtering", async () => {
@@ -245,34 +264,15 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			const result = await statsService.getAllStats(undefined, undefined, ["Frontend"]);
 
 			// Should still find users with "frontend" tag
-			const usernames = [...new Set(result.stats.map((s) => s.username))];
-			expect(usernames).toContain(userFrontend.username);
-			expect(usernames).toContain(userFullstack.username);
+			assertExactTestUsers(result, [userFrontend.username, userFullstack.username]);
 		});
 
 		it("should correctly calculate summary with tag filtering", async () => {
 			// Get stats for backend users
 			const result = await statsService.getAllStats(undefined, undefined, ["backend"]);
 
-			// Filter to only our test users
-			const testUserStats = result.stats.filter((s) => s.username.startsWith("test-stats-tags-"));
-			const uniqueTestUsers = new Set(testUserStats.map((s) => s.username));
-
-			// Verify we have the correct test users with backend tag
-			expect(uniqueTestUsers.has(userBackend.username)).toBe(true);
-			expect(uniqueTestUsers.has(userFullstack.username)).toBe(true);
-			expect(uniqueTestUsers.has(userFrontend.username)).toBe(false);
-			expect(uniqueTestUsers.has(userNoTags.username)).toBe(false);
-
-			// The summary includes ALL users with backend tag (including from other tests)
-			// So we just verify it has at least our 2 test users
-			expect(result.summary?.uniqueUsers).toBeGreaterThanOrEqual(2);
-			expect(result.summary?.totalTokens).toBeGreaterThan(0);
-			expect(result.summary?.totalCost).toBeGreaterThan(0);
-
-			// Total cost should include at least our test users' costs
-			const expectedMinCost = 0.03 + 0.0225; // Today's costs for backend and fullstack
-			expect(result.summary?.totalCost).toBeGreaterThanOrEqual(expectedMinCost);
+			// Verify we have exactly the test users with backend tag and correct totals
+			assertExactTestUsers(result, [userBackend.username, userFullstack.username]);
 		});
 	});
 
@@ -284,16 +284,14 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 			// Empty tags array should not filter
 			const result = await statsService.getStatsForDateRange(startDate, endDate, undefined, undefined, []);
 
-			// Should return stats for all users
-			expect(result.stats.length).toBeGreaterThan(0);
+			// Should return stats for all test users
+			assertAllTestUsers(result);
 		});
 
 		it("should handle non-existent tags", async () => {
 			const result = await statsService.getAllStats(undefined, undefined, ["nonexistent-tag-xyz"]);
 
-			expect(result.stats).toHaveLength(0);
-			expect(result.summary?.totalCost).toBe(0);
-			expect(result.summary?.uniqueUsers).toBe(0);
+			assertEmptyStatsResult(result);
 		});
 
 		it("should preserve other filters when using tags", async () => {
@@ -305,19 +303,15 @@ describe("StatsService Tag Filtering Integration Tests", () => {
 				"javascript",
 			]);
 
-			// Should only return stats for userFullstack within date range
-			if (result.stats.length > 0) {
-				const usernames = [...new Set(result.stats.map((s) => s.username))];
-				expect(usernames).toHaveLength(1);
-				expect(usernames[0]).toBe(userFullstack.username);
+			// Should only return stats for userFullstack
+			assertExactTestUsers(result, [userFullstack.username]);
 
-				// Check dates are within range
-				result.stats.forEach((stat) => {
-					const statDate = new Date(stat.date);
-					expect(statDate >= startDate).toBe(true);
-					expect(statDate <= endDate).toBe(true);
-				});
-			}
+			// Also verify dates are within range
+			result.stats.forEach((stat) => {
+				const statDate = new Date(stat.date);
+				expect(statDate >= startDate).toBe(true);
+				expect(statDate <= endDate).toBe(true);
+			});
 		});
 	});
 });

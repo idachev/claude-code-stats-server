@@ -1,8 +1,8 @@
-import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TagService } from "@/api/tags/tagService";
 import { UserRepository } from "@/api/user/userRepository";
 import { db, type NewUser, users } from "@/db/index";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 
 describe("UserRepository Integration Tests with Tags", () => {
 	let userRepository: UserRepository;
@@ -37,12 +37,7 @@ describe("UserRepository Integration Tests with Tags", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test data
-		for (const user of [testUser1, testUser2, testUser3]) {
-			if (user) {
-				await db.delete(users).where(eq(users.id, user.id));
-			}
-		}
+		await cleanupTestDatabase();
 	});
 
 	describe("findAllAsync", () => {

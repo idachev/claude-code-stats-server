@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TagService } from "@/api/tags/tagService";
 import { db, type NewUser, users } from "@/db/index";
 import { app } from "@/server";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 
 describe("Tag Router Integration Tests", () => {
 	let tagService: TagService;
@@ -27,12 +27,7 @@ describe("Tag Router Integration Tests", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test data
-		for (const user of [testUser, testUser2]) {
-			if (user) {
-				await db.delete(users).where(eq(users.id, user.id));
-			}
-		}
+		await cleanupTestDatabase();
 	});
 
 	describe("GET /admin/users/:username/tags", () => {

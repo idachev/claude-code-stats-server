@@ -163,7 +163,22 @@ The CSP configuration is in `/src/common/middleware/helmetConfig.ts`. It allows:
 - Tests should use a test database or transactions that rollback
 - This ensures tests catch real database-related bugs
 
-### 13. Common Commands
+### 13. Getting PR Review Comments with GitHub CLI
+
+To get inline review comments on a pull request:
+```bash
+# Get all review comments (inline/diff comments) with pagination
+gh api repos/{owner}/{repo}/pulls/{pull_number}/comments --paginate
+
+# Example for this repository:
+gh api repos/idachev/claude-code-stats-server/pulls/1/comments --paginate
+
+# Format the output to see specific fields:
+gh api repos/{owner}/{repo}/pulls/{pull_number}/comments --paginate \
+  --jq '.[] | {path: .path, line: .line, body: .body, user: .user.login}'
+```
+
+### 14. Common Commands
 ```bash
 # Development
 pnpm start:dev          # Start dev server with hot reload on port 3000

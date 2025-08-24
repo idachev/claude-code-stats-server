@@ -24,6 +24,22 @@ export class StatsService {
 		return await this.tagService.getUsersByTags(tags);
 	}
 
+	// Helper method to add tags condition to query conditions
+	// Returns false if no users match the tags (should return empty response), true otherwise
+	private async addTagsCondition(conditions: SQL[], tags?: string[]): Promise<boolean> {
+		if (!tags || tags.length === 0) {
+			return true;
+		}
+
+		const userIds = await this.getUserIdsByTags(tags);
+		if (userIds && userIds.length > 0) {
+			conditions.push(inArray(users.id, userIds));
+			return true;
+		}
+
+		return false;
+	}
+
 	// Helper method to create empty stats response
 	private createEmptyStatsResponse(period: "custom" | "all", startDate?: Date, endDate?: Date): StatsResponse {
 		return {
@@ -269,15 +285,9 @@ export class StatsService {
 			conditions.push(eq(users.username, username));
 		}
 
-		// Add tag filtering if tags are provided
-		if (tags && tags.length > 0) {
-			const userIds = await this.getUserIdsByTags(tags);
-			if (userIds && userIds.length > 0) {
-				conditions.push(inArray(users.id, userIds));
-			} else {
-				// No users found with the specified tags
-				return this.createEmptyStatsResponse("custom", startDate, endDate);
-			}
+		const hasMatchingUsers = await this.addTagsCondition(conditions, tags);
+		if (!hasMatchingUsers) {
+			return this.createEmptyStatsResponse("custom", startDate, endDate);
 		}
 
 		// Fetch stats data
@@ -311,15 +321,9 @@ export class StatsService {
 			conditions.push(eq(users.username, username));
 		}
 
-		// Add tag filtering if tags are provided
-		if (tags && tags.length > 0) {
-			const userIds = await this.getUserIdsByTags(tags);
-			if (userIds && userIds.length > 0) {
-				conditions.push(inArray(users.id, userIds));
-			} else {
-				// No users found with the specified tags
-				return this.createEmptyStatsResponse("all");
-			}
+		const hasMatchingUsers = await this.addTagsCondition(conditions, tags);
+		if (!hasMatchingUsers) {
+			return this.createEmptyStatsResponse("all");
 		}
 
 		// Fetch stats data

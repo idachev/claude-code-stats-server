@@ -20,15 +20,15 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 		// First check that the Swagger JSON is available
 		const swaggerJsonResponse = await request.get(`${baseURL}/swagger.json`);
 		expect(swaggerJsonResponse.ok()).toBeTruthy();
-		
+
 		const swaggerJson = await swaggerJsonResponse.json();
 		expect(swaggerJson).toHaveProperty("openapi");
 		expect(swaggerJson).toHaveProperty("info");
 		expect(swaggerJson.info.title).toContain("Claude Code Stats API");
 		expect(swaggerJson).toHaveProperty("paths");
-		
+
 		// Then check the Swagger UI
-		await page.goto(baseURL);  // Swagger UI is at the root
+		await page.goto(baseURL); // Swagger UI is at the root
 
 		// Wait for Swagger UI to load
 		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
@@ -167,18 +167,22 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 	});
 
 	test("Swagger UI Try it out functionality", async ({ page }) => {
-		await page.goto(baseURL);  // Swagger UI is at the root
+		await page.goto(baseURL); // Swagger UI is at the root
 		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
 
 		// Expand the health endpoint using a more specific selector
-		const healthEndpoint = page.locator('.opblock-tag-section').filter({ hasText: 'Health' }).locator('.opblock').first();
+		const healthEndpoint = page
+			.locator(".opblock-tag-section")
+			.filter({ hasText: "Health" })
+			.locator(".opblock")
+			.first();
 		await healthEndpoint.click();
 
 		// Wait for the endpoint to expand
 		await page.waitForTimeout(500);
 
 		// Check if Try it out button is visible
-		const tryItOutBtn = page.locator('.btn.try-out__btn').first();
+		const tryItOutBtn = page.locator(".btn.try-out__btn").first();
 		await expect(tryItOutBtn).toBeVisible();
 
 		// Click Try it out
@@ -188,14 +192,14 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 		await page.waitForTimeout(500);
 
 		// Execute the request
-		const executeBtn = page.locator('.btn.execute').first();
+		const executeBtn = page.locator(".btn.execute").first();
 		await executeBtn.click();
 
 		// Wait for response
-		await page.waitForSelector('.responses-inner', { timeout: 10000 });
+		await page.waitForSelector(".responses-inner", { timeout: 10000 });
 
 		// Verify successful response
-		const responseCode = page.locator('.response .response-col_status').first();
+		const responseCode = page.locator(".response .response-col_status").first();
 		await expect(responseCode).toContainText("200");
 	});
 });

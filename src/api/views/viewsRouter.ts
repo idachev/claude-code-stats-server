@@ -21,8 +21,9 @@ import { pino } from "pino";
 import { z } from "zod";
 import { StatsService } from "@/api/stats/statsService";
 import type { DailyStats, ModelStats, StatsResponse } from "@/api/stats/statsTypes";
+import { UserRepository } from "@/api/user/userRepository";
 import { validateRequest } from "@/common/utils/httpHandlers";
-import { db, modelUsage, users } from "@/db/index";
+import { db, modelUsage } from "@/db/index";
 
 const logger = pino({ name: "views-router" });
 
@@ -30,6 +31,7 @@ export const viewsRegistry = new OpenAPIRegistry();
 export const viewsRouter: Router = express.Router();
 
 const statsService = new StatsService();
+const userRepository = new UserRepository();
 
 // Month names for validation
 const MONTH_NAMES = [
@@ -56,6 +58,7 @@ const DashboardQuerySchema = z.object({
 		week: z.coerce.number().min(1).max(53).optional(),
 		user: z.string().optional(),
 		model: z.string().optional(),
+		tags: z.union([z.string().transform((val) => val.split(",")), z.array(z.string())]).optional(),
 		groupBy: z.enum(["user", "model"]).optional().default("user"),
 		metric: z.enum(["cost", "tokens"]).optional().default("tokens"),
 	}),
@@ -86,16 +89,20 @@ viewsRegistry.registerPath({
 // Dashboard view endpoint
 viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, year, month, week, user, model, groupBy, metric } = req.query as {
+		const { period, year, month, week, user, model, tags, groupBy, metric } = req.query as {
 			period?: "week" | "month" | "all";
 			year?: number;
 			month?: (typeof MONTH_NAMES)[number];
 			week?: number;
 			user?: string;
 			model?: string;
+			tags?: string | string[];
 			groupBy?: "user" | "model";
 			metric?: "cost" | "tokens";
 		};
+
+		// Ensure tags is always an array
+		const tagsArray = tags ? (Array.isArray(tags) ? tags : [tags]) : undefined;
 
 		const today = new Date();
 		const currentYear = getYear(today);
@@ -210,14 +217,14 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 			};
 		}
 
-		// Get stats from service with the date range
+		// Get stats from service with the date range and tag filters
 		let stats: StatsResponse;
 		if (period === "all") {
 			// For "all" view, get all data
-			stats = await statsService.getAllStats(user, model);
+			stats = await statsService.getAllStats(user, model, tagsArray);
 		} else if (dateRange) {
 			// For week/month view, pass the date range
-			stats = await statsService.getStatsForDateRange(dateRange.start, dateRange.end, user, model);
+			stats = await statsService.getStatsForDateRange(dateRange.start, dateRange.end, user, model, tagsArray);
 		} else {
 			// Fallback to empty stats (should not happen with proper validation)
 			stats = {
@@ -232,7 +239,7 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 		// Process data for charts with groupBy parameter
 		const chartData = processStatsForCharts(stats, groupBy || "user");
 
-		// Get unique users and models for filters
+		// Get unique users with tags, models, and all available tags for filters
 		const filters = await getAvailableFilters();
 
 		// Render the dashboard view
@@ -245,6 +252,7 @@ viewsRouter.get("/dashboard", validateRequest(DashboardQuerySchema), async (req:
 				period: period || "week",
 				user: user || "",
 				model: model || "",
+				tags: tagsArray || [],
 				groupBy: groupBy || "user",
 				metric: metric || "tokens",
 				...navigationParams.current,
@@ -448,13 +456,8 @@ function processStatsForCharts(stats: StatsResponse, groupBy: "user" | "model" =
 // Helper function to get available filters
 async function getAvailableFilters() {
 	try {
-		// Get all unique users
-		const usersResult = await db
-			.select({
-				username: users.username,
-			})
-			.from(users)
-			.orderBy(users.username);
+		// Get all users with their tags
+		const usersWithTags = await userRepository.findAllAsync();
 
 		// Get all unique model combinations
 		const modelsResult = await db
@@ -469,15 +472,30 @@ async function getAvailableFilters() {
 		// Format models as "provider/model"
 		const uniqueModels = modelsResult.map((m) => `${m.provider}/${m.model}`);
 
+		// Get all unique tags (case-insensitive)
+		const tagMap = new Map<string, string>(); // lowercase -> original
+		usersWithTags.forEach((u) => {
+			u.tags.forEach((tag) => {
+				const key = tag.toLowerCase();
+				if (!tagMap.has(key)) {
+					tagMap.set(key, tag);
+				}
+			});
+		});
+
 		return {
-			users: usersResult.map((u) => u.username),
+			users: usersWithTags.map((u) => u.username),
+			usersWithTags: usersWithTags,
 			models: uniqueModels,
+			tags: Array.from(tagMap.values()).sort(),
 		};
 	} catch (error) {
 		logger.error(error, "Failed to get filters");
 		return {
 			users: [],
+			usersWithTags: [],
 			models: [],
+			tags: [],
 		};
 	}
 }

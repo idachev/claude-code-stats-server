@@ -15,12 +15,14 @@ describe("userService", () => {
 		{
 			id: 1,
 			username: "alice",
+			tags: ["developer", "team-alpha"],
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		},
 		{
 			id: 2,
 			username: "bob",
+			tags: [],
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		},

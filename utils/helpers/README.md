@@ -73,6 +73,51 @@ export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="ccs_admin_change_this_in_producti
 - Warns about old key invalidation
 - Provides environment variable export commands for the new key
 
+### set-user-tags.sh
+
+Manages tags for a user (add, remove, replace, or clear tags).
+
+**Usage:**
+```bash
+./set-user-tags.sh <username> <action> [tags...]
+```
+
+**Actions:**
+- `set` - Replace all tags with the provided tags
+- `add` - Add new tags to existing tags
+- `remove` - Remove specific tags
+- `clear` - Remove all tags
+- `get` - Show current tags
+
+**Examples:**
+```bash
+# Set environment variables first
+export CLAUDE_CODE_STATS_SERVER_URL="http://localhost:3000"
+export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="ccs_admin_change_this_in_production"
+
+# Replace all tags
+./set-user-tags.sh john-doe set frontend react typescript
+
+# Add tags to existing ones
+./set-user-tags.sh john-doe add nodejs express
+
+# Remove specific tags
+./set-user-tags.sh john-doe remove frontend
+
+# Clear all tags
+./set-user-tags.sh john-doe clear
+
+# Get current tags
+./set-user-tags.sh john-doe get
+```
+
+**Features:**
+- Supports multiple tag operations (set, add, remove, clear, get)
+- Validates tag names according to server rules
+- Shows current tags after modifications
+- Handles case-insensitive duplicate detection
+- URL-encodes tags when removing for proper handling of special characters
+
 ### common.sh
 
 Shared utility functions used by both scripts. This file contains:
@@ -105,7 +150,7 @@ The scripts provide clear error messages for common issues:
 
 If the scripts are not executable, run:
 ```bash
-chmod +x create-user.sh regenerate-user.sh
+chmod +x create-user.sh regenerate-user.sh set-user-tags.sh
 ```
 
 ## Troubleshooting

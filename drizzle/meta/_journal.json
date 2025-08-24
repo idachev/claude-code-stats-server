@@ -22,6 +22,20 @@
       "when": 1755753737170,
       "tag": "0002_smart_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755846966432,
+      "tag": "0003_boring_johnny_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755847641745,
+      "tag": "0004_productive_vector",
+      "breakpoints": true
     }
   ]
 }

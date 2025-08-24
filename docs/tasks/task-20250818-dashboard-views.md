@@ -2,64 +2,67 @@
 
 ## Overview
 
-The Claude Code Stats Server provides interactive HTML dashboards for visualizing usage statistics. These views are built using server-side rendering with EJS templates and client-side charting with Chart.js.
+The Claude Code Stats Server provides interactive HTML dashboards for visualizing usage statistics.
+These views are built using server-side rendering with EJS templates and client-side charting with
+Chart.js.
 
 ## Architecture
 
 ### View System Components
 
 1. **Router** (`/src/api/views/viewsRouter.ts`)
-   - Handles HTTP requests for dashboard pages
-   - Processes query parameters for filtering
-   - Fetches data from the stats service
-   - Renders EJS templates with processed data
+    - Handles HTTP requests for dashboard pages
+    - Processes query parameters for filtering
+    - Fetches data from the stats service
+    - Renders EJS templates with processed data
 
 2. **Templates** (`/src/views/`)
-   - `layouts/base.ejs` - Base HTML layout with CDN imports
-   - `partials/dashboard-content.ejs` - Main dashboard content
-   - `partials/error-content.ejs` - Error page content
-   - `dashboard.ejs` - Dashboard page wrapper
-   - `error.ejs` - Error page wrapper
+    - `layouts/base.ejs` - Base HTML layout with CDN imports
+    - `partials/dashboard-content.ejs` - Main dashboard content
+    - `partials/error-content.ejs` - Error page content
+    - `dashboard.ejs` - Dashboard page wrapper
+    - `error.ejs` - Error page wrapper
 
 3. **Middleware** (`/src/common/middleware/helmetConfig.ts`)
-   - Content Security Policy configuration
-   - Allows CDN resources for Tailwind and Chart.js
+    - Content Security Policy configuration
+    - Allows CDN resources for Tailwind and Chart.js
 
 ## Dashboard Features
 
 ### Main Dashboard (`/dashboard`)
 
 #### Query Parameters
+
 - `period` - Time range filter
-  - `week` (default) - Last 7 days
-  - `month` - Current month
-  - `all` - All available data
+    - `week` (default) - Last 7 days
+    - `month` - Current month
+    - `all` - All available data
 - `user` - Filter by specific username
 - `groupBy` - Data grouping (future enhancement)
-  - `user` - Group by user
-  - `model` - Group by model
-  - `date` - Group by date
+    - `user` - Group by user
+    - `model` - Group by model
+    - `date` - Group by date
 
 #### Charts and Visualizations
 
 1. **Daily Usage Bar Chart**
-   - Stacked bar chart showing daily costs
-   - Each stack represents a different user
-   - Hover tooltips show user-specific costs
-   - Consistent color mapping per user
+    - Stacked bar chart showing daily costs
+    - Each stack represents a different user
+    - Hover tooltips show user-specific costs
+    - Consistent color mapping per user
 
 2. **Total Token Cost Donut Chart**
-   - Breakdown of total costs by user
-   - Shows percentage distribution
-   - Interactive tooltips with exact values
+    - Breakdown of total costs by user
+    - Shows percentage distribution
+    - Interactive tooltips with exact values
 
 3. **Input Token Cost Donut Chart**
-   - User distribution of input token costs
-   - Helps identify heavy input users
+    - User distribution of input token costs
+    - Helps identify heavy input users
 
 4. **Output Token Cost Donut Chart**
-   - User distribution of output token costs
-   - Helps identify heavy output users
+    - User distribution of output token costs
+    - Helps identify heavy output users
 
 #### Data Processing
 
@@ -87,13 +90,16 @@ const processedData = stats.dailyStats.reduce((acc, day) => {
 ## Styling and Theme
 
 ### Dark Theme
+
 The dashboard uses a dark theme optimized for developer environments:
+
 - Background: `#1a1a1a` (dark-bg)
 - Cards: `#2a2a2a` (dark-card)
 - Borders: `#3a3a3a` (dark-border)
 - Text: Light gray (`text-gray-100`)
 
 ### Responsive Design
+
 - Tailwind CSS utilities for responsive layouts
 - Mobile-friendly card grids
 - Adaptive chart sizing
@@ -101,6 +107,7 @@ The dashboard uses a dark theme optimized for developer environments:
 ## Chart Configuration
 
 ### Chart.js Setup
+
 Charts are configured with dark theme defaults:
 
 ```javascript
@@ -109,6 +116,7 @@ Chart.defaults.borderColor = '#3a3a3a'; // Dark borders
 ```
 
 ### Color Palette
+
 Consistent color mapping for users across all charts:
 
 ```javascript
@@ -129,6 +137,7 @@ const colors = [
 The application uses Helmet with a custom CSP configuration that allows:
 
 ### Script Sources
+
 - `'self'` - Same origin scripts
 - `'unsafe-inline'` - Required for Chart.js initialization
 - `'unsafe-eval'` - Required for Tailwind CSS runtime
@@ -136,6 +145,7 @@ The application uses Helmet with a custom CSP configuration that allows:
 - `https://cdn.jsdelivr.net` - Chart.js and adapters
 
 ### Style Sources
+
 - `'self'` - Same origin styles
 - `'unsafe-inline'` - Required for Tailwind utilities
 
@@ -150,11 +160,13 @@ skip: () => env.isTest || env.isDevelopment
 ## Error Handling
 
 ### Error View (`/error`)
+
 - Displays user-friendly error messages
 - Shows error details in development mode
 - Maintains consistent dark theme styling
 
 ### Error Middleware
+
 Errors are caught and rendered using the error view:
 
 ```typescript
@@ -194,6 +206,7 @@ pnpm format:ejs
 ```
 
 Configuration is in `.jsbeautifyrc`:
+
 - Tab-based indentation
 - Preserves template tags
 - HTML-aware formatting
@@ -201,16 +214,19 @@ Configuration is in `.jsbeautifyrc`:
 ## Performance Considerations
 
 ### Server-Side Processing
+
 - Data aggregation happens on the server
 - Reduces client-side JavaScript payload
 - Improves initial page load time
 
 ### CDN Resources
+
 - Tailwind and Chart.js loaded from CDN
 - Leverages browser caching
 - Reduces server bandwidth
 
 ### Chart Optimization
+
 - Responsive charts with `maintainAspectRatio: false`
 - Efficient data structures for Chart.js
 - Minimal DOM manipulation
@@ -218,6 +234,7 @@ Configuration is in `.jsbeautifyrc`:
 ## Future Enhancements
 
 ### Planned Features
+
 - Real-time data updates via WebSockets
 - Export charts as images
 - Custom date range selection
@@ -226,6 +243,7 @@ Configuration is in `.jsbeautifyrc`:
 - Cost prediction based on trends
 
 ### Technical Improvements
+
 - Move to build-time CSS compilation
 - Implement chart data caching
 - Add chart animations

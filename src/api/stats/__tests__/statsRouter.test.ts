@@ -1,9 +1,9 @@
 import type { Server } from "node:http";
-import { eq } from "drizzle-orm";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db, modelUsage, usageStats, users } from "@/db/index";
 import { app } from "@/server";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 
 describe("Stats API Endpoint Filter Tests", () => {
 	let server: Server;
@@ -68,13 +68,7 @@ describe("Stats API Endpoint Filter Tests", () => {
 	});
 
 	afterAll(async () => {
-		// Clean up test data
-		const stats = await db.select().from(usageStats).where(eq(usageStats.userId, testUserId));
-		for (const stat of stats) {
-			await db.delete(modelUsage).where(eq(modelUsage.usageStatsId, stat.id));
-		}
-		await db.delete(usageStats).where(eq(usageStats.userId, testUserId));
-		await db.delete(users).where(eq(users.id, testUserId));
+		await cleanupTestDatabase();
 
 		// Close server
 		server.close();

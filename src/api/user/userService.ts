@@ -1,9 +1,11 @@
 import { StatusCodes } from "http-status-codes";
+import pino from "pino";
 
 import type { User } from "@/api/user/userModel";
 import { UserRepository } from "@/api/user/userRepository";
 import { ServiceResponse } from "@/common/models/serviceResponse";
-import { logger } from "@/server";
+
+const logger = pino({ name: "UserService" });
 
 export class UserService {
 	private userRepository: UserRepository;

@@ -91,6 +91,7 @@ const StatsQuerySchema = z.object({
 		week: z.coerce.number().min(1).max(53).optional(),
 		user: z.string().optional(),
 		model: z.string().optional(),
+		tags: z.union([z.string().transform((val) => val.split(",")), z.array(z.string())]).optional(),
 	}),
 });
 
@@ -147,7 +148,7 @@ statsRegistry.registerPath({
 	path: "/claude-code-stats",
 	tags: ["Statistics"],
 	summary: "Retrieve usage statistics",
-	description: "Get aggregated usage statistics for a specific period with optional filters by user and model",
+	description: "Get aggregated usage statistics for a specific period with optional filters by user, model, and tags",
 	request: {
 		query: StatsQuerySchema.shape.query,
 	},
@@ -195,13 +196,14 @@ statsRegistry.registerPath({
 // Get stats endpoint (JSON for now)
 statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res: Response) => {
 	try {
-		const { period, year, month, week, user, model } = req.query as {
+		const { period, year, month, week, user, model, tags } = req.query as {
 			period?: "week" | "month" | "all";
 			year?: number;
 			month?: (typeof MONTH_NAMES)[number];
 			week?: number;
 			user?: string;
 			model?: string;
+			tags?: string[];
 		};
 
 		const today = new Date();
@@ -213,7 +215,7 @@ statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res
 
 		if (period === "all") {
 			// For "all" view, get all data
-			stats = await statsService.getAllStats(user, model);
+			stats = await statsService.getAllStats(user, model, tags);
 		} else {
 			// Calculate date range based on period and navigation parameters
 			let startDate: Date;
@@ -245,7 +247,7 @@ statsRouter.get("/", validateRequest(StatsQuerySchema), async (req: Request, res
 				endDate = endOfWeek(targetDate, { weekStartsOn: 0 });
 			}
 
-			stats = await statsService.getStatsForDateRange(startDate, endDate, user, model);
+			stats = await statsService.getStatsForDateRange(startDate, endDate, user, model, tags);
 		}
 
 		// Return stats directly

@@ -1,12 +1,61 @@
 import { format } from "date-fns";
-import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, type SQL } from "drizzle-orm";
 import { pino } from "pino";
+import { TagService } from "@/api/tags/tagService";
 import { db, modelUsage, type NewModelUsage, type NewUsageStats, usageStats, users } from "@/db/index";
 import type { CCUsageData, DailyStats, StatsResponse } from "./statsTypes";
 
 const logger = pino({ name: "StatsService" });
 
 export class StatsService {
+	private tagService: TagService;
+
+	constructor() {
+		this.tagService = new TagService();
+	}
+
+	// Helper method to get user IDs filtered by tags
+	private async getUserIdsByTags(tags: string[]): Promise<number[] | null> {
+		if (tags.length === 0) {
+			return null; // No tag filter
+		}
+
+		// Get users that have ALL specified tags
+		return await this.tagService.getUsersByTags(tags);
+	}
+
+	// Helper method to add tags condition to query conditions
+	// Returns false if no users match the tags (should return empty response), true otherwise
+	private async addTagsCondition(conditions: SQL[], tags?: string[]): Promise<boolean> {
+		if (!tags || tags.length === 0) {
+			return true;
+		}
+
+		const userIds = await this.getUserIdsByTags(tags);
+		if (userIds && userIds.length > 0) {
+			conditions.push(inArray(users.id, userIds));
+			return true;
+		}
+
+		return false;
+	}
+
+	// Helper method to create empty stats response
+	private createEmptyStatsResponse(period: "custom" | "all", startDate?: Date, endDate?: Date): StatsResponse {
+		return {
+			period,
+			startDate: startDate?.toISOString() || new Date().toISOString(),
+			endDate: endDate?.toISOString() || new Date().toISOString(),
+			stats: [],
+			summary: {
+				totalCost: 0,
+				totalTokens: 0,
+				uniqueUsers: 0,
+				totalDays: 0,
+			},
+		};
+	}
+
 	// Helper method to fetch base stats data
 	private async fetchStatsData(conditions: SQL[]): Promise<
 		Array<{
@@ -138,13 +187,11 @@ export class StatsService {
 
 		// Start transaction
 		await db.transaction(async (tx) => {
-			// Find or create user
-			let [user] = await tx.select().from(users).where(eq(users.username, username));
+			// Find user - must exist
+			const [user] = await tx.select().from(users).where(eq(users.username, username));
 
 			if (!user) {
-				const [newUser] = await tx.insert(users).values({ username }).returning();
-				user = newUser;
-				logger.info(`Created new user: ${username}`);
+				throw new Error(`User not found: ${username}`);
 			}
 
 			// Process each day in the daily array
@@ -222,6 +269,7 @@ export class StatsService {
 		endDate: Date,
 		username?: string,
 		model?: string,
+		tags?: string[],
 	): Promise<StatsResponse> {
 		const startDateStr = format(startDate, "yyyy-MM-dd");
 		const endDateStr = format(endDate, "yyyy-MM-dd");
@@ -233,6 +281,11 @@ export class StatsService {
 
 		if (username) {
 			conditions.push(eq(users.username, username));
+		}
+
+		const hasMatchingUsers = await this.addTagsCondition(conditions, tags);
+		if (!hasMatchingUsers) {
+			return this.createEmptyStatsResponse("custom", startDate, endDate);
 		}
 
 		// Fetch stats data
@@ -257,13 +310,18 @@ export class StatsService {
 		};
 	}
 
-	async getAllStats(username?: string, model?: string): Promise<StatsResponse> {
+	async getAllStats(username?: string, model?: string, tags?: string[]): Promise<StatsResponse> {
 		logger.info(`Querying all stats`);
 
 		// Build query conditions
 		const conditions: SQL[] = [];
 		if (username) {
 			conditions.push(eq(users.username, username));
+		}
+
+		const hasMatchingUsers = await this.addTagsCondition(conditions, tags);
+		if (!hasMatchingUsers) {
+			return this.createEmptyStatsResponse("all");
 		}
 
 		// Fetch stats data

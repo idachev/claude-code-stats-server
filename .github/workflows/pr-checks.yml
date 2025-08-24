@@ -1,0 +1,111 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: claude_code_stats_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run format check
+        run: pnpm run format:check
+
+      - name: Run Biome checks
+        run: pnpm exec biome check --no-errors-on-unmatched
+
+      - name: Build project
+        run: pnpm run build
+
+      - name: Setup test environment
+        run: |
+          cp .env.template .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=claude_code_stats_test" >> .env
+          echo "DB_USER=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+
+      - name: Run database migrations
+        run: pnpm run db:migrate
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: claude_code_stats_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+
+      - name: Run tests
+        run: pnpm run test
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: claude_code_stats_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          NODE_ENV: test
+
+      - name: Run test coverage
+        run: pnpm run test:cov
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: claude_code_stats_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          NODE_ENV: test
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: pnpm run test:e2e
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: claude_code_stats_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            test-results/
+            playwright-report/
+            coverage/
+          retention-days: 7

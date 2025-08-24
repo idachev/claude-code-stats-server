@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { db, users } from "@/db/index";
-import { ApiKeyService } from "./apiKeyService";
+import { ApiKeyService } from "../apiKeyService";
 
 // Mock the database
 vi.mock("@/db/index", () => ({

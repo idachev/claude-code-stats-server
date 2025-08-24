@@ -4,8 +4,8 @@ import { eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, modelUsage, usageStats, users } from "@/db/index";
 import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
-import { StatsService } from "./statsService";
-import type { CCUsageData } from "./statsTypes";
+import { StatsService } from "../statsService";
+import type { CCUsageData } from "../statsTypes";
 
 // Run this test suite sequentially to avoid conflicts with other tests
 describe.sequential("StatsService Integration Tests", () => {

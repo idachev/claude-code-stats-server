@@ -37,9 +37,7 @@ describe("Tag Validation Schemas", () => {
 			validNames.forEach((name) => {
 				const result = TagNameSchema.safeParse(name);
 				expect(result.success).toBe(true);
-				if (result.success) {
-					expect(result.data).toBe(name);
-				}
+				expect(result.data).toBe(name);
 			});
 		});
 
@@ -49,9 +47,7 @@ describe("Tag Validation Schemas", () => {
 			shortNames.forEach((name) => {
 				const result = TagNameSchema.safeParse(name);
 				expect(result.success).toBe(false);
-				if (!result.success) {
-					expect(result.error.errors[0].message).toMatch(/at least 2/);
-				}
+				expect(result.error?.errors[0].message).toBe("Tag name must be at least 2 characters");
 			});
 		});
 
@@ -59,9 +55,7 @@ describe("Tag Validation Schemas", () => {
 			const longName = "a".repeat(65);
 			const result = TagNameSchema.safeParse(longName);
 			expect(result.success).toBe(false);
-			if (!result.success) {
-				expect(result.error.errors[0].message).toMatch(/cannot exceed 64/);
-			}
+			expect(result.error?.errors[0].message).toBe("Tag name cannot exceed 64 characters");
 		});
 
 		it("should reject tag names with invalid characters", () => {
@@ -95,9 +89,9 @@ describe("Tag Validation Schemas", () => {
 			invalidNames.forEach((name) => {
 				const result = TagNameSchema.safeParse(name);
 				expect(result.success).toBe(false);
-				if (!result.success) {
-					expect(result.error.errors[0].message).toMatch(/can only contain letters, numbers/);
-				}
+				expect(result.error?.errors[0].message).toBe(
+					"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+				);
 			});
 		});
 
@@ -145,18 +139,14 @@ describe("Tag Validation Schemas", () => {
 		it("should accept empty array", () => {
 			const result = TagListSchema.safeParse([]);
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data).toEqual([]);
-			}
+			expect(result.data).toEqual([]);
 		});
 
 		it("should accept array of valid tags", () => {
 			const tags = ["frontend", "backend", "javascript"];
 			const result = TagListSchema.safeParse(tags);
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data).toEqual(tags);
-			}
+			expect(result.data).toEqual(tags);
 		});
 
 		it("should reject non-array input", () => {
@@ -165,6 +155,17 @@ describe("Tag Validation Schemas", () => {
 			invalidInputs.forEach((input) => {
 				const result = TagListSchema.safeParse(input);
 				expect(result.success).toBe(false);
+				const expectedMessage =
+					typeof input === "string"
+						? "Expected array, received string"
+						: typeof input === "number"
+							? "Expected array, received number"
+							: typeof input === "object" && input !== null
+								? "Expected array, received object"
+								: input === null
+									? "Expected array, received null"
+									: "Required"; // undefined case
+				expect(result.error?.errors[0].message).toBe(expectedMessage);
 			});
 		});
 
@@ -190,32 +191,33 @@ describe("Tag Validation Schemas", () => {
 			const input = { tags: ["frontend", "backend"] };
 			const result = AssignTagsSchema.safeParse(input);
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data).toEqual(input);
-			}
+			expect(result.data).toEqual(input);
 		});
 
 		it("should reject missing tags field", () => {
 			const result = AssignTagsSchema.safeParse({});
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe("Required");
 		});
 
 		it("should reject non-array tags field", () => {
 			const result = AssignTagsSchema.safeParse({ tags: "frontend" });
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe("Expected array, received string");
 		});
 
 		it("should accept empty tags array", () => {
 			const result = AssignTagsSchema.safeParse({ tags: [] });
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data.tags).toEqual([]);
-			}
+			expect(result.data?.tags).toEqual([]);
 		});
 
 		it("should reject tags with invalid names", () => {
 			const result = AssignTagsSchema.safeParse({ tags: ["valid", "@invalid"] });
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe(
+				"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+			);
 		});
 	});
 
@@ -226,9 +228,7 @@ describe("Tag Validation Schemas", () => {
 			validUsernames.forEach((username) => {
 				const result = UsernameParamSchema.safeParse({ username });
 				expect(result.success).toBe(true);
-				if (result.success) {
-					expect(result.data.username).toBe(username);
-				}
+				expect(result.data?.username).toBe(username);
 			});
 		});
 
@@ -238,6 +238,7 @@ describe("Tag Validation Schemas", () => {
 			shortUsernames.forEach((username) => {
 				const result = UsernameParamSchema.safeParse({ username });
 				expect(result.success).toBe(false);
+				expect(result.error?.errors[0].message).toBe("String must contain at least 3 character(s)");
 			});
 		});
 
@@ -245,6 +246,7 @@ describe("Tag Validation Schemas", () => {
 			const longUsername = "a".repeat(129);
 			const result = UsernameParamSchema.safeParse({ username: longUsername });
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe("String must contain at most 128 character(s)");
 		});
 
 		it("should reject usernames with invalid characters", () => {
@@ -253,12 +255,14 @@ describe("Tag Validation Schemas", () => {
 			invalidUsernames.forEach((username) => {
 				const result = UsernameParamSchema.safeParse({ username });
 				expect(result.success).toBe(false);
+				expect(result.error?.errors[0].message).toBe("Invalid");
 			});
 		});
 
 		it("should reject missing username", () => {
 			const result = UsernameParamSchema.safeParse({});
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe("Required");
 		});
 	});
 
@@ -269,10 +273,8 @@ describe("Tag Validation Schemas", () => {
 				tagName: "frontend",
 			});
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data.username).toBe("john-doe");
-				expect(result.data.tagName).toBe("frontend");
-			}
+			expect(result.data?.username).toBe("john-doe");
+			expect(result.data?.tagName).toBe("frontend");
 		});
 
 		it("should reject invalid username", () => {
@@ -281,6 +283,7 @@ describe("Tag Validation Schemas", () => {
 				tagName: "frontend",
 			});
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe("String must contain at least 3 character(s)");
 		});
 
 		it("should reject invalid tagName", () => {
@@ -289,6 +292,9 @@ describe("Tag Validation Schemas", () => {
 				tagName: "@invalid",
 			});
 			expect(result.success).toBe(false);
+			expect(result.error?.errors[0].message).toBe(
+				"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+			);
 		});
 
 		it("should reject missing fields", () => {
@@ -300,6 +306,7 @@ describe("Tag Validation Schemas", () => {
 
 			results.forEach((result) => {
 				expect(result.success).toBe(false);
+				expect(result.error?.errors[0].message).toBe("Required");
 			});
 		});
 
@@ -310,9 +317,7 @@ describe("Tag Validation Schemas", () => {
 				tagName: "tag with spaces",
 			});
 			expect(result.success).toBe(true);
-			if (result.success) {
-				expect(result.data.tagName).toBe("tag with spaces");
-			}
+			expect(result.data?.tagName).toBe("tag with spaces");
 		});
 	});
 
@@ -339,17 +344,14 @@ describe("Tag Validation Schemas", () => {
 			testCases.forEach(({ name, shouldPass }) => {
 				const result = TagNameSchema.safeParse(name);
 				if (shouldPass) {
-					// These pass the regex but after trimming become empty string
-					// The actual validation would depend on whether trim happens before or after min check
 					if (result.success) {
-						// If successful, the trimmed result should be empty
 						expect(result.data).toBe("");
 					}
-					// Actually spaces DO pass because the regex check happens first, then trim
-					// So the schema validates "  " as valid (matches pattern), then trims to ""
 				} else {
-					// Tabs and newlines should fail the regex pattern
 					expect(result.success).toBe(false);
+					expect(result.error?.errors[0].message).toBe(
+						"Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores",
+					);
 				}
 			});
 		});
@@ -360,7 +362,6 @@ describe("Tag Validation Schemas", () => {
 
 			spacedNames.forEach((name) => {
 				const result = TagNameSchema.safeParse(name);
-				// Pattern allows spaces, so these should pass if length is OK
 				if (name.length >= TAG_MIN_LENGTH && name.length <= TAG_MAX_LENGTH) {
 					expect(result.success).toBe(true);
 				}

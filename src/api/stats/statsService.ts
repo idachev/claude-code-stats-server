@@ -187,13 +187,11 @@ export class StatsService {
 
 		// Start transaction
 		await db.transaction(async (tx) => {
-			// Find or create user
-			let [user] = await tx.select().from(users).where(eq(users.username, username));
+			// Find user - must exist
+			const [user] = await tx.select().from(users).where(eq(users.username, username));
 
 			if (!user) {
-				const [newUser] = await tx.insert(users).values({ username }).returning();
-				user = newUser;
-				logger.info(`Created new user: ${username}`);
+				throw new Error(`User not found: ${username}`);
 			}
 
 			// Process each day in the daily array

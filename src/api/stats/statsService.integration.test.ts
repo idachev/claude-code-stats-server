@@ -3,6 +3,7 @@ import { endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import { eq } from "drizzle-orm";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, modelUsage, usageStats, users } from "@/db/index";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 import { StatsService } from "./statsService";
 import type { CCUsageData } from "./statsTypes";
 
@@ -10,35 +11,9 @@ import type { CCUsageData } from "./statsTypes";
 describe.sequential("StatsService Integration Tests", () => {
 	const statsService = new StatsService();
 
-	// Helper function to clear ALL test data completely
-	async function clearAllTestData() {
-		// Delete in order of dependencies - delete ALL test users that start with "test-"
-		const allUsers = await db.select().from(users);
-		const testUsers = allUsers.filter((u) => u.username.startsWith("test-stats-"));
-
-		if (testUsers.length > 0) {
-			// Delete in reverse order of foreign key dependencies
-			for (const user of testUsers) {
-				// First get all usage stats for this user
-				const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
-
-				// Delete model usage for each stat
-				for (const stat of stats) {
-					await db.delete(modelUsage).where(eq(modelUsage.usageStatsId, stat.id));
-				}
-
-				// Delete usage stats for this user
-				await db.delete(usageStats).where(eq(usageStats.userId, user.id));
-
-				// Finally delete the user
-				await db.delete(users).where(eq(users.id, user.id));
-			}
-		}
-	}
-
 	// Clean up ALL test data before running this test suite
 	beforeAll(async () => {
-		await clearAllTestData();
+		await cleanupTestDatabase();
 	});
 
 	// Helper function to format date as YYYY-MM-DD
@@ -163,7 +138,10 @@ describe.sequential("StatsService Integration Tests", () => {
 	// Note: Each test is responsible for its own cleanup to avoid conflicts in parallel execution
 
 	describe.sequential("uploadStats", () => {
-		it("should upload stats for a new user", async () => {
+		it("should upload stats for an existing user", async () => {
+			// First create the user
+			const [user] = await db.insert(users).values({ username: "test-stats-existing-user" }).returning();
+
 			const tomorrow = getDaysAgo(-1); // Tomorrow's date
 			const testData: CCUsageData = {
 				daily: [
@@ -190,12 +168,12 @@ describe.sequential("StatsService Integration Tests", () => {
 				],
 			};
 
-			await statsService.uploadStats("test-stats-new-user", testData);
+			await statsService.uploadStats("test-stats-existing-user", testData);
 
-			// Verify user was created
-			const [user] = await db.select().from(users).where(eq(users.username, "test-stats-new-user"));
-			expect(user).toBeDefined();
-			expect(user.username).toBe("test-stats-new-user");
+			// Verify user still exists
+			const [verifyUser] = await db.select().from(users).where(eq(users.username, "test-stats-existing-user"));
+			expect(verifyUser).toBeDefined();
+			expect(verifyUser.username).toBe("test-stats-existing-user");
 
 			// Verify stats were saved
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
@@ -210,6 +188,8 @@ describe.sequential("StatsService Integration Tests", () => {
 		});
 
 		it("should update existing stats for the same date", async () => {
+			// First create the user
+			const [user] = await db.insert(users).values({ username: "test-stats-update-user" }).returning();
 			const tomorrow = getDaysAgo(-1); // Tomorrow's date
 			const testData1: CCUsageData = {
 				daily: [
@@ -244,7 +224,6 @@ describe.sequential("StatsService Integration Tests", () => {
 			await statsService.uploadStats("test-stats-update-user", testData2);
 
 			// Verify only one stat entry exists
-			const [user] = await db.select().from(users).where(eq(users.username, "test-stats-update-user"));
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
 
 			expect(stats).toHaveLength(1);
@@ -260,6 +239,44 @@ describe.sequential("StatsService Integration Tests", () => {
 			await expect(statsService.uploadStats("test-stats-invalid-user", invalidData)).rejects.toThrow(
 				"Invalid ccusage format",
 			);
+		});
+
+		it("should reject upload for non-existent user", async () => {
+			// Clean up any existing users first to ensure test isolation
+			await cleanupTestDatabase();
+
+			const validData: CCUsageData = {
+				daily: [
+					{
+						date: getDaysAgo(0),
+						inputTokens: 1000,
+						outputTokens: 2000,
+						totalTokens: 3000,
+						totalCost: 0.15,
+						modelBreakdowns: [
+							{
+								modelName: "claude-3-opus",
+								provider: "anthropic",
+								inputTokens: 1000,
+								outputTokens: 2000,
+								cost: 0.15,
+							},
+						],
+					},
+				],
+			};
+
+			// Test with non-existent username
+			await expect(statsService.uploadStats("non-existent-user", validData)).rejects.toThrow(
+				"User not found: non-existent-user",
+			);
+
+			// Test with empty username (also won't exist)
+			await expect(statsService.uploadStats("", validData)).rejects.toThrow("User not found: ");
+
+			// Test with null/undefined username
+			await expect(statsService.uploadStats(null as any, validData)).rejects.toThrow();
+			await expect(statsService.uploadStats(undefined as any, validData)).rejects.toThrow();
 		});
 	});
 
@@ -532,6 +549,9 @@ describe.sequential("StatsService Integration Tests", () => {
 		});
 
 		it("should handle concurrent uploads for the same user and date", async () => {
+			// First create the user
+			const [user] = await db.insert(users).values({ username: "test-stats-concurrent-user" }).returning();
+
 			const tomorrow = getDaysAgo(-1);
 			const testData: CCUsageData = {
 				daily: [
@@ -562,7 +582,6 @@ describe.sequential("StatsService Integration Tests", () => {
 			expect(userCount).toHaveLength(1);
 
 			// Should only have one stat entry for that date
-			const [user] = userCount;
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
 			expect(stats).toHaveLength(1);
 			expect(stats[0].date).toBe(tomorrow);
@@ -571,6 +590,9 @@ describe.sequential("StatsService Integration Tests", () => {
 
 	describe.sequential("Data validation", () => {
 		it("should handle missing model breakdowns", async () => {
+			// First create the user
+			const [user] = await db.insert(users).values({ username: "test-stats-no-models-user" }).returning();
+
 			const tomorrow = getDaysAgo(-1);
 			const testData: CCUsageData = {
 				daily: [
@@ -586,8 +608,6 @@ describe.sequential("StatsService Integration Tests", () => {
 			};
 
 			await statsService.uploadStats("test-stats-no-models-user", testData);
-
-			const [user] = await db.select().from(users).where(eq(users.username, "test-stats-no-models-user"));
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
 
 			expect(stats).toHaveLength(1);
@@ -599,6 +619,9 @@ describe.sequential("StatsService Integration Tests", () => {
 		});
 
 		it("should handle zero values correctly", async () => {
+			// First create the user
+			const [user] = await db.insert(users).values({ username: "test-stats-zero-user" }).returning();
+
 			const tomorrow = getDaysAgo(-1);
 			const testData: CCUsageData = {
 				daily: [
@@ -616,8 +639,6 @@ describe.sequential("StatsService Integration Tests", () => {
 			};
 
 			await statsService.uploadStats("test-stats-zero-user", testData);
-
-			const [user] = await db.select().from(users).where(eq(users.username, "test-stats-zero-user"));
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
 
 			expect(stats).toHaveLength(1);
@@ -627,6 +648,12 @@ describe.sequential("StatsService Integration Tests", () => {
 
 		it("should handle very large numbers correctly", async () => {
 			const testId = randomUUID();
+			// First create the user
+			const [user] = await db
+				.insert(users)
+				.values({ username: `test-stats-large-numbers-user-${testId}` })
+				.returning();
+
 			const tomorrow = getDaysAgo(-1);
 			const testData: CCUsageData = {
 				daily: [
@@ -642,11 +669,6 @@ describe.sequential("StatsService Integration Tests", () => {
 			};
 
 			await statsService.uploadStats(`test-stats-large-numbers-user-${testId}`, testData);
-
-			const [user] = await db
-				.select()
-				.from(users)
-				.where(eq(users.username, `test-stats-large-numbers-user-${testId}`));
 			const stats = await db.select().from(usageStats).where(eq(usageStats.userId, user.id));
 
 			expect(stats).toHaveLength(1);

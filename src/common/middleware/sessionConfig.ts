@@ -1,8 +1,9 @@
-import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import type { RequestHandler } from "express";
+import session from "express-session";
 import { Pool } from "pg";
-import { env } from "@/common/utils/envConfig";
 import { pino } from "pino";
+import { env } from "@/common/utils/envConfig";
 
 const logger = pino({ name: "session-config" });
 
@@ -22,7 +23,7 @@ const sessionPool = new Pool({
 });
 
 // Session configuration
-export const sessionConfig = session({
+export const sessionConfig: RequestHandler = session({
 	store: new PgSession({
 		pool: sessionPool,
 		tableName: "admin_sessions",

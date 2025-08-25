@@ -1,5 +1,16 @@
 import { relations, sql } from "drizzle-orm";
-import { date, decimal, index, integer, jsonb, pgTable, serial, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import {
+	date,
+	decimal,
+	index,
+	integer,
+	jsonb,
+	pgTable,
+	serial,
+	timestamp,
+	uniqueIndex,
+	varchar,
+} from "drizzle-orm/pg-core";
 import { TAG_MAX_LENGTH } from "@/api/tags/tagSchemas";
 
 // Users table

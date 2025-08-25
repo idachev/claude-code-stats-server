@@ -474,6 +474,10 @@ export const CreateUserSchema = z.object({
 7. Update admin API middleware to check session
 8. Create single route handler in adminViewRouter
 9. Add rate limiting for login attempts
+10. **Document admin endpoints in Swagger/OpenAPI**
+    - Create OpenAPI registry for admin view endpoints
+    - Document `/dashboard/admin` and `/admin/logout` endpoints
+    - Register adminViewRegistry in openAPIDocumentGenerator.ts
 
 ### Phase 2: Server-Side Rendering
 

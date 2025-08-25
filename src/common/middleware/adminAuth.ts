@@ -5,11 +5,24 @@ import { env } from "@/common/utils/envConfig";
 const logger = pino({ name: "admin-auth" });
 
 /**
- * Middleware to authenticate admin requests using a master API key
- * Expects API key in the X-Admin-Key header
+ * Middleware to authenticate admin requests
+ * Supports both session-based auth (for browser/dashboard) and API key auth (for programmatic access)
+ *
+ * Authentication methods (checked in order):
+ * 1. Session cookie with isAdmin flag
+ * 2. X-Admin-Key header with master API key
  */
 export function authenticateAdmin(req: Request, res: Response, next: NextFunction): void {
 	try {
+		// Check session authentication first (for browser requests from admin dashboard)
+		if (req.session?.isAdmin === true) {
+			// Update last activity timestamp
+			req.session.lastActivity = new Date();
+			next();
+			return;
+		}
+
+		// Check for admin API key
 		const adminKey = env.ADMIN_API_KEY;
 
 		if (!adminKey) {
@@ -20,12 +33,12 @@ export function authenticateAdmin(req: Request, res: Response, next: NextFunctio
 			return;
 		}
 
-		// Get API key from X-Admin-Key header
+		// Get API key from X-Admin-Key header (for programmatic access)
 		const providedKey = req.headers["x-admin-key"] as string;
 
 		if (!providedKey) {
 			res.status(401).json({
-				error: "Admin API key is required. Provide it in X-Admin-Key header",
+				error: "Authentication required. Use session cookie or X-Admin-Key header",
 			});
 			return;
 		}

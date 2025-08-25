@@ -55,6 +55,7 @@
 		"@biomejs/biome": "2.1.4",
 		"@playwright/test": "1.54.2",
 		"@types/bcrypt": "6.0.0",
+		"@types/connect-pg-simple": "^7.0.3",
 		"@types/cors": "2.8.19",
 		"@types/ejs": "3.1.5",
 		"@types/express": "5.0.3",

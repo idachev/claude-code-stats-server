@@ -1,7 +1,7 @@
+import { closeSessionPool } from "@/common/middleware/sessionConfig";
 import { env } from "@/common/utils/envConfig";
 import { closeDatabase, initializeDatabase } from "@/db/index";
 import { app, logger } from "@/server";
-import { closeSessionPool } from "@/common/middleware/sessionConfig";
 
 // Initialize database before starting server
 initializeDatabase()

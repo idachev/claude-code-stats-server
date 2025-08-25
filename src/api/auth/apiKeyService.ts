@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { pino } from "pino";
+import { TagService } from "@/api/tags/tagService";
 import { db, users } from "@/db/index";
 
 const logger = pino({ name: "ApiKeyService" });
@@ -11,13 +12,18 @@ export class ApiKeyService {
 	private readonly API_KEY_PREFIX = "ccs_";
 	private readonly API_KEY_RANDOM_BYTES = 32; // 32 bytes = 64 hex chars
 	private readonly API_KEY_EXPECTED_LENGTH = this.API_KEY_PREFIX.length + this.API_KEY_RANDOM_BYTES * 2; // prefix + hex chars
+	private tagService: TagService;
+
+	constructor() {
+		this.tagService = new TagService();
+	}
 
 	/**
 	 * Creates a new user with an API key
 	 * Throws error if user already exists
 	 * Returns the raw API key (to be shown once) and stores the hash in DB
 	 */
-	async createUserWithApiKey(username: string): Promise<string> {
+	async createUserWithApiKey(username: string, tags?: string[]): Promise<string> {
 		try {
 			// Check if user already exists
 			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
@@ -35,12 +41,20 @@ export class ApiKeyService {
 			const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
 
 			// Create new user with the hashed API key
-			await db.insert(users).values({
-				username,
-				apiKeyHash,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			});
+			const [newUser] = await db
+				.insert(users)
+				.values({
+					username,
+					apiKeyHash,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.returning();
+
+			// Add tags if provided
+			if (tags && tags.length > 0) {
+				await this.tagService.setUserTags(newUser.id, tags);
+			}
 
 			logger.info(`Created new user with API key: ${username}`);
 

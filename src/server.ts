@@ -6,12 +6,14 @@ import { healthRouter } from "@/api/health/healthRouter";
 import { statsRouter } from "@/api/stats/statsRouter";
 import { tagRouter } from "@/api/tags/tagRouter";
 import { userRouter } from "@/api/user/userRouter";
+import { adminViewRouter } from "@/api/views/adminViewRouter";
 import { viewsRouter } from "@/api/views/viewsRouter";
 import { openAPIRouter } from "@/api-docs/openAPIRouter";
 import errorHandler from "@/common/middleware/errorHandler";
 import helmetConfig from "@/common/middleware/helmetConfig";
 import rateLimiter from "@/common/middleware/rateLimiter";
 import requestLogger from "@/common/middleware/requestLogger";
+import { sessionConfig } from "@/common/middleware/sessionConfig";
 import { env } from "@/common/utils/envConfig";
 
 const logger = pino({ name: "server start" });
@@ -37,6 +39,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmetConfig);
+
+// Session middleware - must come before routes that need sessions
+app.use(sessionConfig);
+
 app.use(rateLimiter);
 
 // Static files
@@ -51,6 +57,7 @@ app.use("/admin/users", userRouter);
 app.use("/", tagRouter); // Tag routes are under /admin/users/:userId/tags
 app.use("/claude-code-stats", statsRouter);
 app.use("/", viewsRouter); // Views for dashboard and other HTML pages
+app.use("/", adminViewRouter); // Admin dashboard and logout routes
 
 // Swagger UI
 app.use(openAPIRouter);

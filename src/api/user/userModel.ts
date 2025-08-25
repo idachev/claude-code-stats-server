@@ -1,15 +1,14 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
+import {
+	TagNameBaseSchema,
+	USERNAME_MAX_LENGTH,
+	USERNAME_MIN_LENGTH,
+	USERNAME_PATTERN,
+	UsernameSchema,
+} from "@/common/schemas/validationSchemas";
 
-extendZodWithOpenApi(z);
-
-// Username validation constants
-export const USERNAME_MIN_LENGTH = 3;
-export const USERNAME_MAX_LENGTH = 128;
-export const USERNAME_PATTERN = /^[a-zA-Z0-9._-]+$/;
-
-// Reusable username validation schema
-export const UsernameSchema = z.string().min(USERNAME_MIN_LENGTH).max(USERNAME_MAX_LENGTH).regex(USERNAME_PATTERN);
+// Re-export for backward compatibility
+export { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_PATTERN, UsernameSchema };
 
 // Schema for API responses (excludes apiKeyHash)
 export const UserSchema = z.object({
@@ -33,6 +32,7 @@ export const GetUserByUsernameSchema = z.object({
 export const CreateUserSchema = z.object({
 	body: z.object({
 		username: UsernameSchema,
+		tags: z.array(TagNameBaseSchema).optional(), // Optional array of tags
 	}),
 });
 
@@ -50,6 +50,13 @@ export const CheckApiKeySchema = z.object({
 	}),
 	body: z.object({
 		apiKey: z.string().min(1),
+	}),
+});
+
+// Input Validation for 'POST /admin/users/:username/deactivate' endpoint
+export const DeactivateUserSchema = z.object({
+	params: z.object({
+		username: UsernameSchema,
 	}),
 });
 

@@ -46,3 +46,6 @@ tmp
 
 *.sln
 *.sw?
+
+version.txt
+

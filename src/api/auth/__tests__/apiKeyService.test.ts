@@ -1,57 +1,50 @@
 import bcrypt from "bcrypt";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { db, users } from "@/db/index";
+import { eq } from "drizzle-orm";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { db, tags, users } from "@/db/index";
+import { cleanupTestDatabase } from "@/test-utils/cleanupTestDatabase";
 import { ApiKeyService } from "../apiKeyService";
-
-// Mock the database
-vi.mock("@/db/index", () => ({
-	db: {
-		select: vi.fn(),
-		insert: vi.fn(),
-		update: vi.fn(),
-	},
-	users: {
-		username: "username",
-		apiKeyHash: "apiKeyHash",
-	},
-}));
-
-// Mock pino logger
-vi.mock("pino", () => ({
-	pino: () => ({
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-	}),
-}));
 
 describe("ApiKeyService", () => {
 	let apiKeyService: ApiKeyService;
+	const timestamp = Date.now();
+	const testUsernamePrefix = `test-apikey-${timestamp}-`;
+
+	beforeAll(async () => {
+		// Clean database before starting tests
+		await cleanupTestDatabase();
+	});
 
 	beforeEach(() => {
 		apiKeyService = new ApiKeyService();
-		vi.clearAllMocks();
 	});
+
+	afterAll(async () => {
+		// Final cleanup after all tests
+		await cleanupTestDatabase();
+	});
+
+	// Helper function to get user tags from database
+	async function getUserTags(userId: number): Promise<string[]> {
+		const userTags = await db.select().from(tags).where(eq(tags.userId, userId));
+		return userTags.map((tag) => tag.name).sort();
+	}
 
 	describe("API Key Format and Hashing", () => {
 		it("should generate API key with correct format", async () => {
-			// Mock database to simulate new user
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([]),
-				}),
-			});
-			const mockInsert = vi.fn().mockReturnValue({
-				values: vi.fn().mockResolvedValue(undefined),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-			(db.insert as any).mockImplementation(mockInsert);
+			const testUsername = `${testUsernamePrefix}format`;
 
-			const apiKey = await apiKeyService.createUserWithApiKey("testuser");
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername);
 
 			// Check API key format
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
 			expect(apiKey.length).toBe(68); // "ccs_" (4) + 64 hex chars
+
+			// Verify user was created in database
+			const [createdUser] = await db.select().from(users).where(eq(users.username, testUsername));
+			expect(createdUser).toBeDefined();
+			expect(createdUser.username).toBe(testUsername);
+			expect(createdUser.apiKeyHash).toBeDefined();
 		});
 
 		it("should properly hash and verify API key", async () => {
@@ -73,28 +66,27 @@ describe("ApiKeyService", () => {
 		});
 
 		it("should validate API key with correct format check", async () => {
-			const validKey = `ccs_${"a".repeat(64)}`;
-			const hash = await bcrypt.hash(validKey, 12);
+			const testUsername = `${testUsernamePrefix}validate`;
 
-			// Mock database to return user with hash
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "testuser",
-							apiKeyHash: hash,
-						},
-					]),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
+			// Create user with API key
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername);
 
-			// Test validation
-			const isValid = await apiKeyService.validateApiKey("testuser", validKey);
+			// Test validation with correct key
+			const isValid = await apiKeyService.validateApiKey(testUsername, apiKey);
 			expect(isValid).toBe(true);
+
+			// Test with wrong key
+			const wrongKey = `ccs_${"b".repeat(64)}`;
+			const isInvalid = await apiKeyService.validateApiKey(testUsername, wrongKey);
+			expect(isInvalid).toBe(false);
 		});
 
 		it("should reject API key with invalid format", async () => {
+			const testUsername = `${testUsernamePrefix}invalid-format`;
+
+			// Create a user first
+			await apiKeyService.createUserWithApiKey(testUsername);
+
 			// Test various invalid formats
 			const invalidKeys = [
 				"invalid_key",
@@ -107,7 +99,7 @@ describe("ApiKeyService", () => {
 			];
 
 			for (const invalidKey of invalidKeys) {
-				const isValid = await apiKeyService.validateApiKey("testuser", invalidKey);
+				const isValid = await apiKeyService.validateApiKey(testUsername, invalidKey);
 				expect(isValid).toBe(false);
 			}
 		});
@@ -115,214 +107,191 @@ describe("ApiKeyService", () => {
 
 	describe("createUserWithApiKey", () => {
 		it("should create new user when user doesn't exist", async () => {
-			// Mock database - user doesn't exist
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([]),
-				}),
-			});
-			const mockInsert = vi.fn().mockReturnValue({
-				values: vi.fn().mockResolvedValue(undefined),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-			(db.insert as any).mockImplementation(mockInsert);
+			const testUsername = `${testUsernamePrefix}newuser`;
 
-			const apiKey = await apiKeyService.createUserWithApiKey("newuser");
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername);
 
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
-			expect(mockInsert).toHaveBeenCalledWith(users);
-			expect(mockInsert().values).toHaveBeenCalledWith(
-				expect.objectContaining({
-					username: "newuser",
-					apiKeyHash: expect.any(String),
-				}),
-			);
+
+			// Verify user was created in database
+			const [createdUser] = await db.select().from(users).where(eq(users.username, testUsername));
+			expect(createdUser).toBeDefined();
+			expect(createdUser.username).toBe(testUsername);
+			expect(createdUser.apiKeyHash).toBeDefined();
+
+			// Verify no tags were created
+			const tagNames = await getUserTags(createdUser.id);
+			expect(tagNames).toEqual([]);
+		});
+
+		it("should create new user with tags", async () => {
+			const testUsername = `${testUsernamePrefix}with-tags`;
+			const testTags = ["frontend", "react", "typescript"];
+
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername, testTags);
+
+			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
+
+			// Verify user was created
+			const [createdUser] = await db.select().from(users).where(eq(users.username, testUsername));
+			expect(createdUser).toBeDefined();
+			expect(createdUser.username).toBe(testUsername);
+
+			// Verify tags were created
+			const tagNames = await getUserTags(createdUser.id);
+			expect(tagNames).toEqual(testTags.sort());
 		});
 
 		it("should throw error when user already exists", async () => {
-			// Mock database - user exists
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "existinguser",
-							apiKeyHash: "old_hash",
-						},
-					]),
-				}),
-			});
-			const mockUpdate = vi.fn().mockReturnValue({
-				set: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue(undefined),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-			(db.update as any).mockImplementation(mockUpdate);
+			const testUsername = `${testUsernamePrefix}duplicate`;
 
-			await expect(apiKeyService.createUserWithApiKey("existinguser")).rejects.toThrow(
-				"User existinguser already exists",
+			// Create user first
+			await apiKeyService.createUserWithApiKey(testUsername);
+
+			// Try to create same user again
+			await expect(apiKeyService.createUserWithApiKey(testUsername)).rejects.toThrow(
+				`User ${testUsername} already exists`,
 			);
-
-			expect(mockUpdate).not.toHaveBeenCalled();
 		});
 	});
 
 	describe("regenerateApiKey", () => {
 		it("should regenerate API key for existing user", async () => {
-			// Mock database - user exists
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "existinguser",
-							apiKeyHash: "old_hash",
-						},
-					]),
-				}),
-			});
-			const mockUpdate = vi.fn().mockReturnValue({
-				set: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue(undefined),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-			(db.update as any).mockImplementation(mockUpdate);
+			const testUsername = `${testUsernamePrefix}regenerate`;
 
-			const apiKey = await apiKeyService.regenerateApiKey("existinguser");
+			// Create user first
+			const originalApiKey = await apiKeyService.createUserWithApiKey(testUsername);
 
-			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
-			expect(mockUpdate).toHaveBeenCalledWith(users);
+			// Get original hash
+			const [userBefore] = await db.select().from(users).where(eq(users.username, testUsername));
+			const originalHash = userBefore.apiKeyHash;
+
+			// Regenerate API key
+			const newApiKey = await apiKeyService.regenerateApiKey(testUsername);
+
+			expect(newApiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
+			expect(newApiKey).not.toBe(originalApiKey);
+
+			// Verify hash was updated
+			const [userAfter] = await db.select().from(users).where(eq(users.username, testUsername));
+			expect(userAfter.apiKeyHash).not.toBe(originalHash);
+
+			// Verify old key no longer works
+			const oldKeyValid = await apiKeyService.validateApiKey(testUsername, originalApiKey);
+			expect(oldKeyValid).toBe(false);
+
+			// Verify new key works
+			const newKeyValid = await apiKeyService.validateApiKey(testUsername, newApiKey);
+			expect(newKeyValid).toBe(true);
 		});
 
 		it("should throw error when user doesn't exist", async () => {
-			// Mock database - user doesn't exist
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([]),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
+			const testUsername = `${testUsernamePrefix}nonexistent`;
 
-			await expect(apiKeyService.regenerateApiKey("nonexistent")).rejects.toThrow("User nonexistent not found");
+			await expect(apiKeyService.regenerateApiKey(testUsername)).rejects.toThrow(`User ${testUsername} not found`);
 		});
 	});
 
 	describe("validateApiKey", () => {
 		it("should return true for valid API key", async () => {
-			const apiKey = `ccs_${"a".repeat(64)}`;
-			const hash = await bcrypt.hash(apiKey, 12);
+			const testUsername = `${testUsernamePrefix}valid-key`;
 
-			// Mock database
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "testuser",
-							apiKeyHash: hash,
-						},
-					]),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
+			// Create user with API key
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername);
 
-			const isValid = await apiKeyService.validateApiKey("testuser", apiKey);
+			// Validate the correct key
+			const isValid = await apiKeyService.validateApiKey(testUsername, apiKey);
 			expect(isValid).toBe(true);
 		});
 
 		it("should return false for wrong API key", async () => {
-			const correctKey = `ccs_${"a".repeat(64)}`;
+			const testUsername = `${testUsernamePrefix}wrong-key`;
+
+			// Create user with API key
+			await apiKeyService.createUserWithApiKey(testUsername);
+
+			// Try with wrong key
 			const wrongKey = `ccs_${"b".repeat(64)}`;
-			const hash = await bcrypt.hash(correctKey, 12);
-
-			// Mock database
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "testuser",
-							apiKeyHash: hash,
-						},
-					]),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-
-			const isValid = await apiKeyService.validateApiKey("testuser", wrongKey);
+			const isValid = await apiKeyService.validateApiKey(testUsername, wrongKey);
 			expect(isValid).toBe(false);
 		});
 
 		it("should return false when user doesn't exist", async () => {
-			// Mock database - no user found
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([]),
-				}),
-			});
-			(db.select as any).mockImplementation(mockSelect);
-
+			const testUsername = `${testUsernamePrefix}no-user`;
 			const apiKey = `ccs_${"a".repeat(64)}`;
-			const isValid = await apiKeyService.validateApiKey("nonexistent", apiKey);
+
+			const isValid = await apiKeyService.validateApiKey(testUsername, apiKey);
 			expect(isValid).toBe(false);
 		});
 
 		it("should return false when user has no API key", async () => {
-			// Mock database - user exists but no API key
-			const mockSelect = vi.fn().mockReturnValue({
-				from: vi.fn().mockReturnValue({
-					where: vi.fn().mockResolvedValue([
-						{
-							username: "testuser",
-							apiKeyHash: null,
-						},
-					]),
-				}),
+			const testUsername = `${testUsernamePrefix}no-key`;
+
+			// Create user directly without API key
+			await db.insert(users).values({
+				username: testUsername,
+				apiKeyHash: null,
+				createdAt: new Date(),
+				updatedAt: new Date(),
 			});
-			(db.select as any).mockImplementation(mockSelect);
 
 			const apiKey = `ccs_${"a".repeat(64)}`;
-			const isValid = await apiKeyService.validateApiKey("testuser", apiKey);
+			const isValid = await apiKeyService.validateApiKey(testUsername, apiKey);
 			expect(isValid).toBe(false);
 		});
 	});
 
 	describe("Integration test - full flow", () => {
 		it("should generate and validate the same API key", async () => {
-			let storedHash: string | null = null;
-
-			// Mock database for generation
-			const mockSelect = vi.fn().mockImplementation(() => ({
-				from: () => ({
-					where: async () => {
-						if (storedHash) {
-							return [{ username: "testuser", apiKeyHash: storedHash }];
-						}
-						return [];
-					},
-				}),
-			}));
-
-			const mockInsert = vi.fn().mockImplementation(() => ({
-				values: async (data: any) => {
-					storedHash = data.apiKeyHash;
-				},
-			}));
-
-			(db.select as any).mockImplementation(mockSelect);
-			(db.insert as any).mockImplementation(mockInsert);
+			const testUsername = `${testUsernamePrefix}integration`;
 
 			// Generate API key
-			const apiKey = await apiKeyService.createUserWithApiKey("testuser");
+			const apiKey = await apiKeyService.createUserWithApiKey(testUsername);
 			expect(apiKey).toMatch(/^ccs_[a-f0-9]{64}$/);
-			expect(storedHash).toBeTruthy();
 
-			// Now validate the same API key
-			const isValid = await apiKeyService.validateApiKey("testuser", apiKey);
+			// Validate the same API key
+			const isValid = await apiKeyService.validateApiKey(testUsername, apiKey);
 			expect(isValid).toBe(true);
 
 			// Validate with wrong key should fail
 			const wrongKey = `ccs_${"b".repeat(64)}`;
-			const isInvalid = await apiKeyService.validateApiKey("testuser", wrongKey);
+			const isInvalid = await apiKeyService.validateApiKey(testUsername, wrongKey);
 			expect(isInvalid).toBe(false);
+		});
+
+		it("should handle complete user lifecycle with tags", async () => {
+			const testUsername = `${testUsernamePrefix}lifecycle`;
+			const initialTags = ["backend", "nodejs"];
+
+			// Create user with tags
+			const apiKey1 = await apiKeyService.createUserWithApiKey(testUsername, initialTags);
+			expect(apiKey1).toMatch(/^ccs_[a-f0-9]{64}$/);
+
+			// Verify user has tags
+			const [user1] = await db.select().from(users).where(eq(users.username, testUsername));
+			const tagNames1 = await getUserTags(user1.id);
+			expect(tagNames1).toEqual(initialTags.sort());
+
+			// Validate API key works
+			const isValid1 = await apiKeyService.validateApiKey(testUsername, apiKey1);
+			expect(isValid1).toBe(true);
+
+			// Regenerate API key
+			const apiKey2 = await apiKeyService.regenerateApiKey(testUsername);
+			expect(apiKey2).not.toBe(apiKey1);
+
+			// Old key should not work
+			const oldKeyValid = await apiKeyService.validateApiKey(testUsername, apiKey1);
+			expect(oldKeyValid).toBe(false);
+
+			// New key should work
+			const newKeyValid = await apiKeyService.validateApiKey(testUsername, apiKey2);
+			expect(newKeyValid).toBe(true);
+
+			// Tags should be preserved after regeneration
+			const [user2] = await db.select().from(users).where(eq(users.username, testUsername));
+			const tagNames2 = await getUserTags(user2.id);
+			expect(tagNames2).toEqual(initialTags.sort());
 		});
 	});
 });

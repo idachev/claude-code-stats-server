@@ -4,6 +4,7 @@ import { healthRegistry } from "@/api/health/healthRouter";
 import { statsRegistry } from "@/api/stats/statsRouter";
 import { tagRegistry } from "@/api/tags/tagRouter";
 import { userRegistry } from "@/api/user/userRouter";
+import { adminViewRegistry } from "@/api/views/adminViewRouter";
 import { viewsRegistry } from "@/api/views/viewsRouter";
 import { ErrorResponseSchema } from "@/common/models/errorResponse";
 import { registerSecuritySchemes } from "./securitySchemes";
@@ -11,7 +12,14 @@ import { registerSecuritySchemes } from "./securitySchemes";
 export type OpenAPIDocument = ReturnType<OpenApiGeneratorV3["generateDocument"]>;
 
 export function generateOpenAPIDocument(): OpenAPIDocument {
-	const registry = new OpenAPIRegistry([healthRegistry, userRegistry, statsRegistry, viewsRegistry, tagRegistry]);
+	const registry = new OpenAPIRegistry([
+		healthRegistry,
+		userRegistry,
+		statsRegistry,
+		viewsRegistry,
+		tagRegistry,
+		adminViewRegistry, // Add admin view endpoints
+	]);
 
 	// Register common schemas
 	registry.register("ErrorResponse", ErrorResponseSchema);

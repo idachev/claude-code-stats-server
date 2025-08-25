@@ -19,4 +19,19 @@ export function registerSecuritySchemes(registry: OpenAPIRegistry): void {
 		name: "X-Admin-Key",
 		description: "Admin API key authentication for managing user API keys",
 	});
+
+	// Basic Auth for Admin Dashboard
+	registry.registerComponent("securitySchemes", "BasicAuth", {
+		type: "http",
+		scheme: "basic",
+		description: "Basic Authentication for admin dashboard. Username: admin, Password: ADMIN_API_KEY value",
+	});
+
+	// Session Auth (cookie-based)
+	registry.registerComponent("securitySchemes", "SessionAuth", {
+		type: "apiKey",
+		in: "cookie",
+		name: "admin.sid",
+		description: "Session cookie authentication for admin dashboard",
+	});
 }

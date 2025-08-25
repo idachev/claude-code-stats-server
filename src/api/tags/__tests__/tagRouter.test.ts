@@ -199,7 +199,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
-			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
+			expect(response.body.error).toBe("Authentication required. Use session cookie or X-Admin-Key header");
 		});
 	});
 
@@ -269,7 +269,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
-			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
+			expect(response.body.error).toBe("Authentication required. Use session cookie or X-Admin-Key header");
 		});
 	});
 
@@ -337,7 +337,7 @@ describe("Tag Router Integration Tests", () => {
 
 			expect(response.status).toBe(401);
 			expect(response.body).toHaveProperty("error");
-			expect(response.body.error).toBe("Admin API key is required. Provide it in X-Admin-Key header");
+			expect(response.body.error).toBe("Authentication required. Use session cookie or X-Admin-Key header");
 		});
 	});
 

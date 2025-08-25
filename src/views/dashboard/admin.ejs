@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="csrf-token" content="<%= initialData.csrfToken %>">
+		<title><%= title %></title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<style>
+        /* Custom styles for admin panel */
+        .admin-header { background: #1a202c; }
+        .admin-sidebar { background: #2d3748; }
+        .admin-badge { background: #e53e3e; }
+    </style>
+	</head>
+
+	<body class="bg-gray-100">
+		<div class="flex h-screen">
+			<!-- Left Sidebar -->
+			<nav class="w-64 admin-sidebar text-white h-screen fixed left-0">
+				<div class="p-4 h-full flex flex-col">
+					<h2 class="text-xl font-bold mb-6">Admin Panel</h2>
+
+					<ul class="menu flex-1">
+						<li class="mb-2">
+							<a href="#users" class="block px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">
+								Users Management
+							</a>
+						</li>
+						<!-- Future menu items -->
+					</ul>
+
+					<!-- Session info and logout -->
+					<div class="mt-auto">
+						<div class="text-xs text-gray-400 mb-2">
+							Session expires in: <span id="session-timer">15:00</span>
+						</div>
+						<button id="logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+						 onclick="logout()">
+							Logout
+						</button>
+					</div>
+				</div>
+			</nav>
+
+			<!-- Main Content -->
+			<div class="ml-64 flex-1 flex flex-col">
+				<!-- Header -->
+				<header class="admin-header text-white p-4 shadow-lg">
+					<div class="flex justify-between items-center">
+						<h1 class="text-2xl font-bold">User Management</h1>
+						<span class="admin-badge text-white px-3 py-1 rounded text-sm">Admin</span>
+					</div>
+				</header>
+
+				<!-- Content Area -->
+				<main class="flex-1 p-6 overflow-auto">
+					<!-- Action Bar -->
+					<div class="bg-white rounded-lg shadow mb-6 p-4">
+						<div class="flex justify-between items-center">
+							<div class="flex gap-4">
+								<input type="text" id="search-input" placeholder="Search by username..."
+								 class="px-4 py-2 border rounded-lg w-64">
+								<select id="tag-filter" class="px-4 py-2 border rounded-lg">
+									<option value="">All Tags</option>
+									<% initialData.tags.forEach(tag => { %>
+									<option value="<%= tag %>"><%= tag %></option>
+									<% }); %>
+								</select>
+							</div>
+							<button onclick="showCreateUserModal()"
+							 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+								+ Create User
+							</button>
+						</div>
+					</div>
+
+					<!-- Users Table -->
+					<div class="bg-white rounded-lg shadow overflow-hidden">
+						<table class="w-full">
+							<thead class="bg-gray-50 border-b">
+								<tr>
+									<th
+									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										ID
+									</th>
+									<th
+									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Username
+									</th>
+									<th
+									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Tags
+									</th>
+									<th
+									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Created At
+									</th>
+									<th
+									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+										Actions
+									</th>
+								</tr>
+							</thead>
+							<tbody id="users-tbody" class="bg-white divide-y divide-gray-200">
+								<% initialData.users.forEach(user => { %>
+								<tr>
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+										<%= user.id %>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+										<%= user.username %>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+										<% if (user.tags && user.tags.length > 0) { %>
+										<% user.tags.forEach(tag => { %>
+										<span
+										 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
+											<%= tag %>
+										</span>
+										<% }); %>
+										<% } else { %>
+										<span class="text-gray-400">No tags</span>
+										<% } %>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+										<%= new Date(user.createdAt).toLocaleDateString() %>
+									</td>
+									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+										<button onclick="regenerateApiKey('<%= user.username %>')"
+										 class="text-indigo-600 hover:text-indigo-900 mr-3">
+											Regenerate Key
+										</button>
+										<button onclick="manageTags('<%= user.username %>')"
+										 class="text-green-600 hover:text-green-900 mr-3">
+											Manage Tags
+										</button>
+										<button onclick="deactivateUser('<%= user.username %>')"
+										 class="text-red-600 hover:text-red-900">
+											Deactivate
+										</button>
+									</td>
+								</tr>
+								<% }); %>
+							</tbody>
+						</table>
+
+						<% if (initialData.users.length === 0) { %>
+						<div class="text-center py-8 text-gray-500">
+							No users found. Create your first user to get started.
+						</div>
+						<% } %>
+					</div>
+				</main>
+			</div>
+		</div>
+
+		<!-- Modals -->
+		<!-- Create User Modal -->
+		<div id="createUserModal"
+		 class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+			<div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+				<div class="p-6">
+					<h3 class="text-xl font-bold mb-4">Create New User</h3>
+					<form id="createUserForm">
+						<div class="mb-4">
+							<label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+							<input type="text" id="newUsername" required minlength="3" maxlength="128"
+							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 placeholder="Enter username">
+						</div>
+						<div class="mb-4">
+							<label class="block text-sm font-medium text-gray-700 mb-2">Tags (optional)</label>
+							<input type="text" id="newUserTags"
+							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 placeholder="Enter tags separated by commas">
+							<p class="text-xs text-gray-500 mt-1">Example: frontend, react, typescript</p>
+						</div>
+						<div class="flex justify-end gap-3">
+							<button type="button" onclick="closeCreateUserModal()"
+							 class="px-4 py-2 text-gray-600 hover:text-gray-800">
+								Cancel
+							</button>
+							<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+								Create User
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- Manage Tags Modal -->
+		<div id="manageTagsModal"
+		 class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+			<div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+				<div class="p-6">
+					<h3 class="text-xl font-bold mb-4">Manage Tags for <span id="tagModalUsername"></span></h3>
+					<form id="manageTagsForm">
+						<div class="mb-4">
+							<label class="block text-sm font-medium text-gray-700 mb-2">Current Tags</label>
+							<div id="currentTagsList" class="mb-3 min-h-[40px]"></div>
+						</div>
+						<div class="mb-4">
+							<label class="block text-sm font-medium text-gray-700 mb-2">Update Tags</label>
+							<input type="text" id="updatedTags"
+							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 placeholder="Enter tags separated by commas">
+							<p class="text-xs text-gray-500 mt-1">Leave empty to remove all tags</p>
+						</div>
+						<div class="flex justify-end gap-3">
+							<button type="button" onclick="closeManageTagsModal()"
+							 class="px-4 py-2 text-gray-600 hover:text-gray-800">
+								Cancel
+							</button>
+							<button type="submit"
+							 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+								Update Tags
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+
+		<!-- JavaScript -->
+		<script>
+        // Session timer
+        let sessionTimeout = <%= initialData.sessionTimeout %>;
+        let timeRemaining = sessionTimeout;
+        
+        function updateSessionTimer() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('session-timer').textContent = 
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining > 0) {
+                timeRemaining--;
+                setTimeout(updateSessionTimer, 1000);
+            } else {
+                alert('Session expired. Please login again.');
+                window.location.href = '/dashboard/admin';
+            }
+        }
+        
+        updateSessionTimer();
+
+        // CSRF token helper
+        function getCsrfToken() {
+            return document.querySelector('meta[name="csrf-token"]').content;
+        }
+
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('/admin/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/dashboard';
+                } else {
+                    alert('Logout failed. Please try again.');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            }
+        }
+
+        // Modal management
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').classList.remove('hidden');
+            document.getElementById('newUsername').focus();
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').classList.add('hidden');
+            document.getElementById('createUserForm').reset();
+        }
+
+        function closeManageTagsModal() {
+            document.getElementById('manageTagsModal').classList.add('hidden');
+            document.getElementById('manageTagsForm').reset();
+        }
+
+        // Store current username for tag management
+        let currentTagUsername = '';
+
+        // Create User Form Handler
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('newUsername').value.trim();
+            const tagsInput = document.getElementById('newUserTags').value.trim();
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+            
+            try {
+                const response = await fetch('/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ username, tags })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`User created successfully!\nUsername: ${result.username}\nAPI Key: ${result.apiKey}\n\nPlease save this API key - it cannot be retrieved again.`);
+                    closeCreateUserModal();
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to create user: ${error.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Create user error:', error);
+                alert('Failed to create user. Please try again.');
+            }
+        });
+
+        // Regenerate API Key
+        async function regenerateApiKey(username) {
+            if (!confirm(`Are you sure you want to regenerate the API key for ${username}?\n\nThe old API key will be invalidated immediately.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/users/${username}/api-key/regenerate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`API key regenerated successfully!\n\nNew API Key: ${result.apiKey}\n\nPlease save this API key - it cannot be retrieved again.`);
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to regenerate API key: ${error.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Regenerate API key error:', error);
+                alert('Failed to regenerate API key. Please try again.');
+            }
+        }
+
+        // Manage Tags
+        async function manageTags(username) {
+            currentTagUsername = username;
+            document.getElementById('tagModalUsername').textContent = username;
+            
+            try {
+                // Fetch current tags
+                const response = await fetch(`/admin/users/${username}/tags`, {
+                    headers: {
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const tags = await response.json();
+                    const tagsList = document.getElementById('currentTagsList');
+                    
+                    if (tags.length > 0) {
+                        tagsList.innerHTML = tags.map(tag => 
+                            `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">${tag}</span>`
+                        ).join('');
+                        document.getElementById('updatedTags').value = tags.join(', ');
+                    } else {
+                        tagsList.innerHTML = '<span class="text-gray-400">No tags</span>';
+                        document.getElementById('updatedTags').value = '';
+                    }
+                    
+                    document.getElementById('manageTagsModal').classList.remove('hidden');
+                } else {
+                    alert('Failed to fetch user tags');
+                }
+            } catch (error) {
+                console.error('Fetch tags error:', error);
+                alert('Failed to fetch user tags. Please try again.');
+            }
+        }
+
+        // Manage Tags Form Handler
+        document.getElementById('manageTagsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const tagsInput = document.getElementById('updatedTags').value.trim();
+            const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
+            
+            try {
+                const response = await fetch(`/admin/users/${currentTagUsername}/tags`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ tags })
+                });
+                
+                if (response.ok) {
+                    alert('Tags updated successfully!');
+                    closeManageTagsModal();
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to update tags: ${error.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Update tags error:', error);
+                alert('Failed to update tags. Please try again.');
+            }
+        });
+
+        // Deactivate User
+        async function deactivateUser(username) {
+            if (!confirm(`Are you sure you want to deactivate user ${username}?\n\nThis will regenerate their API key and block access immediately.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/users/${username}/deactivate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message || `User ${username} deactivated successfully.`);
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert(`Failed to deactivate user: ${error.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('Deactivate user error:', error);
+                alert('Failed to deactivate user. Please try again.');
+            }
+        }
+
+        // Search and Filter functionality
+        function filterUsersTable() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const selectedTag = document.getElementById('tag-filter').value.toLowerCase();
+            const rows = document.querySelectorAll('#users-tbody tr');
+            
+            rows.forEach(row => {
+                const username = row.querySelector('td:nth-child(2)')?.textContent.toLowerCase() || '';
+                const tags = Array.from(row.querySelectorAll('td:nth-child(3) span')).map(span => 
+                    span.textContent.toLowerCase()
+                );
+                
+                const matchesSearch = !searchTerm || username.includes(searchTerm);
+                const matchesTag = !selectedTag || tags.includes(selectedTag);
+                
+                row.style.display = matchesSearch && matchesTag ? '' : 'none';
+            });
+        }
+
+        document.getElementById('search-input').addEventListener('input', filterUsersTable);
+        document.getElementById('tag-filter').addEventListener('change', filterUsersTable);
+
+        // Close modals on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeCreateUserModal();
+                closeManageTagsModal();
+            }
+        });
+    </script>
+	</body>
+
+</html>

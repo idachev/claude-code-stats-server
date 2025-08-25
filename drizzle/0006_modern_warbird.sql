@@ -1,0 +1,1 @@
+ALTER TABLE "admin_sessions" ALTER COLUMN "expire" SET DATA TYPE timestamp (6) with time zone;

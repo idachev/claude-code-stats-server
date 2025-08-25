@@ -3,6 +3,7 @@ import { addWeeks, endOfMonth, endOfWeek, getMonth, getWeek, getYear, startOfMon
 import express, { type Request, type Response, type Router } from "express";
 import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
+import { UsernameSchema } from "@/api/user/userModel";
 import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateApiKey } from "@/common/middleware/apiKeyAuth";
 import { createErrorResponse, validateRequest } from "@/common/utils/httpHandlers";
@@ -58,11 +59,7 @@ const CcusageBodySchema = z.object({
 const StatsUploadSchema = z.object({
 	body: CcusageBodySchema,
 	query: z.object({
-		username: z
-			.string()
-			.min(3)
-			.max(50)
-			.regex(/^[a-zA-Z0-9._-]+$/),
+		username: UsernameSchema,
 	}),
 });
 

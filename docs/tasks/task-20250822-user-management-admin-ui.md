@@ -154,12 +154,12 @@ export const adminApiAuth = (req, res, next) => {
 3. **Action Buttons per User**
     - Regenerate API Key (with confirmation)
     - Manage Tags inline - ability to add/remove tags
-    - Delete User (with confirmation, soft delete preferred)
+    - Deactivate User (with confirmation, regenerates API key to block access)
 
 4. **Bulk Actions**
     - Select multiple users
     - Bulk add/remove tags 
-    - Bulk delete (with strong confirmation)
+    - Bulk deactivate (with strong confirmation)
 
 ### Create User Modal/Form
 
@@ -214,7 +214,20 @@ async function copyApiKey(apiKey, buttonElement) {
     - Allow creating new tags if not found
     - Validate tag format: [0-9A-Za-z .-_], min 2 and max 64 chars
 
-## 4. Server-Side Data Loading & API Usage
+## 4. User Deactivation Strategy
+
+### Current Implementation
+- User deactivation is achieved by regenerating the API key
+- The old API key becomes invalid immediately, blocking all access
+- User record remains in database for audit/history purposes
+
+### Future Enhancement (TODO)
+- Add `isActive` boolean field to users table
+- Set to `false` on deactivation (in addition to key regeneration)
+- Filter inactive users from normal queries
+- Allow reactivation by admins (set `isActive = true` and generate new key)
+
+## 5. Server-Side Data Loading & API Usage
 
 ### Initial Page Load (Server-Side)
 
@@ -245,12 +258,13 @@ POST   /admin/users                              // Create new user (body: { use
                                                   // NOTE: tags parameter needs to be added to existing API
 POST   /admin/users/:username/api-key/regenerate // Regenerate API key
 POST   /admin/users/:username/api-key/check      // Validate API key (body: { apiKey })
+POST   /admin/users/:username/deactivate         // Deactivate user (regenerates API key to block access)
 
 // Session management endpoints (new)
 POST   /admin/logout                             // Destroy session and redirect to login
 
 // New endpoints needed (from task-20250822-add-tags.md)
-DELETE /admin/users/:username                    // Delete user
+// User deactivation is handled via POST /admin/users/:username/deactivate
 GET    /admin/tags                               // Get all unique tags in system
 POST   /admin/users/:username/tags               // Add tags to user
 PUT    /admin/users/:username/tags               // Replace all user tags
@@ -346,8 +360,8 @@ class AdminApiClient {
     // Call PUT /admin/users/:userId/tags
   }
 
-  async deleteUser(userId) {
-    // Call DELETE /admin/users/:id
+  async deactivateUser(username) {
+    // Call POST /admin/users/:username/deactivate
   }
 }
 
@@ -498,7 +512,7 @@ export const CreateUserSchema = z.object({
 1. Implement create user modal/form
 2. Wire up to existing POST /admin/users endpoint
 3. Add edit user functionality
-4. Implement delete with confirmation
+4. Implement deactivate with confirmation
 
 ### Phase 5: API Key & Tag Management
 
@@ -566,7 +580,7 @@ if (req.method !== 'GET' && req.headers['x-csrf-token'] !== req.session.csrfToke
 - Never log full API keys
 - Mask API keys in UI (except on generation)
 - Audit log for admin actions
-- Soft delete for user records
+- User deactivation via API key regeneration (future: add isActive flag)
 
 ## 10. Performance Optimizations
 
@@ -605,7 +619,7 @@ if (req.method !== 'GET' && req.headers['x-csrf-token'] !== req.session.csrfToke
 - Admin login flow
 - Create user with tags
 - Regenerate API key
-- Delete user confirmation
+- Deactivate user confirmation
 
 ## 12. Documentation Updates
 
@@ -679,7 +693,7 @@ app.use(session({
 - [ ] Create new user via existing REST API with admin header
 - [ ] Regenerate API key via existing REST API with confirmation
 - [ ] Add/remove tags inline using existing tag endpoints
-- [ ] Delete user via existing REST API with confirmation
+- [ ] Deactivate user via REST API with confirmation
 - [ ] All API calls use session cookie automatically (credentials: 'same-origin')
 - [ ] All actions show loading states
 - [ ] Success/error notifications display

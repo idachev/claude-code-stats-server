@@ -1,16 +1,18 @@
 import { OpenAPIRegistry } from "@asteasolutions/zod-to-openapi";
 import express, { type Router } from "express";
+import { StatusCodes } from "http-status-codes";
 import { z } from "zod";
 import {
 	ApiKeyCheckResponseSchema,
 	ApiKeyResponseSchema,
 	CheckApiKeySchema,
 	CreateUserSchema,
+	DeactivateUserSchema,
 	GetUserByUsernameSchema,
 	RegenerateApiKeySchema,
 	UserSchema,
 } from "@/api/user/userModel";
-import { createApiResponseWithErrors } from "@/api-docs/openAPIResponseBuilders";
+import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateAdmin } from "@/common/middleware/adminAuth";
 import { validateRequest } from "@/common/utils/httpHandlers";
 import { userController } from "./userController";
@@ -124,4 +126,37 @@ userRouter.post(
 	authenticateAdmin,
 	validateRequest(CheckApiKeySchema),
 	userController.checkApiKey,
+);
+
+// POST /admin/users/:username/deactivate - Deactivate user
+userRegistry.registerPath({
+	method: "post",
+	path: "/admin/users/{username}/deactivate",
+	tags: ["Admin"],
+	summary: "Deactivate user",
+	description:
+		"Deactivates a user by regenerating their API key, effectively blocking access. The old API key becomes invalid immediately. In the future, this will also set an isActive flag. Requires admin authentication.",
+	security: [{ AdminKeyAuth: [] }],
+	request: { params: DeactivateUserSchema.shape.params },
+	responses: {
+		[StatusCodes.OK]: {
+			description: "User deactivated successfully",
+			content: {
+				"application/json": {
+					schema: z.object({
+						message: z.string(),
+					}),
+				},
+			},
+		},
+		...createErrorApiResponse("User not found", StatusCodes.NOT_FOUND),
+		...createErrorApiResponse("Server error", StatusCodes.INTERNAL_SERVER_ERROR),
+	},
+});
+
+userRouter.post(
+	"/:username/deactivate",
+	authenticateAdmin,
+	validateRequest(DeactivateUserSchema),
+	userController.deactivateUser,
 );

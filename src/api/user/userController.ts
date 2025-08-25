@@ -3,6 +3,7 @@ import { StatusCodes } from "http-status-codes";
 import { pino } from "pino";
 
 import { ApiKeyService } from "@/api/auth/apiKeyService";
+import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@/api/user/userModel";
 import { userService } from "@/api/user/userService";
 import { createErrorResponse, handleServiceResponse } from "@/common/utils/httpHandlers";
 
@@ -28,18 +29,26 @@ class UserController {
 
 	public createUser: RequestHandler = async (req: Request, res: Response) => {
 		try {
-			const { username } = req.body;
+			const { username, tags: rawTags } = req.body;
+			// Trim tag names and filter out empty strings since we're using TagNameBaseSchema without transform
+			const tags = rawTags?.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
 
-			if (!username || username.length < 3 || username.length > 50 || !/^[a-zA-Z0-9._-]+$/.test(username)) {
+			// Validation is handled by Zod schema, but keeping basic checks for safety
+			if (
+				!username ||
+				username.length < USERNAME_MIN_LENGTH ||
+				username.length > USERNAME_MAX_LENGTH ||
+				!USERNAME_PATTERN.test(username)
+			) {
 				const errorResponse = createErrorResponse(
-					"Invalid username. Must be 3-50 characters and contain only letters, numbers, dots, underscores, and hyphens.",
+					`Invalid username. Must be ${USERNAME_MIN_LENGTH}-${USERNAME_MAX_LENGTH} characters and contain only letters, numbers, dots, underscores, and hyphens.`,
 					StatusCodes.BAD_REQUEST,
 				);
 				res.status(StatusCodes.BAD_REQUEST).json(errorResponse);
 				return;
 			}
 
-			const apiKey = await this.apiKeyService.createUserWithApiKey(username);
+			const apiKey = await this.apiKeyService.createUserWithApiKey(username, tags);
 
 			res.status(StatusCodes.CREATED).json({
 				username,
@@ -101,6 +110,37 @@ class UserController {
 		} catch (error: unknown) {
 			logger.error(error, "Failed to validate API key");
 			const errorResponse = createErrorResponse("Failed to validate API key", StatusCodes.INTERNAL_SERVER_ERROR);
+			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(errorResponse);
+		}
+	};
+
+	public deactivateUser: RequestHandler = async (req: Request, res: Response) => {
+		try {
+			const username = req.params.username as string;
+
+			// TODO: In the future, add an isActive flag to the database and set it to false
+			// For now, we deactivate by regenerating the API key, which effectively blocks access
+
+			// Check if user exists first
+			const userResponse = await userService.findByUsername(username);
+			if (!userResponse.success || !userResponse.responseObject) {
+				const errorResponse = createErrorResponse("User not found", StatusCodes.NOT_FOUND);
+				res.status(StatusCodes.NOT_FOUND).json(errorResponse);
+				return;
+			}
+
+			// Regenerate API key to effectively deactivate the user
+			// The old key becomes invalid immediately
+			await this.apiKeyService.regenerateApiKey(username);
+
+			logger.info(`User ${username} deactivated by regenerating API key`);
+
+			res.status(StatusCodes.OK).json({
+				message: `User ${username} has been deactivated. The API key has been regenerated and the old key is no longer valid.`,
+			});
+		} catch (error: unknown) {
+			logger.error(error, "Failed to deactivate user");
+			const errorResponse = createErrorResponse("Failed to deactivate user", StatusCodes.INTERNAL_SERVER_ERROR);
 			res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(errorResponse);
 		}
 	};

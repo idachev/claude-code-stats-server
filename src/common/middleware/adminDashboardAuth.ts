@@ -15,6 +15,7 @@ export const adminDashboardAuth = async (req: Request, res: Response, next: Next
 	if (req.session?.isAdmin) {
 		// Update last activity
 		req.session.lastActivity = new Date();
+
 		return next();
 	}
 
@@ -23,7 +24,9 @@ export const adminDashboardAuth = async (req: Request, res: Response, next: Next
 
 	if (!adminApiKey) {
 		logger.error("ADMIN_API_KEY not configured");
+
 		res.status(500).send("Server configuration error");
+
 		return;
 	}
 
@@ -32,14 +35,18 @@ export const adminDashboardAuth = async (req: Request, res: Response, next: Next
 
 	if (!authHeader || !authHeader.startsWith("Basic ")) {
 		res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
+
 		res.status(401).send("Authentication required");
+
 		return;
 	}
 
 	try {
 		// Parse Basic Auth credentials
 		const base64 = authHeader.split(" ")[1];
+
 		const decoded = Buffer.from(base64, "base64").toString("utf-8");
+
 		const [username, password] = decoded.split(":");
 
 		// Validate credentials
@@ -48,7 +55,9 @@ export const adminDashboardAuth = async (req: Request, res: Response, next: Next
 			req.session.regenerate((err) => {
 				if (err) {
 					logger.error(err, "Failed to regenerate session");
+
 					res.status(500).send("Authentication error");
+
 					return;
 				}
 
@@ -65,22 +74,28 @@ export const adminDashboardAuth = async (req: Request, res: Response, next: Next
 				req.session.save((saveErr) => {
 					if (saveErr) {
 						logger.error(saveErr, "Failed to save session");
+
 						res.status(500).send("Authentication error");
+
 						return;
 					}
 
 					logger.info({ username: "admin" }, "Admin authenticated successfully");
+
 					next();
 				});
 			});
 		} else {
 			// Invalid credentials
 			logger.warn({ username }, "Invalid admin login attempt");
+
 			res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
+
 			res.status(401).send("Invalid credentials");
 		}
 	} catch (error) {
 		logger.error(error as Error, "Error processing Basic Auth");
+
 		res.status(400).send("Invalid authentication format");
 	}
 };

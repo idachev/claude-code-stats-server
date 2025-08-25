@@ -2,7 +2,9 @@ import { expect, test } from "@playwright/test";
 
 test.describe("Claude Code Stats Sanity Tests", () => {
 	const baseURL = "http://localhost:3000";
-	const adminApiKey = process.env.ADMIN_API_KEY || "ccs_admin_change_this_in_production_12345678901234567890";
+	const adminApiKey = process.env.ADMIN_API_KEY;
+
+	expect(adminApiKey, "ADMIN_API_KEY environment variable must be set for tests").toBeDefined();
 
 	test("Health endpoint returns correct structure", async ({ request }) => {
 		const response = await request.get(`${baseURL}/health`);

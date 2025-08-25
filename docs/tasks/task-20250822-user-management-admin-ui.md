@@ -16,9 +16,11 @@ the existing admin API key and follow the same design theme as the public dashbo
 - Password: The `ADMIN_API_KEY` value
 - On successful auth:
     - Create server-side session using express-session
-    - Set secure, httpOnly session cookie
-    - Session contains: `{ isAdmin: true, loginTime: Date }`
+    - Regenerate session ID to prevent session fixation attacks
+    - Set secure, httpOnly, sameSite session cookie
+    - Session contains: `{ isAdmin: true, loginTime: Date, lastActivity: Date }`
 - Return 401 Unauthorized for invalid credentials
+- Implement rate limiting (5 attempts per 15 minutes)
 
 ### API Authentication (Session + Header Support)
 
@@ -116,6 +118,14 @@ export const adminApiAuth = (req, res, next) => {
       <li><a href="/admin/users" class="active">Users</a></li>
       <!-- Future menu items -->
     </ul>
+    <div class="absolute bottom-4 left-4 right-4">
+      <div class="text-xs text-gray-400 mb-2">
+        Session expires in: <span id="session-timer">15:00</span>
+      </div>
+      <button id="logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">
+        Logout
+      </button>
+    </div>
   </div>
 </nav>
 ```
@@ -134,7 +144,6 @@ export const adminApiAuth = (req, res, next) => {
     - Columns: ID, Username, Tags, Created At, Updated At, Actions
     - Sortable columns (Username, Created At, Updated At)
     - Pagination (20 users per page)
-    - Optional: Show usage stats (requires separate query to usage_stats table)
 
 2. **Search & Filter Bar**
     - Search by username (partial match)
@@ -144,12 +153,12 @@ export const adminApiAuth = (req, res, next) => {
 
 3. **Action Buttons per User**
     - Regenerate API Key (with confirmation)
-    - Manage Tags (inline edit or modal)
+    - Manage Tags inline - ability to add/remove tags
     - Delete User (with confirmation, soft delete preferred)
 
 4. **Bulk Actions**
     - Select multiple users
-    - Bulk tag assignment
+    - Bulk add/remove tags 
     - Bulk delete (with strong confirmation)
 
 ### Create User Modal/Form
@@ -164,8 +173,33 @@ interface CreateUserForm {
 ### API Key Management
 
 - Display: Cannot show API keys (they're hashed in DB)
-- Regenerate: Confirmation modal → New key displayed once → Copy button
+- Regenerate: Confirmation modal → New key displayed once → Copy button with visual feedback
+- Copy to clipboard: Use Clipboard API with fallback for older browsers
 - Security: API key only visible on creation/regeneration, never retrievable again
+- Visual feedback: Show "Copied!" message and change button color on successful copy
+
+```javascript
+// Copy API key to clipboard with feedback
+async function copyApiKey(apiKey, buttonElement) {
+  try {
+    await navigator.clipboard.writeText(apiKey);
+    buttonElement.textContent = 'Copied!';
+    buttonElement.classList.add('bg-green-600');
+    setTimeout(() => {
+      buttonElement.textContent = 'Copy';
+      buttonElement.classList.remove('bg-green-600');
+    }, 2000);
+  } catch (err) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = apiKey;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+  }
+}
+```
 
 ### Tag Management Interface
 
@@ -205,38 +239,27 @@ adminViewRouter.get("/dashboard/admin", adminDashboardAuth, async (req, res) => 
 
 ```typescript
 // Existing admin endpoints (currently uses X-Admin-Key header, will support session too)
-GET / admin / users                           // Get all users
-GET / admin / users /
-:
-username                 // Get user by username
-POST / admin / users                           // Create new user (body: { username })
-POST / admin / users /
-:
-username / api - key / regenerate  // Regenerate API key
-POST / admin / users /
-:
-username / api - key / check   // Validate API key (body: { apiKey })
+GET    /admin/users                              // Get all users
+GET    /admin/users/:username                    // Get user by username
+POST   /admin/users                              // Create new user (body: { username, tags? })
+                                                  // NOTE: tags parameter needs to be added to existing API
+POST   /admin/users/:username/api-key/regenerate // Regenerate API key
+POST   /admin/users/:username/api-key/check      // Validate API key (body: { apiKey })
+
+// Session management endpoints (new)
+POST   /admin/logout                             // Destroy session and redirect to login
 
 // New endpoints needed (from task-20250822-add-tags.md)
-DELETE / admin / users /
-:
-username                 // Delete user
-GET / admin / tags                            // Get all unique tags in system
-POST / admin / users /
-:
-username / tags            // Add tags to user
-PUT / admin / users /
-:
-username / tags            // Replace all user tags
-DELETE / admin / users /
-:
-username / tags /
-:
-tagId     // Remove specific tag from user
+DELETE /admin/users/:username                    // Delete user
+GET    /admin/tags                               // Get all unique tags in system
+POST   /admin/users/:username/tags               // Add tags to user
+PUT    /admin/users/:username/tags               // Replace all user tags
+DELETE /admin/users/:username/tags/:tagId        // Remove specific tag from user
 
 // Features needed but not yet implemented:
 // - Search/filter on GET /admin/users (add query params: search, tags[], page, limit, sort)
 // - Pagination support on GET /admin/users
+// - Extension of POST /admin/users to accept optional tags array
 ```
 
 ### Response DTOs (Using Existing Models)
@@ -388,15 +411,66 @@ class AdminUIManager {
 - Inline form validation with error messages
 - Keyboard shortcuts (Ctrl+N for new user, etc.)
 
-## 7. Implementation Phases
+## 7. API Extensions Required
+
+### Extend POST /admin/users Endpoint
+
+The existing `POST /admin/users` endpoint currently only accepts `username`. It needs to be extended to accept optional tags:
+
+**Current Implementation:**
+```typescript
+// src/api/user/userModel.ts
+export const CreateUserSchema = z.object({
+  body: z.object({
+    username: UsernameSchema,
+  }),
+});
+```
+
+**Required Extension:**
+```typescript
+// src/api/user/userModel.ts
+import { TagNameSchema } from "@/api/tags/tagSchemas"; // Import existing tag validation
+
+export const CreateUserSchema = z.object({
+  body: z.object({
+    username: UsernameSchema,
+    tags: z.array(TagNameSchema).optional(), // Reuse existing TagNameSchema for validation
+  }),
+});
+```
+
+**Implementation Changes Needed:**
+1. Update `CreateUserSchema` in `userModel.ts` to include optional tags using existing `TagNameSchema`
+2. Modify `userController.createUser` to extract and pass tags to the service
+3. Update `ApiKeyService.createUserWithApiKey` method to:
+   - Accept tags as optional parameter
+   - Save tags along with user creation in a transaction
+   - Use existing `tagService.addTagsToUser` or create tags in transaction
+4. Tag validation automatically handled by existing `TagNameSchema`:
+   - Pattern: [0-9A-Za-z .-_]
+   - Min length: 2 chars (TAG_MIN_LENGTH)
+   - Max length: 64 chars (TAG_MAX_LENGTH)
+   - Auto-trimming of whitespace
+
+**Benefits of Single API Call:**
+- Atomic operation - user and tags created together
+- Better user experience - no need for multiple API calls
+- Reduced latency and potential for partial failures
+- Simpler error handling in the UI
+
+## 8. Implementation Phases
 
 ### Phase 1: Session Setup & Authentication
 
-1. Install and configure express-session
-2. Create Basic Auth middleware for `/dashboard/admin`
-3. Create session on successful auth
-4. Update admin API middleware to check session
-5. Create single route handler in adminViewRouter
+1. Install and configure express-session with PostgreSQL store (connect-pg-simple)
+2. Configure CSRF protection middleware (csurf or similar)
+3. Create Basic Auth middleware for `/dashboard/admin`
+4. Implement session regeneration on successful auth
+5. Create logout endpoint `/admin/logout`
+6. Update admin API middleware to check session
+7. Create single route handler in adminViewRouter
+8. Add rate limiting for login attempts
 
 ### Phase 2: Server-Side Rendering
 
@@ -434,7 +508,7 @@ class AdminUIManager {
 4. Mobile responsiveness
 5. Cross-browser testing
 
-## 8. Security Considerations
+## 9. Security Considerations
 
 ### Authentication
 
@@ -446,10 +520,39 @@ class AdminUIManager {
 ### API Security
 
 - All admin endpoints require authentication
-- CSRF protection for state-changing operations
-- Input validation on all forms
-- SQL injection prevention via parameterized queries
-- XSS prevention via output encoding
+- CSRF protection for state-changing operations using double-submit cookie pattern
+- Input validation on all forms using Zod schemas
+- SQL injection prevention via Drizzle ORM parameterized queries
+- XSS prevention via EJS output encoding and Content Security Policy
+
+#### CSRF Protection Implementation
+
+```typescript
+// Generate CSRF token on session creation
+req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+
+// Include token in page render
+res.render('dashboard/admin', {
+  csrfToken: req.session.csrfToken,
+  // ... other data
+});
+
+// Client includes token in all state-changing requests
+fetch('/admin/users', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+  },
+  credentials: 'same-origin',
+  body: JSON.stringify(userData)
+});
+
+// Server validates token on state-changing operations
+if (req.method !== 'GET' && req.headers['x-csrf-token'] !== req.session.csrfToken) {
+  return res.status(403).json({ error: 'Invalid CSRF token' });
+}
+```
 
 ### Data Protection
 
@@ -458,7 +561,7 @@ class AdminUIManager {
 - Audit log for admin actions
 - Soft delete for user records
 
-## 9. Performance Optimizations
+## 10. Performance Optimizations
 
 ### Frontend
 
@@ -474,7 +577,7 @@ class AdminUIManager {
 - Efficient JOIN queries for user+tags
 - Query result caching where appropriate
 
-## 10. Testing Requirements
+## 11. Testing Requirements
 
 ### Unit Tests
 
@@ -497,7 +600,7 @@ class AdminUIManager {
 - Regenerate API key
 - Delete user confirmation
 
-## 11. Documentation Updates
+## 12. Documentation Updates
 
 ### API Documentation
 
@@ -512,15 +615,41 @@ class AdminUIManager {
 - Tag management best practices
 - Security guidelines
 
-## 12. Deployment Considerations
+## 13. Deployment Considerations
 
 ### Environment Variables
 
 ```env
 ADMIN_API_KEY=secure-random-key-min-32-chars
 SESSION_SECRET=another-secure-random-key  # For express-session
-ADMIN_SESSION_TIMEOUT=3600  # seconds
+ADMIN_SESSION_TIMEOUT=900  # seconds (15 minutes)
 ADMIN_MAX_LOGIN_ATTEMPTS=5
+ADMIN_RATE_LIMIT_WINDOW=900  # seconds (15 minutes)
+```
+
+### Session Store Configuration
+
+```typescript
+// PostgreSQL store (using existing DB connection)
+import pgSession from 'connect-pg-simple';
+const PgSession = pgSession(session);
+
+app.use(session({
+  store: new PgSession({
+    pool: pgPool,  // Use existing PostgreSQL connection
+    tableName: 'admin_sessions',
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'strict',
+    maxAge: parseInt(process.env.ADMIN_SESSION_TIMEOUT) * 1000
+  }
+}));
 ```
 
 ### Migration Steps
@@ -530,19 +659,6 @@ ADMIN_MAX_LOGIN_ATTEMPTS=5
 3. Test in staging environment
 4. Deploy to production
 5. Document admin access for team
-
-## 13. Future Enhancements
-
-### Potential Features
-
-- Role-based access control (super admin, viewer)
-- Audit log viewer in admin panel
-- Bulk user import via CSV
-- User activity timeline
-- Email notifications for admin actions
-- Two-factor authentication
-- API key expiration policies
-- User quotas and limits
 
 ## 14. Acceptance Criteria
 

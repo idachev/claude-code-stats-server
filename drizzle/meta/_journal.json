@@ -43,6 +43,13 @@
       "when": 1756099417136,
       "tag": "0005_calm_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1756104480433,
+      "tag": "0006_modern_warbird",
+      "breakpoints": true
     }
   ]
 }

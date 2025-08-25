@@ -5,6 +5,7 @@
       "Bash(curl:*)",
       "Bash(find:*)",
       "Bash(gh pr:*)",
+      "Bash(gh api:*)",
       "Bash(git grep:*)",
       "Bash(git help:*)",
       "Bash(git subtree:*)",

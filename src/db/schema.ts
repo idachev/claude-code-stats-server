@@ -99,7 +99,7 @@ export const adminSessions = pgTable(
 	{
 		sid: varchar("sid").primaryKey(), // Session ID
 		sess: jsonb("sess").notNull(), // Session data as JSONB (more efficient than JSON)
-		expire: timestamp("expire", { precision: 6, withTimezone: false }).notNull(), // Expiration timestamp
+		expire: timestamp("expire", { precision: 6, withTimezone: true }).notNull(), // Expiration timestamp with timezone
 	},
 	(table) => ({
 		expireIdx: index("idx_admin_sessions_expire").on(table.expire), // Index for efficient cleanup of expired sessions

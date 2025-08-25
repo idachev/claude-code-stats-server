@@ -17,9 +17,9 @@ const sessionPool = new Pool({
 	user: env.DB_USER,
 	password: env.DB_PASSWORD,
 	database: env.DB_NAME,
-	max: 10, // Smaller pool for sessions
-	idleTimeoutMillis: 30000,
-	connectionTimeoutMillis: 2000,
+	max: env.SESSION_POOL_MAX,
+	idleTimeoutMillis: env.SESSION_POOL_IDLE_TIMEOUT_MS,
+	connectionTimeoutMillis: env.SESSION_POOL_CONNECTION_TIMEOUT_MS,
 });
 
 // Session configuration
@@ -38,7 +38,7 @@ export const sessionConfig: RequestHandler = session({
 		secure: env.NODE_ENV === "production", // HTTPS only in production
 		httpOnly: true, // Prevent XSS attacks
 		sameSite: "strict", // CSRF protection
-		maxAge: (env.ADMIN_SESSION_TIMEOUT || 900) * 1000, // Default 15 minutes
+		maxAge: (env.ADMIN_SESSION_TIMEOUT_SECONDS || 900) * 1000, // Default 15 minutes
 	},
 	name: "admin.sid", // Custom session cookie name
 });

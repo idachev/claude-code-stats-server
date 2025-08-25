@@ -28,9 +28,14 @@ const envSchema = z.object({
 
 	// Session configuration
 	SESSION_SECRET: z.string().min(32).optional(),
-	ADMIN_SESSION_TIMEOUT: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
+	ADMIN_SESSION_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
 	ADMIN_MAX_LOGIN_ATTEMPTS: z.coerce.number().int().positive().default(5),
 	ADMIN_RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
+
+	// Session pool configuration
+	SESSION_POOL_MAX: z.coerce.number().int().positive().default(10),
+	SESSION_POOL_IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(30000), // 30 seconds
+	SESSION_POOL_CONNECTION_TIMEOUT_MS: z.coerce.number().int().positive().default(30000), // 30 seconds as requested
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

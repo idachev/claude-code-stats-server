@@ -69,7 +69,7 @@ adminViewRouter.get(
 					users: userData,
 					tags: tagData,
 					csrfToken: req.session.csrfToken,
-					sessionTimeout: parseInt(process.env.ADMIN_SESSION_TIMEOUT || "900"),
+					sessionTimeout: parseInt(process.env.ADMIN_SESSION_TIMEOUT_SECONDS || "900"),
 				},
 			});
 		} catch (error) {

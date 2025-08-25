@@ -1,6 +1,7 @@
 import { env } from "@/common/utils/envConfig";
 import { closeDatabase, initializeDatabase } from "@/db/index";
 import { app, logger } from "@/server";
+import { closeSessionPool } from "@/common/middleware/sessionConfig";
 
 // Initialize database before starting server
 initializeDatabase()
@@ -14,6 +15,7 @@ initializeDatabase()
 			logger.info("sigint received, shutting down");
 			server.close(async () => {
 				await closeDatabase();
+				await closeSessionPool();
 				logger.info("server closed");
 				process.exit();
 			});

@@ -25,6 +25,12 @@ const envSchema = z.object({
 
 	// Admin authentication
 	ADMIN_API_KEY: z.string().min(1).optional(),
+
+	// Session configuration
+	SESSION_SECRET: z.string().min(32).optional(),
+	ADMIN_SESSION_TIMEOUT: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
+	ADMIN_MAX_LOGIN_ATTEMPTS: z.coerce.number().int().positive().default(5),
+	ADMIN_RATE_LIMIT_WINDOW: z.coerce.number().int().positive().default(900), // 15 minutes in seconds
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

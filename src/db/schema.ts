@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { date, decimal, index, integer, pgTable, serial, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { date, decimal, index, integer, jsonb, pgTable, serial, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 import { TAG_MAX_LENGTH } from "@/api/tags/tagSchemas";
 
 // Users table
@@ -82,6 +82,19 @@ export const tags = pgTable(
 	}),
 );
 
+// Admin sessions table (for express-session with connect-pg-simple)
+export const adminSessions = pgTable(
+	"admin_sessions",
+	{
+		sid: varchar("sid").primaryKey(), // Session ID
+		sess: jsonb("sess").notNull(), // Session data as JSONB (more efficient than JSON)
+		expire: timestamp("expire", { precision: 6, withTimezone: false }).notNull(), // Expiration timestamp
+	},
+	(table) => ({
+		expireIdx: index("idx_admin_sessions_expire").on(table.expire), // Index for efficient cleanup of expired sessions
+	}),
+);
+
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
 	usageStats: many(usageStats),
@@ -119,3 +132,5 @@ export type ModelUsage = typeof modelUsage.$inferSelect;
 export type NewModelUsage = typeof modelUsage.$inferInsert;
 export type Tag = typeof tags.$inferSelect;
 export type NewTag = typeof tags.$inferInsert;
+export type AdminSession = typeof adminSessions.$inferSelect;
+export type NewAdminSession = typeof adminSessions.$inferInsert;

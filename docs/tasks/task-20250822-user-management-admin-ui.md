@@ -464,13 +464,16 @@ export const CreateUserSchema = z.object({
 ### Phase 1: Session Setup & Authentication
 
 1. Install and configure express-session with PostgreSQL store (connect-pg-simple)
-2. Configure CSRF protection middleware (csurf or similar)
-3. Create Basic Auth middleware for `/dashboard/admin`
-4. Implement session regeneration on successful auth
-5. Create logout endpoint `/admin/logout`
-6. Update admin API middleware to check session
-7. Create single route handler in adminViewRouter
-8. Add rate limiting for login attempts
+2. Create database migration for admin_sessions table
+   - Add table to Drizzle schema with proper structure (sid, sess, expire)
+   - Generate and apply migration using `pnpm db:generate` and `pnpm db:migrate`
+3. Configure CSRF protection middleware (csurf or similar)
+4. Create Basic Auth middleware for `/dashboard/admin`
+5. Implement session regeneration on successful auth
+6. Create logout endpoint `/admin/logout`
+7. Update admin API middleware to check session
+8. Create single route handler in adminViewRouter
+9. Add rate limiting for login attempts
 
 ### Phase 2: Server-Side Rendering
 

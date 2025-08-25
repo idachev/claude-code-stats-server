@@ -13,6 +13,7 @@ import helmetConfig from "@/common/middleware/helmetConfig";
 import rateLimiter from "@/common/middleware/rateLimiter";
 import requestLogger from "@/common/middleware/requestLogger";
 import { env } from "@/common/utils/envConfig";
+import { sessionConfig } from "@/common/middleware/sessionConfig";
 
 const logger = pino({ name: "server start" });
 const app: Express = express();
@@ -37,6 +38,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmetConfig);
+
+// Session middleware - must come before routes that need sessions
+app.use(sessionConfig);
+
 app.use(rateLimiter);
 
 // Static files

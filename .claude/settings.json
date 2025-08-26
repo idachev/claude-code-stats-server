@@ -8,6 +8,7 @@
       "Bash(gh api:*)",
       "Bash(git grep:*)",
       "Bash(git help:*)",
+      "Bash(git show:*)",
       "Bash(git subtree:*)",
       "Bash(GITHUB_TOKEN= gh pr:*)",
       "Bash(grep:*)",

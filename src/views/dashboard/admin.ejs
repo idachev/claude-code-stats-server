@@ -7,182 +7,177 @@
 		<meta name="csrf-token" content="<%= initialData.csrfToken %>">
 		<title><%= title %></title>
 		<script src="https://cdn.tailwindcss.com"></script>
+		<script>
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							"dark-bg": "#1a1a1a",
+							"dark-card": "#2a2a2a",
+							"dark-border": "#3a3a3a",
+						},
+					},
+				},
+			};
+		</script>
 		<style>
         /* Custom styles for admin panel */
-        .admin-header { background: #1a202c; }
-        .admin-sidebar { background: #2d3748; }
-        .admin-badge { background: #e53e3e; }
+        body { background-color: #1a1a1a; }
     </style>
 	</head>
 
-	<body class="bg-gray-100">
-		<div class="flex h-screen">
-			<!-- Left Sidebar -->
-			<nav class="w-64 admin-sidebar text-white h-screen fixed left-0">
-				<div class="p-4 h-full flex flex-col">
-					<h2 class="text-xl font-bold mb-6">Admin Panel</h2>
-
-					<ul class="menu flex-1">
-						<li class="mb-2">
-							<a href="#users" class="block px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">
-								Users Management
-							</a>
-						</li>
-						<!-- Future menu items -->
-					</ul>
-
-					<!-- Session info and logout -->
-					<div class="mt-auto">
-						<div class="text-xs text-gray-400 mb-2">
-							Session expires in: <span id="session-timer">15:00</span>
-						</div>
-						<button id="logout-btn" class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-						 onclick="logout()">
-							Logout
-						</button>
-					</div>
-				</div>
-			</nav>
-
-			<!-- Main Content -->
-			<div class="ml-64 flex-1 flex flex-col">
-				<!-- Header -->
-				<header class="admin-header text-white p-4 shadow-lg">
+	<body class="bg-dark-bg text-gray-100">
+		<div class="min-h-screen flex flex-col">
+			<!-- Header -->
+			<header class="bg-dark-card border-b border-dark-border text-white p-4 shadow-lg sticky top-0 z-40">
+				<div class="container mx-auto">
 					<div class="flex justify-between items-center">
-						<h1 class="text-2xl font-bold">User Management</h1>
-						<span class="admin-badge text-white px-3 py-1 rounded text-sm">Admin</span>
-					</div>
-				</header>
-
-				<!-- Content Area -->
-				<main class="flex-1 p-6 overflow-auto">
-					<!-- Action Bar -->
-					<div class="bg-white rounded-lg shadow mb-6 p-4">
-						<div class="flex justify-between items-center">
-							<div class="flex gap-4">
-								<input type="text" id="search-input" placeholder="Search by username..."
-								 class="px-4 py-2 border rounded-lg w-64">
-								<select id="tag-filter" class="px-4 py-2 border rounded-lg">
-									<option value="">All Tags</option>
-									<% initialData.tags.forEach(tag => { %>
-									<option value="<%= tag %>"><%= tag %></option>
-									<% }); %>
-								</select>
+						<div class="flex items-center">
+							<h1 class="text-2xl font-bold text-white">Admin Dashboard - User Management</h1>
+						</div>
+						<div class="flex items-center space-x-4">
+							<div class="text-sm text-gray-300">
+								Session expires in: <span id="session-timer">15:00</span>
 							</div>
-							<button onclick="showCreateUserModal()"
-							 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
-								+ Create User
+							<button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+							 onclick="logout()">
+								Logout
 							</button>
 						</div>
 					</div>
+				</div>
+			</header>
 
-					<!-- Users Table -->
-					<div class="bg-white rounded-lg shadow overflow-hidden">
-						<table class="w-full">
-							<thead class="bg-gray-50 border-b">
-								<tr>
-									<th
-									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										ID
-									</th>
-									<th
-									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Username
-									</th>
-									<th
-									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Tags
-									</th>
-									<th
-									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Created At
-									</th>
-									<th
-									 class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-										Actions
-									</th>
-								</tr>
-							</thead>
-							<tbody id="users-tbody" class="bg-white divide-y divide-gray-200">
-								<% initialData.users.forEach(user => { %>
-								<tr>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-										<%= user.id %>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-										<%= user.username %>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										<% if (user.tags && user.tags.length > 0) { %>
-										<% user.tags.forEach(tag => { %>
-										<span
-										 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">
-											<%= tag %>
-										</span>
-										<% }); %>
-										<% } else { %>
-										<span class="text-gray-400">No tags</span>
-										<% } %>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-										<%= new Date(user.createdAt).toLocaleDateString() %>
-									</td>
-									<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-										<button onclick="regenerateApiKey('<%= user.username %>')"
-										 class="text-indigo-600 hover:text-indigo-900 mr-3">
-											Regenerate Key
-										</button>
-										<button onclick="manageTags('<%= user.username %>')"
-										 class="text-green-600 hover:text-green-900 mr-3">
-											Manage Tags
-										</button>
-										<button onclick="deactivateUser('<%= user.username %>')"
-										 class="text-red-600 hover:text-red-900">
-											Deactivate
-										</button>
-									</td>
-								</tr>
+			<!-- Main Content Area (Full Width) -->
+			<main class="flex-1 container mx-auto p-6 max-w-full">
+				<!-- Action Bar -->
+				<div class="bg-dark-card rounded-lg border border-dark-border mb-6 p-4">
+					<div class="flex justify-between items-center">
+						<div class="flex gap-4">
+							<input type="text" id="search-input" placeholder="Search by username..."
+							 class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg w-64 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500">
+							<select id="tag-filter"
+							 class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
+								<option value="">All Tags</option>
+								<% initialData.tags.forEach(tag => { %>
+								<option value="<%= tag %>"><%= tag %></option>
 								<% }); %>
-							</tbody>
-						</table>
-
-						<% if (initialData.users.length === 0) { %>
-						<div class="text-center py-8 text-gray-500">
-							No users found. Create your first user to get started.
+							</select>
 						</div>
-						<% } %>
+						<button onclick="showCreateUserModal()"
+						 class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+							+ Create User
+						</button>
 					</div>
-				</main>
-			</div>
+				</div>
+
+				<!-- Users Table -->
+				<div class="bg-dark-card rounded-lg border border-dark-border overflow-x-auto">
+					<table class="w-full table-auto">
+						<thead class="bg-dark-bg border-b border-dark-border">
+							<tr>
+								<th
+								 class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+									ID
+								</th>
+								<th
+								 class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+									Username
+								</th>
+								<th
+								 class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+									Tags
+								</th>
+								<th
+								 class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+									Created At
+								</th>
+								<th
+								 class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+									Actions
+								</th>
+							</tr>
+						</thead>
+						<tbody id="users-tbody" class="bg-dark-card divide-y divide-dark-border">
+							<% initialData.users.forEach(user => { %>
+							<tr class="hover:bg-dark-bg transition-colors">
+								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+									<%= user.id %>
+								</td>
+								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-100">
+									<%= user.username %>
+								</td>
+								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+									<% if (user.tags && user.tags.length > 0) { %>
+									<% user.tags.forEach(tag => { %>
+									<span
+									 class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-200 mr-1">
+										<%= tag %>
+									</span>
+									<% }); %>
+									<% } else { %>
+									<span class="text-gray-500">No tags</span>
+									<% } %>
+								</td>
+								<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+									<%= new Date(user.createdAt).toLocaleDateString() %>
+								</td>
+								<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+									<button onclick="regenerateApiKey('<%= user.username %>')"
+									 class="text-indigo-400 hover:text-indigo-300 mr-3 transition-colors">
+										Regenerate Key
+									</button>
+									<button onclick="manageTags('<%= user.username %>')"
+									 class="text-green-400 hover:text-green-300 mr-3 transition-colors">
+										Manage Tags
+									</button>
+									<button onclick="deactivateUser('<%= user.username %>')"
+									 class="text-red-400 hover:text-red-300 transition-colors">
+										Deactivate
+									</button>
+								</td>
+							</tr>
+							<% }); %>
+						</tbody>
+					</table>
+
+					<% if (initialData.users.length === 0) { %>
+					<div class="text-center py-8 text-gray-400">
+						No users found. Create your first user to get started.
+					</div>
+					<% } %>
+				</div>
+			</main>
 		</div>
 
 		<!-- Modals -->
 		<!-- Create User Modal -->
 		<div id="createUserModal"
-		 class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-			<div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+		 class="fixed inset-0 bg-black bg-opacity-75 hidden z-50 flex items-center justify-center">
+			<div class="bg-dark-card border border-dark-border rounded-lg shadow-xl w-full max-w-md mx-4">
 				<div class="p-6">
-					<h3 class="text-xl font-bold mb-4">Create New User</h3>
+					<h3 class="text-xl font-bold mb-4 text-white">Create New User</h3>
 					<form id="createUserForm">
 						<div class="mb-4">
-							<label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
 							<input type="text" id="newUsername" required minlength="3" maxlength="128"
-							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							 placeholder="Enter username">
 						</div>
 						<div class="mb-4">
-							<label class="block text-sm font-medium text-gray-700 mb-2">Tags (optional)</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Tags (optional)</label>
 							<input type="text" id="newUserTags"
-							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							 placeholder="Enter tags separated by commas">
-							<p class="text-xs text-gray-500 mt-1">Example: frontend, react, typescript</p>
+							<p class="text-xs text-gray-400 mt-1">Example: frontend, react, typescript</p>
 						</div>
 						<div class="flex justify-end gap-3">
 							<button type="button" onclick="closeCreateUserModal()"
-							 class="px-4 py-2 text-gray-600 hover:text-gray-800">
+							 class="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors">
 								Cancel
 							</button>
-							<button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+							<button type="submit"
+							 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
 								Create User
 							</button>
 						</div>
@@ -193,29 +188,30 @@
 
 		<!-- Manage Tags Modal -->
 		<div id="manageTagsModal"
-		 class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-			<div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+		 class="fixed inset-0 bg-black bg-opacity-75 hidden z-50 flex items-center justify-center">
+			<div class="bg-dark-card border border-dark-border rounded-lg shadow-xl w-full max-w-md mx-4">
 				<div class="p-6">
-					<h3 class="text-xl font-bold mb-4">Manage Tags for <span id="tagModalUsername"></span></h3>
+					<h3 class="text-xl font-bold mb-4 text-white">Manage Tags for <span id="tagModalUsername"
+						 class="text-blue-400"></span></h3>
 					<form id="manageTagsForm">
 						<div class="mb-4">
-							<label class="block text-sm font-medium text-gray-700 mb-2">Current Tags</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Current Tags</label>
 							<div id="currentTagsList" class="mb-3 min-h-[40px]"></div>
 						</div>
 						<div class="mb-4">
-							<label class="block text-sm font-medium text-gray-700 mb-2">Update Tags</label>
+							<label class="block text-sm font-medium text-gray-300 mb-2">Update Tags</label>
 							<input type="text" id="updatedTags"
-							 class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+							 class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
 							 placeholder="Enter tags separated by commas">
-							<p class="text-xs text-gray-500 mt-1">Leave empty to remove all tags</p>
+							<p class="text-xs text-gray-400 mt-1">Leave empty to remove all tags</p>
 						</div>
 						<div class="flex justify-end gap-3">
 							<button type="button" onclick="closeManageTagsModal()"
-							 class="px-4 py-2 text-gray-600 hover:text-gray-800">
+							 class="px-4 py-2 text-gray-400 hover:text-gray-200 transition-colors">
 								Cancel
 							</button>
 							<button type="submit"
-							 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+							 class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
 								Update Tags
 							</button>
 						</div>
@@ -377,11 +373,11 @@
                     
                     if (tags.length > 0) {
                         tagsList.innerHTML = tags.map(tag => 
-                            `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-1">${tag}</span>`
+                            `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-900 text-blue-200 mr-1">${tag}</span>`
                         ).join('');
                         document.getElementById('updatedTags').value = tags.join(', ');
                     } else {
-                        tagsList.innerHTML = '<span class="text-gray-400">No tags</span>';
+                        tagsList.innerHTML = '<span class="text-gray-500">No tags</span>';
                         document.getElementById('updatedTags').value = '';
                     }
                     

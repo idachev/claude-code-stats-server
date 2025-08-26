@@ -51,8 +51,8 @@ export const adminLoginRateLimiter = rateLimit({
 		`);
 	},
 
-	// Skip rate limiting in test environment
-	skip: () => env.isTest,
+	// Skip rate limiting in test and development environments
+	skip: () => env.isTest || env.isDevelopment,
 
 	// Store rate limit info in memory (default)
 	// In production, consider using Redis for distributed rate limiting

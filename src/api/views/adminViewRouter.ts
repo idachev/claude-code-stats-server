@@ -56,7 +56,8 @@ adminViewRouter.get(
 	async (req: Request, res: Response) => {
 		try {
 			// Load initial data using internal services (no API calls)
-			const [usersResponse, tagsList] = await Promise.all([userService.findAll(), tagService.getTags()]);
+			// Use findAllSimple to get all users without pagination for initial render
+			const [usersResponse, tagsList] = await Promise.all([userService.findAllSimple(), tagService.getTags()]);
 
 			// Extract user data from service response
 			const userData = usersResponse.success && usersResponse.responseObject ? usersResponse.responseObject : [];

@@ -143,9 +143,9 @@ export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="ccs_admin_change_this_in_producti
 **Features:**
 - Automatically generates random English usernames (e.g., john.doe, sarah.smith)
 - Creates a unique user for each test data file in `/docs/data/`
+- Randomly assigns 1-3 tags to each user from a predefined set
 - Uploads the corresponding JSON data for each user
-- Handles existing users by regenerating their API keys
-- Provides a summary of successful/failed operations
+- Provides a summary showing users with their assigned tags
 - Supports dry-run mode to preview actions without making changes
 
 **Generated Usernames:**
@@ -153,6 +153,16 @@ The script generates realistic English usernames by combining:
 - Common English first names (john, sarah, michael, emily, etc.)
 - Common English last names (smith, johnson, williams, brown, etc.)
 - Format: `firstname.lastname` (all lowercase)
+
+**Tag Assignment:**
+Each user is randomly assigned 1-3 tags from:
+- `Backend` - Backend development skills
+- `Frontend` - Frontend development skills  
+- `Fullstack` - Full-stack development skills
+- `Max-Acc1` - Account type 1 designation
+- `Max-Acc2` - Account type 2 designation
+
+Tags are assigned during user creation to help test filtering and aggregation features.
 
 ### common.sh
 

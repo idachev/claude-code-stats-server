@@ -9,7 +9,9 @@ import {
 	CreateUserSchema,
 	DeactivateUserSchema,
 	GetUserByUsernameSchema,
+	GetUsersQuerySchema,
 	RegenerateApiKeySchema,
+	UserListResponseSchema,
 	UserSchema,
 } from "@/api/user/userModel";
 import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
@@ -23,16 +25,21 @@ export const userRouter: Router = express.Router();
 userRegistry.register("User", UserSchema);
 userRegistry.register("ApiKeyResponse", ApiKeyResponseSchema);
 userRegistry.register("ApiKeyCheckResponse", ApiKeyCheckResponseSchema);
+userRegistry.register("UserListResponse", UserListResponseSchema);
 
-// GET /admin/users - Get all users
+// GET /admin/users - Get all users with pagination and filtering
 userRegistry.registerPath({
 	method: "get",
 	path: "/admin/users",
 	tags: ["Admin"],
-	summary: "Get all users",
-	description: "Retrieves all users from the database. Requires admin authentication.",
+	summary: "Get all users with pagination and filtering",
+	description:
+		"Retrieves users from the database with optional search, tag filtering, and pagination. Requires admin authentication.",
 	security: [{ AdminKeyAuth: [] }],
-	responses: createApiResponseWithErrors(z.array(UserSchema), "Success"),
+	request: {
+		query: GetUsersQuerySchema,
+	},
+	responses: createApiResponseWithErrors(UserListResponseSchema, "Success"),
 });
 
 userRouter.get("/", authenticateAdmin, userController.getUsers);

@@ -121,6 +121,8 @@ Access the web-based admin dashboard for comprehensive user management:
 - **URL**: `http://your-server:3000/dashboard/admin`
 - **Features**: Create/edit/deactivate users, manage tags, regenerate API keys
 - **Authentication**: Session-based (login with admin API key)
+- **Search & Filter**: Search users by username, filter by tags
+- **Pagination**: Efficient handling of large user lists with customizable page size
 
 ### CLI Scripts
 Use our helper scripts for programmatic user and API key management:

@@ -7,6 +7,7 @@
 - **TypeScript** - Type safety with strict mode
 - **PostgreSQL** - Database with session storage
 - **Drizzle ORM** - Lightweight, type-safe ORM with SQL-like syntax
+- **express-session** - Session management with PostgreSQL store
 
 ### Frontend
 - **EJS** - Server-side templating for dashboards

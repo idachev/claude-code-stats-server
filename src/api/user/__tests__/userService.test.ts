@@ -73,15 +73,17 @@ describe("userService", () => {
 			expect(result.responseObject).toBeDefined();
 
 			// Check that our test users are in the results
-			const users = result.responseObject as any[];
-			const testUser1 = users.find((u) => u.username === `${testUsernamePrefix}alice`);
-			const testUser2 = users.find((u) => u.username === `${testUsernamePrefix}bob`);
+			const data = result.responseObject;
+			expect(data?.users).toBeDefined();
+			const users = data?.users || [];
+			const testUser1 = users.find((u: any) => u.username === `${testUsernamePrefix}alice`);
+			const testUser2 = users.find((u: any) => u.username === `${testUsernamePrefix}bob`);
 
 			expect(testUser1).toBeDefined();
-			expect(testUser1.tags).toEqual(["developer", "team-alpha"]);
+			expect(testUser1?.tags).toEqual(["developer", "team-alpha"]);
 
 			expect(testUser2).toBeDefined();
-			expect(testUser2.tags).toEqual([]);
+			expect(testUser2?.tags).toEqual([]);
 		});
 
 		it("returns users even with empty database", async () => {
@@ -95,7 +97,7 @@ describe("userService", () => {
 			expect(result.statusCode).toEqual(StatusCodes.OK);
 			expect(result.success).toBeTruthy();
 			expect(result.message).equals("No users found");
-			expect(result.responseObject).toEqual([]);
+			expect(result.responseObject?.users).toEqual([]);
 
 			// Restore test users for other tests
 			const [user1] = await db
@@ -127,9 +129,7 @@ describe("userService", () => {
 			// We can't easily simulate a database error with real DB,
 			// so we'll create a custom repository that throws
 			class FaultyRepository extends UserRepository {
-				async findAllAsync(): Promise<
-					{ tags: string[]; username: string; id: number; createdAt: Date; updatedAt: Date }[]
-				> {
+				async findAllAsync(): Promise<any> {
 					throw new Error("Database connection lost");
 				}
 			}

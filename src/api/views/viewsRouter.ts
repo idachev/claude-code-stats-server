@@ -481,8 +481,8 @@ function processStatsForCharts(stats: StatsResponse, groupBy: "user" | "model" =
 // Helper function to get available filters
 async function getAvailableFilters() {
 	try {
-		// Get all users with their tags
-		const usersWithTags = await userRepository.findAllAsync();
+		// Get all users with their tags - use simple version for backward compatibility
+		const usersWithTags = await userRepository.findAllSimpleAsync();
 
 		// Get all unique model combinations
 		const modelsResult = await db

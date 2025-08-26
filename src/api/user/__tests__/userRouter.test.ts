@@ -34,14 +34,290 @@ describe("User API Endpoints", () => {
 			expect(response.statusCode).toEqual(StatusCodes.UNAUTHORIZED);
 		});
 
-		it("should return a list of users with valid admin API key", async () => {
+		it("should return a paginated list of users with valid admin API key", async () => {
 			// Act
 			const response = await request(app).get("/admin/users").set("X-Admin-Key", adminApiKey);
-			const responseBody: User[] = response.body;
+			const responseBody = response.body;
 
 			// Assert
 			expect(response.statusCode).toEqual(StatusCodes.OK);
-			expect(Array.isArray(responseBody)).toBeTruthy();
+			expect(responseBody).toHaveProperty("users");
+			expect(Array.isArray(responseBody.users)).toBeTruthy();
+			expect(responseBody).toHaveProperty("pagination");
+			expect(responseBody.pagination).toHaveProperty("page", 1);
+			expect(responseBody.pagination).toHaveProperty("limit", 20);
+			expect(responseBody.pagination).toHaveProperty("total");
+			expect(responseBody.pagination).toHaveProperty("totalPages");
+			expect(responseBody).toHaveProperty("filters");
+		});
+	});
+
+	describe("GET /admin/users with pagination and filtering", () => {
+		beforeEach(async () => {
+			// Create test users with different names and tags for filtering tests
+			await request(app)
+				.post("/admin/users")
+				.set("X-Admin-Key", adminApiKey)
+				.send({
+					username: "test-alice-developer",
+					tags: ["frontend", "react"],
+				});
+
+			await request(app)
+				.post("/admin/users")
+				.set("X-Admin-Key", adminApiKey)
+				.send({
+					username: "test-bob-designer",
+					tags: ["backend", "nodejs"],
+				});
+
+			await request(app)
+				.post("/admin/users")
+				.set("X-Admin-Key", adminApiKey)
+				.send({
+					username: "test-charlie-developer",
+					tags: ["frontend", "vue"],
+				});
+
+			await request(app)
+				.post("/admin/users")
+				.set("X-Admin-Key", adminApiKey)
+				.send({
+					username: "test-david-admin",
+					tags: ["backend", "python"],
+				});
+
+			await request(app).post("/admin/users").set("X-Admin-Key", adminApiKey).send({
+				username: "test-eve-tester",
+				tags: [],
+			});
+		});
+
+		it("should filter users by search term", async () => {
+			// Act - search for "developer"
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ search: "developer" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			expect(usernames).toContain("test-alice-developer");
+			expect(usernames).toContain("test-charlie-developer");
+			expect(usernames).not.toContain("test-bob-designer");
+			expect(usernames).not.toContain("test-david-admin");
+			expect(response.body.filters.search).toEqual("developer");
+		});
+
+		it("should filter users by single tag", async () => {
+			// Act - filter by "frontend" tag
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ tags: "frontend" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			expect(usernames).toContain("test-alice-developer");
+			expect(usernames).toContain("test-charlie-developer");
+			expect(usernames).not.toContain("test-bob-designer");
+			expect(usernames).not.toContain("test-david-admin");
+			expect(response.body.filters.tags).toEqual(["frontend"]);
+		});
+
+		it("should filter users by multiple tags (AND operation)", async () => {
+			// Act - filter by both "backend" and "nodejs" tags
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ tags: ["backend", "nodejs"] })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			expect(usernames).toContain("test-bob-designer"); // has both tags
+			expect(usernames).not.toContain("test-david-admin"); // has only backend
+			expect(response.body.filters.tags).toEqual(["backend", "nodejs"]);
+		});
+
+		it("should combine search and tag filters", async () => {
+			// Act - search for "test" and filter by "frontend" tag
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ search: "alice", tags: "frontend" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			expect(usernames).toContain("test-alice-developer");
+			expect(usernames).not.toContain("test-charlie-developer"); // has frontend but not alice
+			expect(response.body.filters.search).toEqual("alice");
+			expect(response.body.filters.tags).toEqual(["frontend"]);
+		});
+
+		it("should paginate results with page and limit", async () => {
+			// Act - get page 2 with limit 2
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ page: 2, limit: 2 })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			expect(response.body.users.length).toBeLessThanOrEqual(2);
+			expect(response.body.pagination.page).toEqual(2);
+			expect(response.body.pagination.limit).toEqual(2);
+		});
+
+		it("should return empty results for page beyond total", async () => {
+			// Act - get page 1000
+			const response = await request(app).get("/admin/users").query({ page: 1000 }).set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			expect(response.body.users.length).toEqual(0);
+			expect(response.body.pagination.page).toEqual(1000);
+		});
+
+		it("should sort by username ascending", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ sortBy: "username", order: "asc", search: "test-" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			const sortedUsernames = [...usernames].sort();
+			expect(usernames).toEqual(sortedUsernames);
+		});
+
+		it("should sort by username descending", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ sortBy: "username", order: "desc", search: "test-" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			const sortedUsernames = [...usernames].sort().reverse();
+			expect(usernames).toEqual(sortedUsernames);
+		});
+
+		it("should sort by createdAt", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ sortBy: "createdAt", order: "asc", search: "test-" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const users = response.body.users;
+			for (let i = 1; i < users.length; i++) {
+				const prevDate = new Date(users[i - 1].createdAt);
+				const currDate = new Date(users[i].createdAt);
+				expect(prevDate.getTime()).toBeLessThanOrEqual(currDate.getTime());
+			}
+		});
+
+		it("should return 400 for invalid page number", async () => {
+			// Act
+			const response = await request(app).get("/admin/users").query({ page: 0 }).set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
+			expect(response.body.error).toContain("Invalid page number");
+		});
+
+		it("should return 400 for invalid limit", async () => {
+			// Act
+			const response = await request(app).get("/admin/users").query({ limit: 101 }).set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
+			expect(response.body.error).toContain("Invalid limit");
+		});
+
+		it("should return 400 for negative limit", async () => {
+			// Act
+			const response = await request(app).get("/admin/users").query({ limit: -1 }).set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.BAD_REQUEST);
+			expect(response.body.error).toContain("Invalid limit");
+		});
+
+		it("should handle case-insensitive search", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ search: "ALICE" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const usernames = response.body.users.map((u: any) => u.username);
+			expect(usernames).toContain("test-alice-developer");
+		});
+
+		it("should return empty results for non-matching search", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ search: "nonexistentuser" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			expect(response.body.users.length).toEqual(0);
+			expect(response.body.pagination.total).toEqual(0);
+			expect(response.body.pagination.totalPages).toEqual(0);
+		});
+
+		it("should return empty results for non-existing tags", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ tags: "nonexistingtag" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			expect(response.body.users.length).toEqual(0);
+		});
+
+		it("should apply default sorting by createdAt desc when not specified", async () => {
+			// Act
+			const response = await request(app)
+				.get("/admin/users")
+				.query({ search: "test-" })
+				.set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			const users = response.body.users;
+			// Check that users are sorted by createdAt descending (newest first)
+			for (let i = 1; i < users.length; i++) {
+				const prevDate = new Date(users[i - 1].createdAt);
+				const currDate = new Date(users[i].createdAt);
+				expect(prevDate.getTime()).toBeGreaterThanOrEqual(currDate.getTime());
+			}
+		});
+
+		it("should respect maximum page limit", async () => {
+			// Act
+			const response = await request(app).get("/admin/users").query({ limit: 100 }).set("X-Admin-Key", adminApiKey);
+
+			// Assert
+			expect(response.statusCode).toEqual(StatusCodes.OK);
+			expect(response.body.pagination.limit).toEqual(100);
 		});
 	});
 

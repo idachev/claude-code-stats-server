@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+	MAX_PAGE_LIMIT,
 	TagNameBaseSchema,
 	USERNAME_MAX_LENGTH,
 	USERNAME_MIN_LENGTH,
@@ -71,4 +72,35 @@ export const ApiKeyResponseSchema = z.object({
 export const ApiKeyCheckResponseSchema = z.object({
 	username: z.string(),
 	isValid: z.boolean(),
+});
+
+// Pagination schema
+export const PaginationSchema = z.object({
+	page: z.number().int().positive(),
+	limit: z.number().int().positive().max(MAX_PAGE_LIMIT),
+	total: z.number().int().min(0),
+	totalPages: z.number().int().min(0),
+});
+
+// Filters schema for user list
+export const UserFiltersSchema = z.object({
+	search: z.string().optional(),
+	tags: z.array(z.string()).optional(),
+});
+
+// Response schema for paginated user list
+export const UserListResponseSchema = z.object({
+	users: z.array(UserSchema),
+	pagination: PaginationSchema,
+	filters: UserFiltersSchema,
+});
+
+// Query parameters schema for GET /admin/users
+export const GetUsersQuerySchema = z.object({
+	search: z.string().optional(),
+	tags: z.union([z.string(), z.array(z.string())]).optional(),
+	page: z.string().regex(/^\d+$/).transform(Number).optional(),
+	limit: z.string().regex(/^\d+$/).transform(Number).optional(),
+	sortBy: z.enum(["username", "createdAt", "updatedAt"]).optional(),
+	order: z.enum(["asc", "desc"]).optional(),
 });

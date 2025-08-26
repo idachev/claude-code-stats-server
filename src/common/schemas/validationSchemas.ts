@@ -13,6 +13,10 @@ export const TAG_MIN_LENGTH = 2;
 export const TAG_MAX_LENGTH = 64;
 export const TAG_NAME_PATTERN = /^[0-9A-Za-z .\-_]+$/;
 
+// Pagination constants
+export const MAX_PAGE_LIMIT = 100;
+export const DEFAULT_PAGE_LIMIT = 20;
+
 // Reusable username validation schema
 export const UsernameSchema = z
 	.string()

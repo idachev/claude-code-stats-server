@@ -5,6 +5,7 @@ import { pino } from "pino";
 import { ApiKeyService } from "@/api/auth/apiKeyService";
 import { USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, USERNAME_PATTERN } from "@/api/user/userModel";
 import { userService } from "@/api/user/userService";
+import { MAX_PAGE_LIMIT } from "@/common/schemas/validationSchemas";
 import { createErrorResponse, handleServiceResponse } from "@/common/utils/httpHandlers";
 
 const logger = pino({ name: "user-controller" });
@@ -16,8 +17,40 @@ class UserController {
 		this.apiKeyService = new ApiKeyService();
 	}
 
-	public getUsers: RequestHandler = async (_req: Request, res: Response) => {
-		const serviceResponse = await userService.findAll();
+	public getUsers: RequestHandler = async (req: Request, res: Response) => {
+		// Extract query parameters for filtering and pagination
+		const filters = {
+			search: req.query.search as string | undefined,
+			tags: req.query.tags
+				? Array.isArray(req.query.tags)
+					? (req.query.tags as string[])
+					: [req.query.tags as string]
+				: undefined,
+			page: req.query.page ? Number.parseInt(req.query.page as string, 10) : undefined,
+			limit: req.query.limit ? Number.parseInt(req.query.limit as string, 10) : undefined,
+			sortBy: req.query.sortBy as "username" | "createdAt" | "updatedAt" | undefined,
+			order: req.query.order as "asc" | "desc" | undefined,
+		};
+
+		// Validate pagination parameters
+		if (filters.page !== undefined && (Number.isNaN(filters.page) || filters.page < 1)) {
+			const errorResponse = createErrorResponse("Invalid page number", StatusCodes.BAD_REQUEST);
+			res.status(StatusCodes.BAD_REQUEST).json(errorResponse);
+			return;
+		}
+		if (
+			filters.limit !== undefined &&
+			(Number.isNaN(filters.limit) || filters.limit < 1 || filters.limit > MAX_PAGE_LIMIT)
+		) {
+			const errorResponse = createErrorResponse(
+				`Invalid limit (must be between 1 and ${MAX_PAGE_LIMIT})`,
+				StatusCodes.BAD_REQUEST,
+			);
+			res.status(StatusCodes.BAD_REQUEST).json(errorResponse);
+			return;
+		}
+
+		const serviceResponse = await userService.findAll(filters);
 		handleServiceResponse(serviceResponse, res);
 	};
 

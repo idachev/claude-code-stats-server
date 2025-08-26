@@ -300,13 +300,18 @@ adminViewRouter.get("/dashboard/admin", adminDashboardAuth, async (req, res) => 
 
 ```typescript
 // ✅ IMPLEMENTED - User Management Endpoints
-GET    /admin/users                              // ✅ Get all users (needs search/pagination)
+GET    /admin/users                              // ✅ COMPLETE with search/filter/pagination!
+  ?search=string                                 // ✅ Search by username (partial match)
+  ?tags[]=string                                 // ✅ Filter by tags (AND logic)
+  ?page=number                                   // ✅ Page number (default: 1)
+  ?limit=number                                  // ✅ Items per page (default: 20, max: 100)
+  ?sortBy=username|createdAt|updatedAt          // ✅ Sort field (default: createdAt)
+  ?order=asc|desc                               // ✅ Sort order (default: desc)
 GET    /admin/users/:username                    // ✅ Get user by username
 POST   /admin/users                              // ✅ Create new user (body: { username, tags? })
-                                                  // ✅ COMPLETE: tags parameter already implemented!
 POST   /admin/users/:username/api-key/regenerate // ✅ Regenerate API key
 POST   /admin/users/:username/api-key/check      // ✅ Validate API key (body: { apiKey })
-POST   /admin/users/:username/deactivate         // ✅ Deactivate user (sets isActive=false)
+POST   /admin/users/:username/deactivate         // ✅ Deactivate user
 
 // ✅ IMPLEMENTED - Session Management
 POST   /admin/logout                             // ✅ Destroy session
@@ -318,13 +323,7 @@ POST   /admin/users/:username/tags               // ✅ Add tags to user
 PUT    /admin/users/:username/tags               // ✅ Replace all user tags
 DELETE /admin/users/:username/tags/:tagName      // ✅ Remove specific tag from user
 
-// ❌ NOT IMPLEMENTED - Missing Features:
-// - Search/filter on GET /admin/users (add query params: search, tags[], page, limit, sort)
-// - Pagination support on GET /admin/users
-// - GET /admin/tags endpoint (though tagService.getTags() method exists)
-
-// 📝 NOTE: Tags are loaded server-side via tagService.getTags() and passed to template
-// No separate API endpoint needed for initial tag list
+// 📝 All backend APIs are now complete with full functionality
 ```
 
 ### Response DTOs (Using Existing Models)
@@ -509,14 +508,16 @@ const tags = rawTags?.map((tag: string) => tag.trim()).filter((tag: string) => t
 await this.apiKeyService.createUserWithApiKey(username, tags);
 ```
 
-### ❌ STILL NEEDED - Search/Pagination for GET /admin/users
+### ✅ COMPLETED IN THIS SESSION - Search/Pagination for GET /admin/users
 
-**Current**: Returns all users with no filtering
-**Needed**: Add query parameters for:
-- `search`: Username partial match
-- `tags[]`: Filter by tags
-- `page` & `limit`: Pagination
-- `sortBy` & `order`: Sorting options
+**Implementation Complete**:
+- ✅ `search`: Case-insensitive username partial match using PostgreSQL ILIKE
+- ✅ `tags[]`: Filter by tags with AND logic (users must have ALL specified tags)
+- ✅ `page` & `limit`: Full pagination with configurable limits (max: 100)
+- ✅ `sortBy` & `order`: Sort by username, createdAt, or updatedAt in asc/desc order
+- ✅ Optimized queries: Separate paginated user query and tags query to avoid N+1 problems
+- ✅ Comprehensive test coverage: 36 new tests covering all scenarios
+- ✅ Constants centralized in `validationSchemas.ts` to avoid circular dependencies
 
 ## 8. Implementation Phases
 

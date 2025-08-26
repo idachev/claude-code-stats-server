@@ -186,7 +186,19 @@ The Docker image now includes migration capabilities. The same image can be used
 
 See `docker-compose-all.yaml` for an example setup with automatic migrations.
 
-### 15. Common Commands
+### 15. Admin Dashboard & Session Management
+
+The admin dashboard provides user management capabilities:
+- **Route**: `/dashboard/admin` (session-protected)
+- **Authentication**: Session-based using express-session with PostgreSQL store
+- **Features**: User CRUD, tag management, soft deletes (deactivation)
+
+Key architectural patterns:
+- Separate middleware for API auth (`adminAuth.ts`) vs dashboard auth (`adminDashboardAuth.ts`)
+- Sessions stored in PostgreSQL using `connect-pg-simple`
+- Validation schemas centralized in `/src/common/schemas/validationSchemas.ts`
+
+### 16. Common Commands
 ```bash
 # Development
 pnpm start:dev          # Start dev server with hot reload on port 3000

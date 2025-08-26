@@ -3,13 +3,13 @@
 ## Tech Stack
 
 ### Core
-- **Express.js** - Web framework
-- **TypeScript** - Type safety
-- **PostgreSQL** - Database
+- **Express.js** - Web framework with session management
+- **TypeScript** - Type safety with strict mode
+- **PostgreSQL** - Database with session storage
 - **Drizzle ORM** - Lightweight, type-safe ORM with SQL-like syntax
 
 ### Frontend
-- **EJS** - Server-side templating
+- **EJS** - Server-side templating for dashboards
 - **Chart.js** - Interactive charts and data visualization
 - **Tailwind CSS** - Utility-first CSS framework (via CDN)
 
@@ -110,18 +110,22 @@ Configuration is in `/src/common/middleware/helmetConfig.ts`.
 ```
 ├── src/
 │   ├── api/              # API endpoints
-│   │   ├── admin/        # Admin user management
+│   │   ├── auth/         # API key management & authentication
 │   │   ├── health/       # Health check
 │   │   ├── stats/        # Statistics upload/retrieval
+│   │   ├── tags/         # User tag management
+│   │   ├── user/         # User CRUD operations
 │   │   └── views/        # Dashboard views
 │   ├── api-docs/         # OpenAPI/Swagger configuration
 │   ├── common/           # Shared utilities
-│   │   ├── middleware/   # Express middleware
+│   │   ├── middleware/   # Auth & session middleware
+│   │   ├── schemas/      # Zod validation schemas
 │   │   └── utils/        # Helper functions
 │   ├── db/               # Database configuration
 │   │   ├── schema.ts     # Drizzle schema definitions
 │   │   └── index.ts      # Database connection
 │   └── views/            # EJS templates
+│       ├── dashboard/    # Admin dashboard views
 │       ├── layouts/      # Page layouts
 │       └── partials/     # Reusable components
 ├── drizzle/              # Database migrations

@@ -116,15 +116,22 @@ curl -X POST \
 
 ## 🔑 User Management
 
-Use our helper scripts for easy user and API key management:
+### Admin Dashboard
+Access the web-based admin dashboard for comprehensive user management:
+- **URL**: `http://your-server:3000/dashboard/admin`
+- **Features**: Create/edit/deactivate users, manage tags, regenerate API keys
+- **Authentication**: Session-based (login with admin API key)
+
+### CLI Scripts
+Use our helper scripts for programmatic user and API key management:
 
 ```bash
 # Set admin credentials
 export CLAUDE_CODE_STATS_SERVER_URL="http://your-server:3000"
 export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="your-admin-key"
 
-# Create a new user
-./utils/helpers/create-user.sh developer1
+# Create a new user with tags
+./utils/helpers/create-user.sh developer1 --tags "team-alpha,backend"
 
 # Regenerate API key for existing user
 ./utils/helpers/regenerate-user.sh developer1

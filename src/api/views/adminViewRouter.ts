@@ -7,6 +7,7 @@ import { TagService } from "@/api/tags/tagService";
 import { userService } from "@/api/user/userService";
 import { adminDashboardAuth } from "@/common/middleware/adminDashboardAuth";
 import { adminLoginRateLimiter } from "@/common/middleware/adminRateLimiter";
+import { csrfProtection } from "@/common/middleware/csrfProtection";
 
 const tagService = new TagService();
 
@@ -117,7 +118,7 @@ adminViewRegistry.registerPath({
  * POST /admin/logout
  * Destroy admin session and redirect to login
  */
-adminViewRouter.post("/admin/logout", (req: Request, res: Response) => {
+adminViewRouter.post("/admin/logout", csrfProtection, (req: Request, res: Response) => {
 	const username = req.session?.username || "unknown";
 
 	// Destroy the session

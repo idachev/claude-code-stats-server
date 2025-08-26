@@ -94,6 +94,7 @@ const adminCorsOptions: cors.CorsOptions = {
 	allowedHeaders: ["Content-Type", "X-Admin-Key", "X-CSRF-Token"],
 	maxAge: 600, // 10 minutes preflight cache
 };
+// Admin routes - authentication and CSRF protection applied in individual routers
 app.use("/admin/users", cors(adminCorsOptions), userRouter);
 
 // 7. Dashboard and views - session-based access

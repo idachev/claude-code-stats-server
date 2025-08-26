@@ -12,9 +12,12 @@ The Admin API provides comprehensive user management capabilities for the Claude
    - Login at `/dashboard/admin` with Basic Auth
    - Username: `admin`
    - Password: Your `ADMIN_API_KEY` value
+   - **CSRF Protection**: All state-changing operations (POST, PUT, DELETE, PATCH) require the `X-CSRF-Token` header
+   - CSRF token is provided in the session and available in the page meta tag
 
 2. **API Key Header** (for programmatic access)
    - Header: `X-Admin-Key: <your-admin-api-key>`
+   - **No CSRF required**: API key authentication bypasses CSRF validation
 
 ## User Management Endpoints
 
@@ -227,10 +230,40 @@ Error response format:
 
 Login attempts are rate-limited to 5 attempts per 15 minutes per IP address.
 
+## Security Features
+
+### CSRF Protection
+
+The admin dashboard implements CSRF protection for all state-changing operations:
+
+1. **Token Generation**: A cryptographically secure CSRF token is generated upon login
+2. **Token Validation**: All POST, PUT, DELETE, and PATCH requests require a valid `X-CSRF-Token` header
+3. **Session Binding**: CSRF tokens are bound to the user's session
+4. **Automatic Handling**: The dashboard JavaScript automatically includes the token in all requests
+5. **API Key Bypass**: Requests authenticated with `X-Admin-Key` bypass CSRF validation
+
+**JavaScript Example:**
+```javascript
+// Token is stored in meta tag
+const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+// Include in fetch requests
+fetch('/admin/users', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': csrfToken
+  },
+  credentials: 'same-origin',
+  body: JSON.stringify(data)
+});
+```
+
 ## Best Practices
 
 1. **API Key Security**: Store API keys securely and never expose them in client-side code
-2. **Pagination**: Use pagination for large user lists to improve performance
-3. **Tag Filtering**: When filtering by multiple tags, users must have ALL specified tags
-4. **Search**: Search is case-insensitive and matches partial usernames
-5. **Session Timeout**: Admin sessions expire after 15 minutes of inactivity
+2. **CSRF Token Handling**: Always include the CSRF token for dashboard operations
+3. **Pagination**: Use pagination for large user lists to improve performance
+4. **Tag Filtering**: When filtering by multiple tags, users must have ALL specified tags
+5. **Search**: Search is case-insensitive and matches partial usernames
+6. **Session Timeout**: Admin sessions expire after 15 minutes of inactivity

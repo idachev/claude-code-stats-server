@@ -16,6 +16,7 @@ import {
 } from "@/api/user/userModel";
 import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateAdmin } from "@/common/middleware/adminAuth";
+import { csrfProtection } from "@/common/middleware/csrfProtection";
 import { validateRequest } from "@/common/utils/httpHandlers";
 import { userController } from "./userController";
 
@@ -65,7 +66,7 @@ userRegistry.registerPath({
 	responses: createApiResponseWithErrors(ApiKeyResponseSchema, "User created successfully"),
 });
 
-userRouter.post("/", authenticateAdmin, validateRequest(CreateUserSchema), userController.createUser);
+userRouter.post("/", authenticateAdmin, csrfProtection, validateRequest(CreateUserSchema), userController.createUser);
 
 // GET /admin/users/:username - Get user by username
 userRegistry.registerPath({
@@ -102,6 +103,7 @@ userRegistry.registerPath({
 userRouter.post(
 	"/:username/api-key/regenerate",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(RegenerateApiKeySchema),
 	userController.regenerateApiKey,
 );
@@ -131,6 +133,7 @@ userRegistry.registerPath({
 userRouter.post(
 	"/:username/api-key/check",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(CheckApiKeySchema),
 	userController.checkApiKey,
 );
@@ -164,6 +167,7 @@ userRegistry.registerPath({
 userRouter.post(
 	"/:username/deactivate",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(DeactivateUserSchema),
 	userController.deactivateUser,
 );

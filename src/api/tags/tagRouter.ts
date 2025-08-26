@@ -5,6 +5,7 @@ import { z } from "zod";
 import { UserService } from "@/api/user/userService";
 import { createApiResponseWithErrors, createErrorApiResponse } from "@/api-docs/openAPIResponseBuilders";
 import { authenticateAdmin } from "@/common/middleware/adminAuth";
+import { csrfProtection } from "@/common/middleware/csrfProtection";
 import { createErrorResponse, validateRequest } from "@/common/utils/httpHandlers";
 import {
 	type AssignTagsDto,
@@ -99,6 +100,7 @@ tagRegistry.registerPath({
 tagRouter.post(
 	"/admin/users/:username/tags",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(
 		z.object({
 			params: UsernameParamSchema,
@@ -201,6 +203,7 @@ tagRegistry.registerPath({
 tagRouter.put(
 	"/admin/users/:username/tags",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(
 		z.object({
 			params: UsernameParamSchema,
@@ -265,6 +268,7 @@ tagRegistry.registerPath({
 tagRouter.delete(
 	"/admin/users/:username/tags/:tagName",
 	authenticateAdmin,
+	csrfProtection,
 	validateRequest(z.object({ params: DeleteTagParamsSchema })),
 	async (req: Request, res: Response) => {
 		try {

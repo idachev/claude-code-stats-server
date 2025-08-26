@@ -270,6 +270,28 @@
       </div>
     </div>
 
+    <!-- Session Expired Modal -->
+    <div id="sessionExpiredModal"
+      class="fixed inset-0 bg-black bg-opacity-75 z-[70] flex items-center justify-center hidden">
+      <div class="bg-dark-card border border-dark-border rounded-lg shadow-xl w-full max-w-md mx-4 p-6">
+        <div class="text-center">
+          <svg class="mx-auto h-12 w-12 text-yellow-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <h3 class="text-xl font-bold mb-2 text-white">Session Expired</h3>
+          <p class="text-gray-300 mb-6">Your session has expired. Please log in again to continue.</p>
+          <div class="flex justify-center">
+            <button id="sessionExpiredOkBtn"
+              class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              OK
+            </button>
+          </div>
+          <p class="text-sm text-gray-400 mt-3">Redirecting in <span id="redirectCountdown">3</span> seconds...</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Include API Key Modal and Toast partials -->
     <%- include('../partials/admin/api-key-modal') %>
     <%- include('../partials/admin/toast-notification') %>
@@ -309,8 +331,38 @@
 				timeRemaining--;
 				setTimeout(updateSessionTimer, 1000);
 			} else {
-				alert('Session expired. Please login again.');
-				window.location.href = '/dashboard/admin';
+				showSessionExpiredModal();
+			}
+		}
+		
+		function showSessionExpiredModal() {
+			const modal = document.getElementById('sessionExpiredModal');
+			const countdownEl = document.getElementById('redirectCountdown');
+			const okBtn = document.getElementById('sessionExpiredOkBtn');
+			
+			if (modal) {
+				modal.classList.remove('hidden');
+				
+				// Auto-redirect countdown
+				let countdown = 3;
+				const countdownInterval = setInterval(() => {
+					countdown--;
+					if (countdownEl) {
+						countdownEl.textContent = countdown.toString();
+					}
+					if (countdown <= 0) {
+						clearInterval(countdownInterval);
+						window.location.href = '/dashboard/admin';
+					}
+				}, 1000);
+				
+				// OK button handler
+				if (okBtn) {
+					okBtn.onclick = () => {
+						clearInterval(countdownInterval);
+						window.location.href = '/dashboard/admin';
+					};
+				}
 			}
 		}
 
@@ -396,10 +448,17 @@
 					}
 				}
 
-				closeApiKeyModal() {
+				async closeApiKeyModal() {
 					const modal = document.getElementById('apiKeyModal');
 					if (modal) {
 						modal.classList.add('hidden');
+					}
+
+					// Always refresh users after closing API key modal if needed
+					// This covers both create user and regenerate key scenarios
+					if (this.needsUserRefresh) {
+						this.needsUserRefresh = false;
+						await this.loadUsers();
 					}
 				}
 
@@ -430,6 +489,15 @@
 			// Make adminUI globally accessible for onclick handlers
 			window.adminUI = adminUI;
 
+			// Sync initial filter values from HTML dropdowns
+			const sortByEl = document.getElementById('sort-by');
+			const sortOrderEl = document.getElementById('sort-order');
+			const pageLimitEl = document.getElementById('page-limit');
+
+			if (sortByEl) adminUI.sortBy = sortByEl.value;
+			if (sortOrderEl) adminUI.sortOrder = sortOrderEl.value;
+			if (pageLimitEl) adminUI.pageLimit = parseInt(pageLimitEl.value);
+
 			// Load initial data after everything is set up
 			adminUI.loadInitialData();
 
@@ -453,6 +521,23 @@
 			document.getElementById('closeApiKeyBtn')?.addEventListener('click', async () => {
 				await adminUI.closeApiKeyModal();
 			});
+
+			// Initialize search input with debouncing
+			let searchTimeout;
+			const searchInput = document.getElementById('search-input');
+			if (searchInput) {
+				searchInput.addEventListener('input', (e) => {
+					clearTimeout(searchTimeout);
+					const searchValue = e.target.value.trim();
+
+					// Debounce search by 300ms
+					searchTimeout = setTimeout(() => {
+						adminUI.searchTerm = searchValue;
+						adminUI.currentPage = 1; // Reset to first page on search
+						adminUI.loadUsers();
+					}, 300);
+				});
+			}
 
 			// Initialize advanced filters toggle
 			document.getElementById('advanced-filters-btn')?.addEventListener('click', () => {
@@ -479,7 +564,7 @@
 				adminUI.loadUsers();
 			});
 
-			// Multi-tag filter
+			// Multi-tag filter checkboxes
 			document.querySelectorAll('.tag-checkbox').forEach(checkbox => {
 				checkbox.addEventListener('change', () => {
 					const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked'))
@@ -487,6 +572,14 @@
 					adminUI.selectedTags = checkedTags;
 					adminUI.currentPage = 1;
 					adminUI.loadUsers();
+
+					// Sync with the tag dropdown
+					const tagFilter = document.getElementById('tag-filter');
+					if (tagFilter) {
+						// If multiple tags or no tags selected, set dropdown to "All Tags"
+						// If exactly one tag selected, set dropdown to that tag
+						tagFilter.value = checkedTags.length === 1 ? checkedTags[0] : '';
+					}
 				});
 			});
 

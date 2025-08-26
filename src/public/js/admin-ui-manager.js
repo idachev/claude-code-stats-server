@@ -7,7 +7,7 @@ class AdminUIManager {
     this.api = new AdminApiClient();
     this.isLoading = false;
     this.currentPage = 1;
-    this.pageLimit = 10;
+    this.pageLimit = 20; // Match the HTML default
     this.sortBy = "createdAt";
     this.sortOrder = "desc";
     this.searchTerm = "";
@@ -100,16 +100,20 @@ class AdminUIManager {
       }
     });
 
-    // Tag filter
+    // Tag filter dropdown (single select)
     const tagFilter = document.getElementById("tag-filter");
     if (tagFilter) {
       tagFilter.addEventListener("change", (e) => {
         const selectedTag = e.target.value;
-        if (selectedTag && !this.selectedTags.includes(selectedTag)) {
-          this.selectedTags = selectedTag ? [selectedTag] : [];
-          this.currentPage = 1;
-          this.loadUsers();
-        }
+        // Set selectedTags to array with single tag or empty array for "All Tags"
+        this.selectedTags = selectedTag ? [selectedTag] : [];
+        this.currentPage = 1;
+        this.loadUsers();
+
+        // Also sync with the advanced filter checkboxes
+        document.querySelectorAll(".tag-checkbox").forEach((checkbox) => {
+          checkbox.checked = this.selectedTags.includes(checkbox.value);
+        });
       });
     }
 

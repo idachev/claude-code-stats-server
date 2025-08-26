@@ -118,6 +118,42 @@ export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="ccs_admin_change_this_in_producti
 - Handles case-insensitive duplicate detection
 - URL-encodes tags when removing for proper handling of special characters
 
+### load-test-data.sh
+
+Loads test data from the `/docs/data/` directory by automatically creating users and uploading their usage statistics.
+
+**Usage:**
+```bash
+./load-test-data.sh [--dry-run]
+```
+
+**Example:**
+```bash
+# Set environment variables first
+export CLAUDE_CODE_STATS_SERVER_URL="http://localhost:3000"
+export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="ccs_admin_change_this_in_production"
+
+# Dry run to see what would happen
+./load-test-data.sh --dry-run
+
+# Actually load the test data
+./load-test-data.sh
+```
+
+**Features:**
+- Automatically generates random English usernames (e.g., john.doe, sarah.smith)
+- Creates a unique user for each test data file in `/docs/data/`
+- Uploads the corresponding JSON data for each user
+- Handles existing users by regenerating their API keys
+- Provides a summary of successful/failed operations
+- Supports dry-run mode to preview actions without making changes
+
+**Generated Usernames:**
+The script generates realistic English usernames by combining:
+- Common English first names (john, sarah, michael, emily, etc.)
+- Common English last names (smith, johnson, williams, brown, etc.)
+- Format: `firstname.lastname` (all lowercase)
+
 ### common.sh
 
 Shared utility functions used by both scripts. This file contains:
@@ -150,7 +186,7 @@ The scripts provide clear error messages for common issues:
 
 If the scripts are not executable, run:
 ```bash
-chmod +x create-user.sh regenerate-user.sh set-user-tags.sh
+chmod +x create-user.sh regenerate-user.sh set-user-tags.sh load-test-data.sh
 ```
 
 ## Troubleshooting

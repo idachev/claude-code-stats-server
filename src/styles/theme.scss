@@ -1,0 +1,304 @@
+// Dark Theme Color Palette
+// These variables define the core colors used throughout the application
+
+// Base colors
+$dark-bg: #1a1a1a; // Primary background color
+$dark-card: #2a2a2a; // Card/container backgrounds
+$dark-border: #3a3a3a; // Border color
+
+// Text colors
+$text-primary: #f3f4f6; // gray-100 equivalent
+$text-secondary: #d1d5db; // gray-300 equivalent
+$text-muted: #9ca3af; // gray-400 equivalent
+$text-dim: #6b7280; // gray-500 equivalent
+
+// Semantic colors
+$primary-color: #3b82f6; // blue-600
+$primary-hover: #2563eb; // blue-700
+$success-color: #10b981; // green-500
+$success-hover: #059669; // green-600
+$danger-color: #ef4444; // red-600
+$danger-hover: #dc2626; // red-700
+$warning-color: #f59e0b; // amber-600
+$info-color: #6366f1; // indigo-600
+
+// Badge colors
+$badge-bg: #1e3a8a; // blue-900
+$badge-text: #bfdbfe; // blue-200
+
+// Chart colors
+$chart-primary: #3b82f6;
+$chart-secondary: #10b981;
+$chart-tertiary: #f59e0b;
+$chart-quaternary: #8b5cf6;
+
+// Overlay colors
+$overlay-bg: rgba(0, 0, 0, 0.75);
+
+// Focus colors
+$focus-ring: #3b82f6;
+
+// CSS Custom Properties for runtime theming
+:root {
+	// Base colors
+	--color-dark-bg: #{$dark-bg};
+	--color-dark-card: #{$dark-card};
+	--color-dark-border: #{$dark-border};
+
+	// Text colors
+	--color-text-primary: #{$text-primary};
+	--color-text-secondary: #{$text-secondary};
+	--color-text-muted: #{$text-muted};
+	--color-text-dim: #{$text-dim};
+
+	// Semantic colors
+	--color-primary: #{$primary-color};
+	--color-primary-hover: #{$primary-hover};
+	--color-success: #{$success-color};
+	--color-success-hover: #{$success-hover};
+	--color-danger: #{$danger-color};
+	--color-danger-hover: #{$danger-hover};
+	--color-warning: #{$warning-color};
+	--color-info: #{$info-color};
+
+	// Badge colors
+	--color-badge-bg: #{$badge-bg};
+	--color-badge-text: #{$badge-text};
+
+	// Chart colors
+	--color-chart-1: #{$chart-primary};
+	--color-chart-2: #{$chart-secondary};
+	--color-chart-3: #{$chart-tertiary};
+	--color-chart-4: #{$chart-quaternary};
+
+	// Overlay
+	--color-overlay: #{$overlay-bg};
+
+	// Focus
+	--color-focus: #{$focus-ring};
+}
+
+// Tailwind config object for inline script
+// This will be used in the Tailwind CDN configuration
+// We'll define this in JavaScript directly in the templates
+
+// Base styles
+body {
+	background-color: var(--color-dark-bg);
+	color: var(--color-text-primary);
+}
+
+// Chart container styles
+.chart-container {
+	position: relative;
+	height: 300px;
+	width: 100%;
+}
+
+.chart-container-small {
+	position: relative;
+	height: 200px;
+	width: 200px;
+	margin: 0 auto;
+}
+
+// Card component
+.theme-card {
+	background-color: var(--color-dark-card);
+	border: 1px solid var(--color-dark-border);
+	border-radius: 0.5rem;
+}
+
+// Input styles
+.theme-input {
+	background-color: var(--color-dark-bg);
+	border: 1px solid var(--color-dark-border);
+	color: var(--color-text-primary);
+
+	&::placeholder {
+		color: var(--color-text-dim);
+	}
+
+	&:focus {
+		outline: none;
+		border-color: var(--color-focus);
+		box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+	}
+}
+
+// Button variants
+.theme-btn-primary {
+	background-color: var(--color-primary);
+	color: white;
+
+	&:hover {
+		background-color: var(--color-primary-hover);
+	}
+}
+
+.theme-btn-success {
+	background-color: var(--color-success);
+	color: white;
+
+	&:hover {
+		background-color: var(--color-success-hover);
+	}
+}
+
+.theme-btn-danger {
+	background-color: var(--color-danger);
+	color: white;
+
+	&:hover {
+		background-color: var(--color-danger-hover);
+	}
+}
+
+// Badge styles
+.theme-badge {
+	background-color: var(--color-badge-bg);
+	color: var(--color-badge-text);
+	padding: 0.125rem 0.5rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+}
+
+// Table styles
+.theme-table {
+	width: 100%;
+
+	thead {
+		background-color: var(--color-dark-bg);
+		border-bottom: 1px solid var(--color-dark-border);
+
+		th {
+			color: var(--color-text-muted);
+			font-size: 0.75rem;
+			font-weight: 500;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			padding: 0.75rem 1.5rem;
+			text-align: left;
+		}
+	}
+
+	tbody {
+		background-color: var(--color-dark-card);
+
+		tr {
+			border-bottom: 1px solid var(--color-dark-border);
+
+			&:hover {
+				background-color: var(--color-dark-bg);
+			}
+
+			&:last-child {
+				border-bottom: none;
+			}
+		}
+
+		td {
+			padding: 1rem 1.5rem;
+			font-size: 0.875rem;
+		}
+	}
+}
+
+// Modal overlay
+.theme-modal-overlay {
+	position: fixed;
+	inset: 0;
+	background-color: var(--color-overlay);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 50;
+
+	&.hidden {
+		display: none;
+	}
+}
+
+// Modal content
+.theme-modal {
+	background-color: var(--color-dark-card);
+	border: 1px solid var(--color-dark-border);
+	border-radius: 0.5rem;
+	box-shadow:
+		0 20px 25px -5px rgba(0, 0, 0, 0.1),
+		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+	width: 100%;
+	max-width: 28rem;
+	margin: 1rem;
+	padding: 1.5rem;
+}
+
+// Utility classes
+.text-primary {
+	color: var(--color-text-primary);
+}
+.text-secondary {
+	color: var(--color-text-secondary);
+}
+.text-muted {
+	color: var(--color-text-muted);
+}
+.text-dim {
+	color: var(--color-text-dim);
+}
+
+.bg-dark {
+	background-color: var(--color-dark-bg);
+}
+.bg-card {
+	background-color: var(--color-dark-card);
+}
+
+.border-dark {
+	border-color: var(--color-dark-border);
+}
+
+// Responsive utilities
+@media (min-width: 640px) {
+	.theme-modal {
+		max-width: 32rem;
+	}
+}
+
+@media (min-width: 768px) {
+	.theme-modal {
+		max-width: 36rem;
+	}
+}
+
+// Animation utilities
+.transition-colors {
+	transition:
+		background-color 150ms ease,
+		color 150ms ease,
+		border-color 150ms ease;
+}
+
+.transition-opacity {
+	transition: opacity 150ms ease;
+}
+
+// Z-index scale
+.z-10 {
+	z-index: 10;
+}
+.z-20 {
+	z-index: 20;
+}
+.z-30 {
+	z-index: 30;
+}
+.z-40 {
+	z-index: 40;
+}
+.z-50 {
+	z-index: 50;
+}

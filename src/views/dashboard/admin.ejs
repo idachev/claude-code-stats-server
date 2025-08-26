@@ -6,8 +6,13 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta name="csrf-token" content="<%= initialData.csrfToken %>">
 		<title><%= title %></title>
+
+		<!-- Theme CSS -->
+		<link rel="stylesheet" href="/public/css/theme.css" />
+
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script>
+			// Configure Tailwind with our custom theme colors
 			tailwind.config = {
 				theme: {
 					extend: {
@@ -20,17 +25,13 @@
 				},
 			};
 		</script>
-		<style>
-        /* Custom styles for admin panel */
-        body { background-color: #1a1a1a; }
-    </style>
 	</head>
 
 	<body class="bg-dark-bg text-gray-100">
 		<div class="min-h-screen flex flex-col">
 			<!-- Header -->
-			<header class="bg-dark-card border-b border-dark-border text-white p-4 shadow-lg sticky top-0 z-40">
-				<div class="container mx-auto">
+			<header class="bg-dark-card border-b border-dark-border text-white shadow-lg sticky top-0 z-40">
+				<div class="px-6 py-4">
 					<div class="flex justify-between items-center">
 						<div class="flex items-center">
 							<h1 class="text-2xl font-bold text-white">Admin Dashboard - User Management</h1>
@@ -49,7 +50,7 @@
 			</header>
 
 			<!-- Main Content Area (Full Width) -->
-			<main class="flex-1 container mx-auto p-6 max-w-full">
+			<main class="flex-1 px-6 py-6 max-w-full">
 				<!-- Action Bar -->
 				<div class="bg-dark-card rounded-lg border border-dark-border mb-6 p-4">
 					<div class="flex justify-between items-center">

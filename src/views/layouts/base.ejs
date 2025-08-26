@@ -8,29 +8,17 @@
 			<%= typeof title !== 'undefined' ? title : 'Claude Code Stats' %>
 		</title>
 
+		<!-- Theme CSS -->
+		<link rel="stylesheet" href="/public/css/theme.css" />
+
 		<script src="https://cdn.tailwindcss.com"></script>
 
 		<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 		<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
-		<style>
-			.chart-container {
-				position: relative;
-				height: 300px;
-				width: 100%;
-			}
-			.chart-container-small {
-				position: relative;
-				height: 200px;
-				width: 200px;
-				margin: 0 auto;
-			}
-			body {
-				background-color: #1a1a1a;
-			}
-		</style>
 		<script>
+			// Configure Tailwind with our custom theme colors
 			tailwind.config = {
 				theme: {
 					extend: {

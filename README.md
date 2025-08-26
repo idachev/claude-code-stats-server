@@ -32,7 +32,10 @@ The dashboard provides comprehensive insights into your Claude Code usage:
 - **🔍 Advanced Filtering** - Focus on specific users or models
 
 ### Dashboard URL
-Access your dashboard at: `http://your-server:3000/dashboard`
+The root URL (`http://your-server:3000/`) automatically redirects to the dashboard.
+Direct access: `http://your-server:3000/dashboard`
+
+API documentation (Swagger UI): `http://your-server:3000/swagger`
 
 Query parameters:
 - `?period=week` (default) - Show last 7 days

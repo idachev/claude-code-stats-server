@@ -18,7 +18,19 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 		expect(json.database).toBe(true);
 	});
 
-	test("Swagger documentation is available", async ({ page, request }) => {
+	test("Root path redirects to dashboard", async ({ page }) => {
+		// Navigate to root and check that it redirects to dashboard
+		const _response = await page.goto(baseURL);
+
+		// Check that we ended up at /dashboard
+		expect(page.url()).toBe(`${baseURL}/dashboard`);
+
+		// Verify dashboard loads
+		await page.waitForSelector("#dashboardForm", { timeout: 10000 });
+		await expect(page.locator("h1")).toContainText("Stats");
+	});
+
+	test("Swagger documentation is available at /swagger", async ({ page, request }) => {
 		// First check that the Swagger JSON is available
 		const swaggerJsonResponse = await request.get(`${baseURL}/swagger.json`);
 		expect(swaggerJsonResponse.ok()).toBeTruthy();
@@ -29,8 +41,8 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 		expect(swaggerJson.info.title).toContain("Claude Code Stats API");
 		expect(swaggerJson).toHaveProperty("paths");
 
-		// Then check the Swagger UI
-		await page.goto(baseURL); // Swagger UI is at the root
+		// Then check the Swagger UI at /swagger
+		await page.goto(`${baseURL}/swagger`);
 
 		// Wait for Swagger UI to load
 		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
@@ -169,7 +181,7 @@ test.describe("Claude Code Stats Sanity Tests", () => {
 	});
 
 	test("Swagger UI Try it out functionality", async ({ page }) => {
-		await page.goto(baseURL); // Swagger UI is at the root
+		await page.goto(`${baseURL}/swagger`);
 		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
 
 		// Expand the health endpoint using a more specific selector

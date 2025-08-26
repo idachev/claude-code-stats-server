@@ -64,6 +64,31 @@ const DashboardQuerySchema = z.object({
 	}),
 });
 
+// Register GET / endpoint (root redirect)
+viewsRegistry.registerPath({
+	method: "get",
+	path: "/",
+	tags: ["Views"],
+	summary: "Root redirect to dashboard",
+	description: "Redirects from root path to the statistics dashboard",
+	responses: {
+		302: {
+			description: "Redirect to /dashboard",
+			headers: {
+				Location: {
+					description: "Redirect location",
+					schema: { type: "string", example: "/dashboard" },
+				},
+			},
+		},
+	},
+});
+
+// Root route - redirect to dashboard
+viewsRouter.get("/", (_req: Request, res: Response) => {
+	res.redirect("/dashboard");
+});
+
 // Register GET /dashboard endpoint
 viewsRegistry.registerPath({
 	method: "get",

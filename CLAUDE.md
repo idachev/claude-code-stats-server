@@ -178,7 +178,15 @@ gh api repos/{owner}/{repo}/pulls/{pull_number}/comments --paginate \
   --jq '.[] | {path: .path, line: .line, body: .body, user: .user.login}'
 ```
 
-### 14. Common Commands
+### 14. Docker & Database Migrations
+
+The Docker image now includes migration capabilities. The same image can be used for both:
+- Running the application (default)
+- Executing database migrations (by overriding the command)
+
+See `docker-compose-all.yaml` for an example setup with automatic migrations.
+
+### 15. Common Commands
 ```bash
 # Development
 pnpm start:dev          # Start dev server with hot reload on port 3000

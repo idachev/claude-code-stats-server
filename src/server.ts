@@ -34,10 +34,9 @@ if (env.isProduction) {
 	app.set("trust proxy", true);
 }
 
-// Middlewares
+// Base middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
 app.use(helmetConfig);
 
 // Session middleware - must come before routes that need sessions
@@ -45,22 +44,67 @@ app.use(sessionConfig);
 
 app.use(rateLimiter);
 
-// Static files
-app.use("/public", express.static(publicPath));
-
 // Request logging
 app.use(requestLogger);
 
-// Routes
-app.use("/health", healthRouter);
-app.use("/admin/users", userRouter);
-app.use("/", tagRouter); // Tag routes are under /admin/users/:userId/tags
-app.use("/claude-code-stats", statsRouter);
-app.use("/", viewsRouter); // Views for dashboard and other HTML pages
-app.use("/", adminViewRouter); // Admin dashboard and logout routes
+// Parse allowed origins from environment variable
+const allowedOrigins = env.CORS_ORIGIN === "*" ? "*" : env.CORS_ORIGIN.split(",").map((origin) => origin.trim());
 
-// Swagger UI
+// Configure route-specific CORS policies
+
+// 1. Public endpoints - open access, no credentials
+const publicCorsOptions: cors.CorsOptions = {
+	origin: true, // Allow all origins
+	methods: ["GET", "HEAD"],
+	credentials: false,
+};
+
+// 2. Static files - open access
+app.use("/public", cors(publicCorsOptions), express.static(publicPath));
+
+// 3. Health check - monitoring services need open access
+app.use("/health", cors(publicCorsOptions), healthRouter);
+
+// 4. API Documentation - allow configured origins but no credentials needed
+app.use(
+	"/swagger",
+	cors({
+		origin: allowedOrigins,
+		methods: ["GET"],
+		credentials: false,
+	}),
+);
 app.use(openAPIRouter);
+
+// 5. Stats API - authenticated data submission
+const apiCorsOptions: cors.CorsOptions = {
+	origin: allowedOrigins,
+	methods: ["GET", "POST"],
+	credentials: true,
+	allowedHeaders: ["Content-Type", "X-API-Key"],
+	exposedHeaders: ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
+};
+app.use("/claude-code-stats", cors(apiCorsOptions), statsRouter);
+
+// 6. Admin routes - strictest control
+const adminCorsOptions: cors.CorsOptions = {
+	origin: allowedOrigins,
+	methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+	credentials: true,
+	allowedHeaders: ["Content-Type", "X-Admin-Key", "X-CSRF-Token"],
+	maxAge: 600, // 10 minutes preflight cache
+};
+app.use("/admin/users", cors(adminCorsOptions), userRouter);
+
+// 7. Dashboard and views - session-based access
+const dashboardCorsOptions: cors.CorsOptions = {
+	origin: allowedOrigins,
+	methods: ["GET", "POST"], // POST for form submissions
+	credentials: true,
+};
+app.use("/", cors(dashboardCorsOptions), viewsRouter); // Views for dashboard
+app.use("/", cors(dashboardCorsOptions), adminViewRouter); // Admin dashboard views
+app.use("/", cors(adminCorsOptions), tagRouter); // Tag routes under /admin/users/:userId/tags
 
 // Error handlers
 app.use(errorHandler());

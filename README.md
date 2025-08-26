@@ -117,12 +117,21 @@ curl -X POST \
 ## 🔑 User Management
 
 ### Admin Dashboard
-Access the web-based admin dashboard for comprehensive user management:
+Access the powerful web-based admin dashboard for comprehensive user management:
 - **URL**: `http://your-server:3000/dashboard/admin`
-- **Features**: Create/edit/deactivate users, manage tags, regenerate API keys
-- **Authentication**: Session-based (login with admin API key)
-- **Search & Filter**: Search users by username, filter by tags
-- **Pagination**: Efficient handling of large user lists with customizable page size
+- **Authentication**: Session-based with CSRF protection (login with admin API key)
+
+#### Key Features:
+- **👤 User Management**: Create users, regenerate API keys, deactivate accounts
+- **🏷️ Tag System**: Organize users with tags for better categorization
+- **🔍 Advanced Search**: Real-time search by username with debouncing
+- **🎯 Smart Filtering**: Filter by single or multiple tags (AND logic)
+- **📊 Pagination**: Customizable page sizes (10, 20, 50, 100 items)
+- **🔄 Sorting**: Sort by username, creation date, or last update
+- **💾 Loading States**: Skeleton loaders and progress indicators
+- **🔔 Toast Notifications**: Non-intrusive feedback for all actions
+- **🔐 Security**: CSRF protection on all state-changing operations
+- **📱 Responsive**: Full-width layout optimized for desktop use
 
 ### CLI Scripts
 Use our helper scripts for programmatic user and API key management:

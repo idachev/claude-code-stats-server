@@ -7,22 +7,22 @@ import { db } from "@/db/index";
  * Tables are truncated in order respecting foreign key constraints.
  */
 export async function cleanupTestDatabase(): Promise<void> {
-	try {
-		await db.execute(sql`
+  try {
+    await db.execute(sql`
 			-- Disable foreign key checks temporarily for cleanup
 			SET session_replication_role = 'replica';
-			
+
 			-- Truncate all tables in correct order (respecting foreign keys)
 			TRUNCATE TABLE model_usage CASCADE;
 			TRUNCATE TABLE usage_stats CASCADE;
 			TRUNCATE TABLE tags CASCADE;
 			TRUNCATE TABLE users CASCADE;
-			
+
 			-- Re-enable foreign key checks
 			SET session_replication_role = 'origin';
 		`);
-	} catch (error) {
-		console.error("Failed to cleanup test database:", error);
-		throw error;
-	}
+  } catch (error) {
+    console.error("Failed to cleanup test database:", error);
+    throw error;
+  }
 }

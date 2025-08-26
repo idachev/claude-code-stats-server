@@ -31,7 +31,7 @@ app.set("views", viewsPath);
 // Set the application to trust the reverse proxy (only in production)
 // In test environment, we don't set trust proxy to avoid rate limiter warnings
 if (env.isProduction) {
-	app.set("trust proxy", true);
+  app.set("trust proxy", true);
 }
 
 // Base middlewares
@@ -54,9 +54,9 @@ const allowedOrigins = env.CORS_ORIGIN === "*" ? "*" : env.CORS_ORIGIN.split(","
 
 // 1. Public endpoints - open access, no credentials
 const publicCorsOptions: cors.CorsOptions = {
-	origin: true, // Allow all origins
-	methods: ["GET", "HEAD"],
-	credentials: false,
+  origin: true, // Allow all origins
+  methods: ["GET", "HEAD"],
+  credentials: false,
 };
 
 // 2. Static files - open access
@@ -67,41 +67,41 @@ app.use("/health", cors(publicCorsOptions), healthRouter);
 
 // 4. API Documentation - allow configured origins but no credentials needed
 app.use(
-	"/swagger",
-	cors({
-		origin: allowedOrigins,
-		methods: ["GET"],
-		credentials: false,
-	}),
+  "/swagger",
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET"],
+    credentials: false,
+  }),
 );
 app.use(openAPIRouter);
 
 // 5. Stats API - authenticated data submission
 const apiCorsOptions: cors.CorsOptions = {
-	origin: allowedOrigins,
-	methods: ["GET", "POST"],
-	credentials: true,
-	allowedHeaders: ["Content-Type", "X-API-Key"],
-	exposedHeaders: ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
+  origin: allowedOrigins,
+  methods: ["GET", "POST"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "X-API-Key"],
+  exposedHeaders: ["X-RateLimit-Remaining", "X-RateLimit-Reset"],
 };
 app.use("/claude-code-stats", cors(apiCorsOptions), statsRouter);
 
 // 6. Admin routes - strictest control
 const adminCorsOptions: cors.CorsOptions = {
-	origin: allowedOrigins,
-	methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-	credentials: true,
-	allowedHeaders: ["Content-Type", "X-Admin-Key", "X-CSRF-Token"],
-	maxAge: 600, // 10 minutes preflight cache
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "X-Admin-Key", "X-CSRF-Token"],
+  maxAge: 600, // 10 minutes preflight cache
 };
 // Admin routes - authentication and CSRF protection applied in individual routers
 app.use("/admin/users", cors(adminCorsOptions), userRouter);
 
 // 7. Dashboard and views - session-based access
 const dashboardCorsOptions: cors.CorsOptions = {
-	origin: allowedOrigins,
-	methods: ["GET", "POST"], // POST for form submissions
-	credentials: true,
+  origin: allowedOrigins,
+  methods: ["GET", "POST"], // POST for form submissions
+  credentials: true,
 };
 app.use("/", cors(dashboardCorsOptions), viewsRouter); // Views for dashboard
 app.use("/", cors(dashboardCorsOptions), adminViewRouter); // Admin dashboard views

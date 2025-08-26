@@ -1,186 +1,182 @@
 <div class="space-y-6">
-	<!-- Header -->
-	<div class="mb-6">
-		<!-- Filters in two rows -->
-		<form method="GET" action="/dashboard" id="dashboardForm">
-			<!-- Hidden inputs for period navigation parameters -->
-			<% if (query.year) { %>
-			<input type="hidden" name="year" value="<%= query.year %>" />
-			<% } %>
-			<% if (query.month) { %>
-			<input type="hidden" name="month" value="<%= query.month %>" />
-			<% } %>
-			<% if (query.week) { %>
-			<input type="hidden" name="week" value="<%= query.week %>" />
-			<% } %>
+  <!-- Header -->
+  <div class="mb-6">
+    <!-- Filters in two rows -->
+    <form method="GET" action="/dashboard" id="dashboardForm">
+      <!-- Hidden inputs for period navigation parameters -->
+      <% if (query.year) { %>
+      <input type="hidden" name="year" value="<%= query.year %>" />
+      <% } %>
+      <% if (query.month) { %>
+      <input type="hidden" name="month" value="<%= query.month %>" />
+      <% } %>
+      <% if (query.week) { %>
+      <input type="hidden" name="week" value="<%= query.week %>" />
+      <% } %>
 
-			<div class="space-y-3">
-				<!-- First row: Title, Display options, and Date Navigation -->
-				<div class="flex flex-wrap items-center gap-3">
-					<h1 class="text-3xl font-semibold text-white mr-4">Stats</h1>
+      <div class="space-y-3">
+        <!-- First row: Title, Display options, and Date Navigation -->
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-3xl font-semibold text-white mr-4">Stats</h1>
 
-					<!-- Metric Toggle -->
-					<select name="metric" id="metricSelect"
-					 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-						<option value="tokens" <%= query.metric === 'tokens' || !query.metric
+          <!-- Metric Toggle -->
+          <select name="metric" id="metricSelect"
+            class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+            <option value="tokens" <%= query.metric === 'tokens' || !query.metric
                                 ? 'selected' : '' %>>Show:
-							Tokens (M)
-						</option>
-						<option value="cost" <%= query.metric === 'cost' ? 'selected' : '' %>>Show:
-							Cost ($)
-						</option>
-					</select>
+              Tokens (M)
+            </option>
+            <option value="cost" <%= query.metric === 'cost' ? 'selected' : '' %>>Show:
+              Cost ($)
+            </option>
+          </select>
 
-					<!-- Group By -->
-					<select name="groupBy" id="groupBySelect"
-					 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-						<option value="user" <%= query.groupBy === 'user' ? 'selected' : '' %>>Group
-							by: User
-						</option>
-						<option value="model" <%= query.groupBy === 'model' ? 'selected' : '' %>>
-							Group by: Model
-						</option>
-					</select>
+          <!-- Group By -->
+          <select name="groupBy" id="groupBySelect"
+            class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+            <option value="user" <%= query.groupBy === 'user' ? 'selected' : '' %>>Group
+              by: User
+            </option>
+            <option value="model" <%= query.groupBy === 'model' ? 'selected' : '' %>>
+              Group by: Model
+            </option>
+          </select>
 
-					<!-- Period Filter with Date Navigation -->
-					<div class="flex items-center gap-2">
-						<select name="period" id="periodSelect"
-						 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-							<option value="week" <%= query.period === 'week' ? 'selected' : '' %>>
-								Week
-							</option>
-							<option value="month" <%= query.period === 'month' ? 'selected' : '' %>>
-								Month
-							</option>
-							<option value="all" <%= query.period === 'all' ? 'selected' : '' %>>All
-								Time
-							</option>
-						</select>
+          <!-- Period Filter with Date Navigation -->
+          <div class="flex items-center gap-2">
+            <select name="period" id="periodSelect"
+              class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+              <option value="week" <%= query.period === 'week' ? 'selected' : '' %>>
+                Week
+              </option>
+              <option value="month" <%= query.period === 'month' ? 'selected' : '' %>>
+                Month
+              </option>
+              <option value="all" <%= query.period === 'all' ? 'selected' : '' %>>All
+                Time
+              </option>
+            </select>
 
-						<% if (navigation.canNavigate && navigation.prev) { %>
-						<button type="button" id="prevDateBtn" data-params='<%= JSON.stringify(navigation.prev) %>'
-						 class="p-2 text-gray-400 hover:text-white transition-colors">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-								 d="M15 19l-7-7 7-7">
-								</path>
-							</svg>
-						</button>
-						<% } else { %>
-						<button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-								 d="M15 19l-7-7 7-7">
-								</path>
-							</svg>
-						</button>
-						<% } %>
+            <% if (navigation.canNavigate && navigation.prev) { %>
+            <button type="button" id="prevDateBtn" data-params='<%= JSON.stringify(navigation.prev) %>'
+              class="p-2 text-gray-400 hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                </path>
+              </svg>
+            </button>
+            <% } else { %>
+            <button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7">
+                </path>
+              </svg>
+            </button>
+            <% } %>
 
-						<span class="text-gray-300 px-3 min-w-[150px] text-center">
-							<%= navigation.displayDate %>
-						</span>
+            <span class="text-gray-300 px-3 min-w-[150px] text-center">
+              <%= navigation.displayDate %>
+            </span>
 
-						<% if (navigation.canNavigate && navigation.next) { %>
-						<button type="button" id="nextDateBtn" data-params='<%= JSON.stringify(navigation.next) %>'
-						 class="p-2 text-gray-400 hover:text-white transition-colors">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
-								</path>
-							</svg>
-						</button>
-						<% } else { %>
-						<button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
-								</path>
-							</svg>
-						</button>
-						<% } %>
-					</div>
-				</div>
+            <% if (navigation.canNavigate && navigation.next) { %>
+            <button type="button" id="nextDateBtn" data-params='<%= JSON.stringify(navigation.next) %>'
+              class="p-2 text-gray-400 hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                </path>
+              </svg>
+            </button>
+            <% } else { %>
+            <button type="button" disabled class="p-2 text-gray-600 cursor-not-allowed">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7">
+                </path>
+              </svg>
+            </button>
+            <% } %>
+          </div>
+        </div>
 
-				<!-- Second row: Data filters -->
-				<div class="flex flex-wrap gap-3">
-					<!-- User Filter -->
-					<select name="user" id="userSelect"
-					 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-						<option value="">All Users</option>
-						<% if (filters.users && filters.users.length > 0) { %>
-						<% filters.users.forEach(user => { %>
-						<option value="<%= user %>" <%= query.user === user ? 'selected'
+        <!-- Second row: Data filters -->
+        <div class="flex flex-wrap gap-3">
+          <!-- User Filter -->
+          <select name="user" id="userSelect"
+            class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+            <option value="">All Users</option>
+            <% if (filters.users && filters.users.length > 0) { %>
+            <% filters.users.forEach(user => { %>
+            <option value="<%= user %>" <%= query.user === user ? 'selected'
                                         : '' %>><%= user %></option>
-						<% }) %>
-						<% } %>
-					</select>
+            <% }) %>
+            <% } %>
+          </select>
 
-					<!-- Model Filter -->
-					<select name="model" id="modelSelect"
-					 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
-						<option value="">All Models</option>
-						<% if (filters.models && filters.models.length > 0) { %>
-						<% filters.models.forEach(model => { %>
-						<option value="<%= model %>" <%= query.model === model ? 'selected'
+          <!-- Model Filter -->
+          <select name="model" id="modelSelect"
+            class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 focus:outline-none focus:border-blue-500">
+            <option value="">All Models</option>
+            <% if (filters.models && filters.models.length > 0) { %>
+            <% filters.models.forEach(model => { %>
+            <option value="<%= model %>" <%= query.model === model ? 'selected'
                                         : '' %>><%= model %>
-						</option>
-						<% }) %>
-						<% } %>
-					</select>
+            </option>
+            <% }) %>
+            <% } %>
+          </select>
 
-					<!-- Tag Filter (Custom Dropdown with Checkboxes) -->
-					<div class="relative" id="tagDropdownContainer">
-						<button type="button" id="tagDropdownButton"
-						 class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 hover:border-blue-500 focus:outline-none focus:border-blue-500 flex items-center gap-2"
-						 style="min-width: 150px;">
-							<span id="tagButtonText">
-								<% if (query.tags && query.tags.length > 0) { %>
-								<%= query.tags.length %> tags selected
-								<% } else { %>
-								Tags
-								<% } %>
-							</span>
-							<svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-								 d="M19 9l-7 7-7-7"></path>
-							</svg>
-						</button>
-						<div id="tagDropdownMenu"
-						 class="hidden absolute z-10 mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg"
-						 style="min-width: 200px; max-height: 300px; overflow-y: auto;">
-							<% if (filters.tags && filters.tags.length > 0) { %>
-							<% if (query.tags && query.tags.length > 0) { %>
-							<div class="p-2 border-b border-dark-border">
-								<button type="button" id="clearTagsButton"
-								 class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
-									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-										 d="M6 18L18 6M6 6l12 12"></path>
-									</svg>
-									Clear all tags
-								</button>
-							</div>
-							<% } %>
-							<div class="p-2">
-								<% filters.tags.forEach(tag => { %>
-								<label
-								 class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
-									<input type="checkbox" name="tags" value="<%= tag %>"
-									 class="tag-checkbox rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700" <%= query.tags && query.tags.includes(tag)
+          <!-- Tag Filter (Custom Dropdown with Checkboxes) -->
+          <div class="relative" id="tagDropdownContainer">
+            <button type="button" id="tagDropdownButton"
+              class="px-4 py-2 bg-dark-card border border-dark-border rounded-lg text-gray-300 hover:border-blue-500 focus:outline-none focus:border-blue-500 flex items-center gap-2"
+              style="min-width: 150px;">
+              <span id="tagButtonText">
+                <% if (query.tags && query.tags.length > 0) { %>
+                <%= query.tags.length %> tags selected
+                <% } else { %>
+                Tags
+                <% } %>
+              </span>
+              <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div id="tagDropdownMenu"
+              class="hidden absolute z-10 mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg"
+              style="min-width: 200px; max-height: 300px; overflow-y: auto;">
+              <% if (filters.tags && filters.tags.length > 0) { %>
+              <% if (query.tags && query.tags.length > 0) { %>
+              <div class="p-2 border-b border-dark-border">
+                <button type="button" id="clearTagsButton"
+                  class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                  </svg>
+                  Clear all tags
+                </button>
+              </div>
+              <% } %>
+              <div class="p-2">
+                <% filters.tags.forEach(tag => { %>
+                <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
+                  <input type="checkbox" name="tags" value="<%= tag %>"
+                    class="tag-checkbox rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700" <%= query.tags && query.tags.includes(tag)
                                                             ? 'checked' : '' %>>
-									<span class="text-gray-300 text-sm"><%= tag %></span>
-								</label>
-								<% }) %>
-							</div>
-							<% } else { %>
-							<div class="p-3 text-gray-500 text-sm">No tags available</div>
-							<% } %>
-						</div>
-					</div>
-				</div>
-			</div>
-		</form>
-	</div>
+                  <span class="text-gray-300 text-sm"><%= tag %></span>
+                </label>
+                <% }) %>
+              </div>
+              <% } else { %>
+              <div class="p-3 text-gray-500 text-sm">No tags available</div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
 
-	<%
+  <%
     // Calculate summary statistics
     let totalTokenCost = 0;
     let totalTokens = 0;
@@ -203,61 +199,61 @@
     const isTokensView = query.metric === 'tokens';
     %>
 
-	<!-- Stats Cards Container -->
-	<div class="flex justify-center gap-6 flex-wrap">
-		<!-- Total Stats Card with Donut Chart -->
-		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="donutChartCard">
-			<div class="flex flex-col items-center">
-				<div class="w-full text-center mb-4">
-					<p class="text-gray-400 text-base mb-3"><%= isTokensView ? 'Total tokens'
+  <!-- Stats Cards Container -->
+  <div class="flex justify-center gap-6 flex-wrap">
+    <!-- Total Stats Card with Donut Chart -->
+    <div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="donutChartCard">
+      <div class="flex flex-col items-center">
+        <div class="w-full text-center mb-4">
+          <p class="text-gray-400 text-base mb-3"><%= isTokensView ? 'Total tokens'
                                 : 'Total cost' %></p>
-					<p class="text-5xl font-bold text-white">
-						<% if (isTokensView) { %>
-						<%= totalTokensInMillions %>M
-						<% } else { %>
-						$<%= totalTokenCost.toFixed(2) %>
-						<% } %>
-					</p>
-					<p class="text-gray-500 text-sm mt-2"><%= uniqueUsers.size %> users
-						• <%= totalDays %> days</p>
-				</div>
-				<div class="chart-container-small" style="position: relative; width: 180px; height: 180px;">
-					<canvas id="tokenCostDonut"></canvas>
-					<!-- Custom tooltip container -->
-					<div id="chartjs-tooltip"></div>
-				</div>
-			</div>
-		</div>
+          <p class="text-5xl font-bold text-white">
+            <% if (isTokensView) { %>
+            <%= totalTokensInMillions %>M
+            <% } else { %>
+            $<%= totalTokenCost.toFixed(2) %>
+            <% } %>
+          </p>
+          <p class="text-gray-500 text-sm mt-2"><%= uniqueUsers.size %> users
+            • <%= totalDays %> days</p>
+        </div>
+        <div class="chart-container-small" style="position: relative; width: 180px; height: 180px;">
+          <canvas id="tokenCostDonut"></canvas>
+          <!-- Custom tooltip container -->
+          <div id="chartjs-tooltip"></div>
+        </div>
+      </div>
+    </div>
 
-		<!-- Stats Distribution List Card -->
-		<div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="costDistributionCard">
-			<div class="flex flex-col" style="height: max(270px, 18vh);">
-				<p class="text-gray-400 text-base mb-4 flex-shrink-0">
-					<%= isTokensView ? 'Token Distribution' : 'Cost Distribution' %></p>
-				<div id="costDistributionList" class="flex-1 overflow-y-auto pr-2">
-					<!-- This will be populated by JavaScript -->
-				</div>
-			</div>
-		</div>
-	</div>
+    <!-- Stats Distribution List Card -->
+    <div class="bg-dark-card rounded-xl p-8 max-w-md w-full" id="costDistributionCard">
+      <div class="flex flex-col" style="height: max(270px, 18vh);">
+        <p class="text-gray-400 text-base mb-4 flex-shrink-0">
+          <%= isTokensView ? 'Token Distribution' : 'Cost Distribution' %></p>
+        <div id="costDistributionList" class="flex-1 overflow-y-auto pr-2">
+          <!-- This will be populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-	<!-- Daily Stats Chart -->
-	<div class="bg-dark-card rounded-xl p-6">
-		<div class="mb-4">
-			<h3 class="text-lg font-semibold text-white"><%= isTokensView ? 'Daily token usage'
+  <!-- Daily Stats Chart -->
+  <div class="bg-dark-card rounded-xl p-6">
+    <div class="mb-4">
+      <h3 class="text-lg font-semibold text-white"><%= isTokensView ? 'Daily token usage'
                         : 'Daily cost' %></h3>
-		</div>
-		<div class="chart-container">
-			<canvas id="dailyCostChart"></canvas>
-		</div>
+    </div>
+    <div class="chart-container">
+      <canvas id="dailyCostChart"></canvas>
+    </div>
 
-		<!-- Legend -->
-		<div class="mt-4 overflow-y-auto" style="max-height: 6em;" id="chartLegendContainer">
-			<div class="flex flex-wrap gap-4 text-xs" id="chartLegend">
-				<!-- Legend will be dynamically populated by JavaScript -->
-			</div>
-		</div>
-	</div>
+    <!-- Legend -->
+    <div class="mt-4 overflow-y-auto" style="max-height: 6em;" id="chartLegendContainer">
+      <div class="flex flex-wrap gap-4 text-xs" id="chartLegend">
+        <!-- Legend will be dynamically populated by JavaScript -->
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 

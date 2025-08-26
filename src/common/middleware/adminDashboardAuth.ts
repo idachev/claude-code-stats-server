@@ -11,91 +11,91 @@ const logger = pino({ name: "admin-dashboard-auth" });
  * Creates session on successful authentication
  */
 export const adminDashboardAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-	// Check if already authenticated via session
-	if (req.session?.isAdmin) {
-		// Update last activity
-		req.session.lastActivity = new Date();
+  // Check if already authenticated via session
+  if (req.session?.isAdmin) {
+    // Update last activity
+    req.session.lastActivity = new Date();
 
-		return next();
-	}
+    return next();
+  }
 
-	// Validate server configuration
-	const adminApiKey = env.ADMIN_API_KEY;
+  // Validate server configuration
+  const adminApiKey = env.ADMIN_API_KEY;
 
-	if (!adminApiKey) {
-		logger.error("ADMIN_API_KEY not configured");
+  if (!adminApiKey) {
+    logger.error("ADMIN_API_KEY not configured");
 
-		res.status(500).send("Server configuration error");
+    res.status(500).send("Server configuration error");
 
-		return;
-	}
+    return;
+  }
 
-	// Check Basic Auth header
-	const authHeader = req.headers.authorization;
+  // Check Basic Auth header
+  const authHeader = req.headers.authorization;
 
-	if (!authHeader || !authHeader.startsWith("Basic ")) {
-		res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
+  if (!authHeader || !authHeader.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
 
-		res.status(401).send("Authentication required");
+    res.status(401).send("Authentication required");
 
-		return;
-	}
+    return;
+  }
 
-	try {
-		// Parse Basic Auth credentials
-		const base64 = authHeader.split(" ")[1];
+  try {
+    // Parse Basic Auth credentials
+    const base64 = authHeader.split(" ")[1];
 
-		const decoded = Buffer.from(base64, "base64").toString("utf-8");
+    const decoded = Buffer.from(base64, "base64").toString("utf-8");
 
-		const [username, password] = decoded.split(":");
+    const [username, password] = decoded.split(":");
 
-		// Validate credentials
-		if (username === "admin" && password === adminApiKey) {
-			// Regenerate session ID to prevent session fixation attacks
-			req.session.regenerate((err) => {
-				if (err) {
-					logger.error(err, "Failed to regenerate session");
+    // Validate credentials
+    if (username === "admin" && password === adminApiKey) {
+      // Regenerate session ID to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          logger.error(err, "Failed to regenerate session");
 
-					res.status(500).send("Authentication error");
+          res.status(500).send("Authentication error");
 
-					return;
-				}
+          return;
+        }
 
-				// Set session data
-				req.session.isAdmin = true;
-				req.session.loginTime = new Date();
-				req.session.lastActivity = new Date();
-				req.session.username = "admin";
+        // Set session data
+        req.session.isAdmin = true;
+        req.session.loginTime = new Date();
+        req.session.lastActivity = new Date();
+        req.session.username = "admin";
 
-				// Generate CSRF token for the session
-				req.session.csrfToken = crypto.randomBytes(32).toString("hex");
+        // Generate CSRF token for the session
+        req.session.csrfToken = crypto.randomBytes(32).toString("hex");
 
-				// Save session before proceeding
-				req.session.save((saveErr) => {
-					if (saveErr) {
-						logger.error(saveErr, "Failed to save session");
+        // Save session before proceeding
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            logger.error(saveErr, "Failed to save session");
 
-						res.status(500).send("Authentication error");
+            res.status(500).send("Authentication error");
 
-						return;
-					}
+            return;
+          }
 
-					logger.info({ username: "admin" }, "Admin authenticated successfully");
+          logger.info({ username: "admin" }, "Admin authenticated successfully");
 
-					next();
-				});
-			});
-		} else {
-			// Invalid credentials
-			logger.warn({ username }, "Invalid admin login attempt");
+          next();
+        });
+      });
+    } else {
+      // Invalid credentials
+      logger.warn({ username }, "Invalid admin login attempt");
 
-			res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
+      res.setHeader("WWW-Authenticate", 'Basic realm="Admin Dashboard"');
 
-			res.status(401).send("Invalid credentials");
-		}
-	} catch (error) {
-		logger.error(error as Error, "Error processing Basic Auth");
+      res.status(401).send("Invalid credentials");
+    }
+  } catch (error) {
+    logger.error(error as Error, "Error processing Basic Auth");
 
-		res.status(400).send("Invalid authentication format");
-	}
+    res.status(400).send("Invalid authentication format");
+  }
 };

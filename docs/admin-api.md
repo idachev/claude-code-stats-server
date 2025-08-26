@@ -4,6 +4,27 @@
 
 The Admin API provides comprehensive user management capabilities for the Claude Code Stats Server. All admin endpoints require authentication via either session cookies (for the web dashboard) or API key headers (for programmatic access).
 
+## Admin Dashboard
+
+The web-based admin dashboard provides a modern, feature-rich interface for user management:
+
+### Access
+- **URL**: `/dashboard/admin`
+- **Login**: Username: `admin`, Password: Your `ADMIN_API_KEY`
+- **Session**: 15-minute timeout with activity-based renewal
+
+### Features
+- **User Management**: Create, deactivate, and manage users
+- **API Key Operations**: Generate and regenerate secure API keys
+- **Tag System**: Organize users with multiple tags
+- **Advanced Search**: Real-time search with debouncing
+- **Smart Filtering**: Single or multi-tag filtering (AND logic)
+- **Pagination**: Customizable page sizes (10-100 items)
+- **Sorting**: By username, creation date, or update date
+- **Loading States**: Professional skeleton loaders
+- **Toast Notifications**: Non-intrusive feedback
+- **Security**: CSRF protection on all operations
+
 ## Authentication
 
 ### Methods
@@ -259,6 +280,47 @@ fetch('/admin/users', {
 });
 ```
 
+## JavaScript API Client
+
+The admin dashboard includes a comprehensive JavaScript API client for programmatic access:
+
+### Usage Example
+```javascript
+// Initialize the client
+const apiClient = new AdminApiClient();
+
+// Get paginated users with filters
+const response = await apiClient.getUsers({
+  search: 'john',
+  tags: ['developer', 'frontend'],
+  page: 1,
+  limit: 20,
+  sortBy: 'createdAt',
+  order: 'desc'
+});
+
+// Create a new user
+const newUser = await apiClient.createUser({
+  username: 'john-doe',
+  tags: ['developer', 'backend']
+});
+
+// Regenerate API key
+const result = await apiClient.regenerateApiKey('john-doe');
+console.log('New API Key:', result.apiKey);
+```
+
+### Available Methods
+- `getUsers(params)` - Get paginated users with filters
+- `getUser(username)` - Get single user details
+- `createUser(userData)` - Create new user
+- `regenerateApiKey(username)` - Generate new API key
+- `checkApiKey(username, apiKey)` - Validate API key
+- `deactivateUser(username)` - Deactivate user account
+- `getUserTags(username)` - Get user's tags
+- `updateUserTags(username, tags)` - Replace user's tags
+- `removeUserTag(username, tagName)` - Remove specific tag
+
 ## Best Practices
 
 1. **API Key Security**: Store API keys securely and never expose them in client-side code
@@ -267,3 +329,5 @@ fetch('/admin/users', {
 4. **Tag Filtering**: When filtering by multiple tags, users must have ALL specified tags
 5. **Search**: Search is case-insensitive and matches partial usernames
 6. **Session Timeout**: Admin sessions expire after 15 minutes of inactivity
+7. **Error Handling**: Always wrap API calls in try-catch blocks
+8. **Loading States**: Show loading indicators during API operations

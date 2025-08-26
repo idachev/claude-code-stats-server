@@ -63,24 +63,24 @@ the existing admin API key and follow the same design theme as the public dashbo
 // /src/common/middleware/adminDashboardAuth.ts - For dashboard route
 export const adminDashboardAuth = (req, res, next) => {
   const adminApiKey = process.env.ADMIN_API_KEY;
-  
+
   // Check Basic Auth
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Basic ')) {
     res.setHeader('WWW-Authenticate', 'Basic realm="Admin Dashboard"');
     return res.status(401).send('Authentication required');
   }
-  
+
   const base64 = authHeader.split(' ')[1];
   const [username, password] = Buffer.from(base64, 'base64').toString().split(':');
-  
+
   if (username === 'admin' && password === adminApiKey) {
     // Create session
     req.session.isAdmin = true;
     req.session.loginTime = new Date();
     return next();
   }
-  
+
   res.setHeader('WWW-Authenticate', 'Basic realm="Admin Dashboard"');
   res.status(401).send('Invalid credentials');
 }
@@ -89,21 +89,21 @@ export const adminDashboardAuth = (req, res, next) => {
 // Currently uses 'x-admin-key' header, will add session support
 export const adminApiAuth = (req, res, next) => {
   const adminApiKey = process.env.ADMIN_API_KEY;
-  
+
   // Check session first (for browser requests)
   if (req.session && req.session.isAdmin) {
     // Renew session activity
     req.session.lastActivity = new Date();
     return next();
   }
-  
+
   // Check API Key header (for programmatic access)
   // Note: existing code uses 'x-admin-key' not 'x-admin-api-key'
   const apiKeyHeader = req.headers['x-admin-key'];
   if (apiKeyHeader === adminApiKey) {
     return next();
   }
-  
+
   // Neither auth method succeeded
   res.status(401).json({ error: 'Unauthorized' });
 }
@@ -169,14 +169,14 @@ export const adminApiAuth = (req, res, next) => {
   <header class="bg-gray-900 text-white p-4 sticky top-0 z-50">
     <!-- Header content -->
   </header>
-  
+
   <!-- Main Content (full width) -->
   <main class="container mx-auto p-6 max-w-full">
     <!-- Action Bar -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
       <!-- Search, Filters, Create User button -->
     </div>
-    
+
     <!-- User Table -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
       <!-- Full-width responsive table -->

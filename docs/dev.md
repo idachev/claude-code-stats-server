@@ -81,6 +81,10 @@ The PostgreSQL database will be available at `localhost:9099` with:
     - `period`: `week` (default), `month`, or `all`
     - `user`: Filter by specific username
     - `groupBy`: Group data by `user`, `model`, or `date`
+- `GET /dashboard/admin` - Admin dashboard for user management
+  - Session-based authentication required
+  - Full CRUD operations on users
+  - Advanced search and filtering
 - `GET /error` - Error page for handling exceptions
 
 ## Docker Development
@@ -106,6 +110,42 @@ The application uses Helmet for security with a configured CSP that allows:
 
 Configuration is in `/src/common/middleware/helmetConfig.ts`.
 
+## Client-Side JavaScript Architecture
+
+The admin dashboard uses a modular JavaScript architecture for better maintainability:
+
+### Core Modules
+
+1. **AdminApiClient** (`/public/js/admin-api-client.js`)
+   - Handles all API communications
+   - Automatic CSRF token management
+   - Error handling and retry logic
+   - Methods for all user operations
+
+2. **AdminUIManager** (`/public/js/admin-ui-manager.js`)
+   - Manages UI state and interactions
+   - Event handling and delegation
+   - Real-time search with debouncing
+   - Pagination and sorting controls
+
+3. **TemplateLoader** (`/public/js/template-loader.js`)
+   - Separates HTML from JavaScript
+   - Template caching and rendering
+   - Icon registry for SVG management
+   - Support for both server and client templates
+
+4. **LoadingManager** (`/public/js/loading-manager.js`)
+   - Global and inline loading states
+   - Error display with retry mechanisms
+   - Skeleton loaders for better UX
+   - Toast notification system
+
+### Template Organization
+Templates are separated from JavaScript code:
+- Server-side EJS partials in `/views/partials/admin/`
+- Client-side templates use HTML `<template>` elements
+- No HTML strings embedded in JavaScript files
+
 ## Project Structure
 
 ```
@@ -119,19 +159,29 @@ Configuration is in `/src/common/middleware/helmetConfig.ts`.
 │   │   └── views/        # Dashboard views
 │   ├── api-docs/         # OpenAPI/Swagger configuration
 │   ├── common/           # Shared utilities
-│   │   ├── middleware/   # Auth & session middleware
+│   │   ├── middleware/   # Auth, session, CSRF middleware
 │   │   ├── schemas/      # Zod validation schemas
 │   │   └── utils/        # Helper functions
 │   ├── db/               # Database configuration
 │   │   ├── schema.ts     # Drizzle schema definitions
 │   │   └── index.ts      # Database connection
+│   ├── public/           # Static assets
+│   │   ├── css/          # Compiled CSS files
+│   │   └── js/           # Client-side JavaScript
+│   │       ├── admin-api-client.js    # API communication layer
+│   │       ├── admin-ui-manager.js    # UI state management
+│   │       ├── template-loader.js     # HTML template management
+│   │       └── loading-manager.js     # Loading & error states
+│   ├── styles/           # Source SCSS files
 │   └── views/            # EJS templates
 │       ├── dashboard/    # Admin dashboard views
 │       ├── layouts/      # Page layouts
 │       └── partials/     # Reusable components
+│           └── admin/    # Admin-specific partials
 ├── drizzle/              # Database migrations
 ├── utils/                # Utility scripts
 │   ├── docker-compose/   # Docker setup
+│   ├── helpers/          # User management scripts
 │   ├── release/          # Release management
 │   └── upload-stats/     # Stats upload script
 └── docs/                 # Documentation

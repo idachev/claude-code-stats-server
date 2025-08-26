@@ -19,19 +19,19 @@ export const DEFAULT_PAGE_LIMIT = 20;
 
 // Reusable username validation schema
 export const UsernameSchema = z
-	.string()
-	.min(USERNAME_MIN_LENGTH)
-	.max(USERNAME_MAX_LENGTH)
-	.regex(USERNAME_PATTERN)
-	.openapi("Username");
+  .string()
+  .min(USERNAME_MIN_LENGTH)
+  .max(USERNAME_MAX_LENGTH)
+  .regex(USERNAME_PATTERN)
+  .openapi("Username");
 
 // Schema for individual tag name (base without transform for OpenAPI)
 export const TagNameBaseSchema = z
-	.string()
-	.min(TAG_MIN_LENGTH, `Tag name must be at least ${TAG_MIN_LENGTH} characters`)
-	.max(TAG_MAX_LENGTH, `Tag name cannot exceed ${TAG_MAX_LENGTH} characters`)
-	.regex(TAG_NAME_PATTERN, "Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores")
-	.openapi("TagName");
+  .string()
+  .min(TAG_MIN_LENGTH, `Tag name must be at least ${TAG_MIN_LENGTH} characters`)
+  .max(TAG_MAX_LENGTH, `Tag name cannot exceed ${TAG_MAX_LENGTH} characters`)
+  .regex(TAG_NAME_PATTERN, "Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores")
+  .openapi("TagName");
 
 // Schema with transform for runtime validation
 export const TagNameSchema = TagNameBaseSchema.transform((val) => val.trim());

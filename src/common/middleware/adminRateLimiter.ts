@@ -6,26 +6,26 @@ import { env } from "@/common/utils/envConfig";
  * More restrictive than general API rate limiting
  */
 export const adminLoginRateLimiter = rateLimit({
-	windowMs: env.ADMIN_RATE_LIMIT_WINDOW * 1000, // Convert seconds to milliseconds
-	max: env.ADMIN_MAX_LOGIN_ATTEMPTS, // Limit each IP to N requests per window
-	message: "Too many login attempts. Please try again later.",
-	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  windowMs: env.ADMIN_RATE_LIMIT_WINDOW * 1000, // Convert seconds to milliseconds
+  max: env.ADMIN_MAX_LOGIN_ATTEMPTS, // Limit each IP to N requests per window
+  message: "Too many login attempts. Please try again later.",
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 
-	// Handler for when rate limit is exceeded
-	handler: (_req, res) => {
-		res.status(429).send(`
+  // Handler for when rate limit is exceeded
+  handler: (_req, res) => {
+    res.status(429).send(`
 			<!DOCTYPE html>
 			<html>
 			<head>
 				<title>Too Many Attempts</title>
 				<style>
-					body { 
-						font-family: system-ui, sans-serif; 
-						display: flex; 
-						justify-content: center; 
-						align-items: center; 
-						height: 100vh; 
+					body {
+						font-family: system-ui, sans-serif;
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						height: 100vh;
 						margin: 0;
 						background: #f3f4f6;
 					}
@@ -49,11 +49,11 @@ export const adminLoginRateLimiter = rateLimit({
 			</body>
 			</html>
 		`);
-	},
+  },
 
-	// Skip rate limiting in test and development environments
-	skip: () => env.isTest || env.isDevelopment,
+  // Skip rate limiting in test and development environments
+  skip: () => env.isTest || env.isDevelopment,
 
-	// Store rate limit info in memory (default)
-	// In production, consider using Redis for distributed rate limiting
+  // Store rate limit info in memory (default)
+  // In production, consider using Redis for distributed rate limiting
 });

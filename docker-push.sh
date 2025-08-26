@@ -23,7 +23,7 @@ docker push "${REMOTE_PRIMARY_IMG}"
 if [[ -n "${TAG2}" ]]; then
   LOCAL_SECONDARY_IMG=${IGD_UTILS_DOCKER_IMG}:${TAG2}
   REMOTE_SECONDARY_IMG=${IGD_UTILS_REMOTE_DOCKER_USER}/${IGD_UTILS_DOCKER_IMG}:${TAG2}
-  
+
   echo "Tagging and pushing secondary image: ${REMOTE_SECONDARY_IMG}"
   docker tag "${LOCAL_SECONDARY_IMG}" "${REMOTE_SECONDARY_IMG}"
   docker push "${REMOTE_SECONDARY_IMG}"

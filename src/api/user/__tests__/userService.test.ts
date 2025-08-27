@@ -204,7 +204,7 @@ describe("userService", () => {
       class FaultyRepository extends UserRepository {
         async findByUsernameAsync(
           _username: string,
-        ): Promise<{ tags: string[]; username: string; id: number; createdAt: Date; updatedAt: Date } | null> {
+        ): Promise<{ tags: string[]; username: string; id: number; isActive: boolean; createdAt: Date; updatedAt: Date } | null> {
           throw new Error("Database query failed");
         }
       }

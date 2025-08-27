@@ -267,6 +267,96 @@ describe("User API Endpoints", () => {
       expect(usernames).toContain("test-alice-developer");
     });
 
+    it("should filter users by single tag", async () => {
+      // Act - filter by 'frontend' tag
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ tags: "frontend" })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      const usernames = response.body.users.map((u: any) => u.username);
+      expect(usernames).toContain("test-alice-developer");
+      expect(usernames).toContain("test-charlie-developer");
+      expect(usernames).not.toContain("test-bob-designer");
+      expect(usernames).not.toContain("test-david-admin");
+      expect(usernames).not.toContain("test-eve-tester");
+    });
+
+    it("should filter users by multiple tags (AND logic)", async () => {
+      // Act - filter by users who have BOTH 'backend' AND 'nodejs' tags
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ tags: ["backend", "nodejs"] })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      const usernames = response.body.users.map((u: any) => u.username);
+      expect(usernames).toContain("test-bob-designer"); // has both backend and nodejs
+      expect(usernames).not.toContain("test-david-admin"); // has backend but not nodejs
+      expect(usernames).not.toContain("test-alice-developer"); // has neither
+    });
+
+    it("should handle case-insensitive tag filtering", async () => {
+      // Act - filter by 'FRONTEND' (uppercase) should match 'frontend' tags
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ tags: "FRONTEND" })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      const usernames = response.body.users.map((u: any) => u.username);
+      expect(usernames).toContain("test-alice-developer");
+      expect(usernames).toContain("test-charlie-developer");
+      expect(usernames).not.toContain("test-bob-designer");
+    });
+
+    it("should handle case-insensitive filtering with multiple tags", async () => {
+      // Act - filter by 'Backend' and 'NodeJS' (mixed case)
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ tags: ["Backend", "NodeJS"] })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      const usernames = response.body.users.map((u: any) => u.username);
+      expect(usernames).toContain("test-bob-designer"); // has both backend and nodejs
+      expect(usernames).not.toContain("test-david-admin"); // has backend but not nodejs
+    });
+
+    it("should return empty result for non-existing tag", async () => {
+      // Act - filter by a tag that doesn't exist
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ tags: "nonexistent" })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      expect(response.body.users).toEqual([]);
+      expect(response.body.pagination.total).toEqual(0);
+    });
+
+    it("should combine search and tag filters", async () => {
+      // Act - search for 'developer' and filter by 'frontend' tag
+      const response = await request(app)
+        .get("/admin/users")
+        .query({ search: "developer", tags: "frontend" })
+        .set("X-Admin-Key", adminApiKey);
+
+      // Assert
+      expect(response.statusCode).toEqual(StatusCodes.OK);
+      const usernames = response.body.users.map((u: any) => u.username);
+      expect(usernames).toContain("test-alice-developer"); // matches both search and tag
+      expect(usernames).toContain("test-charlie-developer"); // matches both search and tag
+      expect(usernames).not.toContain("test-bob-designer"); // doesn't match search
+      expect(usernames).not.toContain("test-david-admin"); // doesn't have frontend tag
+    });
+
     it("should return empty results for non-matching search", async () => {
       // Act
       const response = await request(app)

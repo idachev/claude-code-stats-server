@@ -85,10 +85,27 @@ class TemplateLoader {
       })
       .join("");
 
+    // Add visual styling for inactive users
+    const rowClasses = user.isActive
+      ? "hover:bg-dark-bg transition-colors"
+      : "hover:bg-dark-bg transition-colors opacity-60";
+
+    const usernameClasses = user.isActive
+      ? "text-sm font-medium text-gray-100"
+      : "text-sm font-medium text-gray-400 line-through";
+
+    // Add status badge
+    const statusBadge = !user.isActive
+      ? `<span class="ml-2 inline-flex items-center px-2 py-1 text-xs rounded-full bg-red-900 text-red-300 border border-red-800">Inactive</span>`
+      : '';
+
     return `
-      <tr class="hover:bg-dark-bg transition-colors">
+      <tr class="${rowClasses}">
         <td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
-        <td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
+        <td class="px-6 py-4">
+          <span class="${usernameClasses}">${this.escapeHtml(user.username)}</span>
+          ${statusBadge}
+        </td>
         <td class="px-6 py-4">
           <div class="flex flex-wrap gap-1">
             ${tagsHtml}
@@ -96,7 +113,7 @@ class TemplateLoader {
         </td>
         <td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
         <td class="px-6 py-4">
-          ${this.renderUserActions(user.username)}
+          ${this.renderUserActions(user.username, user.isActive)}
         </td>
       </tr>
     `;
@@ -105,22 +122,42 @@ class TemplateLoader {
   /**
    * Render user action buttons
    */
-  renderUserActions(username) {
+  renderUserActions(username, isActive = true) {
     const escapedUsername = this.escapeHtml(username);
+
+    // Show different button based on active status
+    const keyActionButton = isActive
+      ? `
+        <button data-action="regenerate-key" data-username="${escapedUsername}"
+          class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors"
+          title="Regenerate API Key">
+          ${this.getIcon("key")}
+        </button>
+      `
+      : `
+        <button data-action="regenerate-key" data-username="${escapedUsername}" data-is-inactive="true"
+          class="user-action-btn text-green-400 hover:text-green-300 transition-colors"
+          title="Activate User & Regenerate Key">
+          ${this.getIcon("check-circle")}
+        </button>
+      `;
+
+    // Show deactivate button only for active users
+    const deactivateButton = isActive ? `
+      <button data-action="deactivate" data-username="${escapedUsername}"
+        class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
+        ${this.getIcon("ban")}
+      </button>
+    ` : '';
+
     return `
       <div class="flex gap-2">
         <button data-action="manage-tags" data-username="${escapedUsername}"
           class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
           ${this.getIcon("tag")}
         </button>
-        <button data-action="regenerate-key" data-username="${escapedUsername}"
-          class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
-          ${this.getIcon("key")}
-        </button>
-        <button data-action="deactivate" data-username="${escapedUsername}"
-          class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
-          ${this.getIcon("ban")}
-        </button>
+        ${keyActionButton}
+        ${deactivateButton}
       </div>
     `;
   }
@@ -414,6 +451,10 @@ class TemplateLoader {
       ban: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+        </svg>`,
+      "check-circle": `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>`,
       success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

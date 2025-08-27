@@ -151,9 +151,6 @@ class UserController {
     try {
       const username = req.params.username as string;
 
-      // TODO: In the future, add an isActive flag to the database and set it to false
-      // For now, we deactivate by regenerating the API key, which effectively blocks access
-
       // Check if user exists first
       const userResponse = await userService.findByUsername(username);
       if (!userResponse.success || !userResponse.responseObject) {
@@ -162,11 +159,10 @@ class UserController {
         return;
       }
 
-      // Regenerate API key to effectively deactivate the user
-      // The old key becomes invalid immediately
-      await this.apiKeyService.regenerateApiKey(username);
+      // Deactivate user by setting isActive to false AND regenerating API key to invalidate the old one
+      await this.apiKeyService.deactivateUser(username);
 
-      logger.info(`User ${username} deactivated by regenerating API key`);
+      logger.info(`User ${username} deactivated and API key invalidated`);
 
       res.status(StatusCodes.OK).json({
         message: `User ${username} has been deactivated. The API key has been regenerated and the old key is no longer valid.`,

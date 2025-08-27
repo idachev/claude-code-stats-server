@@ -84,13 +84,14 @@ class AdminUIManager {
 
         const action = actionBtn.dataset.action;
         const username = actionBtn.dataset.username;
+        const isInactive = actionBtn.dataset.isInactive === "true";
 
         switch (action) {
           case "manage-tags":
             await this.showManageTagsModal(username);
             break;
           case "regenerate-key":
-            await this.handleRegenerateApiKey(username);
+            await this.handleRegenerateApiKey(username, isInactive);
             break;
           case "deactivate":
             await this.handleDeactivateUser(username);
@@ -458,23 +459,29 @@ class AdminUIManager {
   /**
    * Handle regenerating API key
    */
-  async handleRegenerateApiKey(username) {
-    const confirmed = await this.showConfirmation(
-      "Regenerate API Key",
-      `Regenerate API key for user '${username}'? The old key will be invalidated.`,
-      "Regenerate",
-      "warning",
-    );
+  async handleRegenerateApiKey(username, isInactive = false) {
+    // Different confirmation messages based on user status
+    const title = isInactive ? "Activate User & Regenerate API Key" : "Regenerate API Key";
+    const message = isInactive
+      ? `Activate user '${username}' and regenerate their API key? This will allow them to access the system again with a new key.`
+      : `Regenerate API key for user '${username}'? The old key will be invalidated.`;
+    const buttonText = isInactive ? "Activate & Regenerate" : "Regenerate";
+    const style = isInactive ? "success" : "warning";
+
+    const confirmed = await this.showConfirmation(title, message, buttonText, style);
 
     if (!confirmed) return;
 
     try {
       const response = await this.api.regenerateApiKey(username);
-      this.showSuccess(`API key regenerated for '${username}'`);
-      this.needsUserRefresh = true; // Refresh to show updated timestamp
+      const successMessage = isInactive
+        ? `User '${username}' has been activated with a new API key`
+        : `API key regenerated for '${username}'`;
+      this.showSuccess(successMessage);
+      this.needsUserRefresh = true; // Refresh to show updated status
       this.showApiKeyModal(response.apiKey);
     } catch (error) {
-      this.showError(`Failed to regenerate API key: ${error.message}`);
+      this.showError(`Failed to ${isInactive ? 'activate user' : 'regenerate API key'}: ${error.message}`);
     }
   }
 

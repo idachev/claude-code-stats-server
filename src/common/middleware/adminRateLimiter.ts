@@ -6,7 +6,7 @@ import { env } from "@/common/utils/envConfig";
  * More restrictive than general API rate limiting
  */
 export const adminLoginRateLimiter = rateLimit({
-  windowMs: env.ADMIN_RATE_LIMIT_WINDOW * 1000, // Convert seconds to milliseconds
+  windowMs: env.ADMIN_RATE_LIMIT_WINDOW_SECONDS * 1000,
   max: env.ADMIN_MAX_LOGIN_ATTEMPTS, // Limit each IP to N requests per window
   message: "Too many login attempts. Please try again later.",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
@@ -44,7 +44,7 @@ export const adminLoginRateLimiter = rateLimit({
         <div class="error-container">
           <h1>Too Many Login Attempts</h1>
           <p>You have exceeded the maximum number of login attempts.</p>
-          <p>Please wait ${Math.ceil(env.ADMIN_RATE_LIMIT_WINDOW / 60)} minutes before trying again.</p>
+          <p>Please wait ${Math.ceil(env.ADMIN_RATE_LIMIT_WINDOW_SECONDS / 60)} minutes before trying again.</p>
         </div>
       </body>
       </html>

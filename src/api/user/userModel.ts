@@ -16,6 +16,7 @@ export const UserSchema = z.object({
   id: z.number(),
   username: z.string(),
   tags: z.array(z.string()),
+  isActive: z.boolean(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

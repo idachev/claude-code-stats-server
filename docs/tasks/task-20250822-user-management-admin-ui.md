@@ -689,7 +689,7 @@ ADMIN_API_KEY=secure-random-key-min-32-chars
 SESSION_SECRET=another-secure-random-key  # For express-session
 ADMIN_SESSION_TIMEOUT_SECONDS=900  # seconds (15 minutes)
 ADMIN_MAX_LOGIN_ATTEMPTS=5
-ADMIN_RATE_LIMIT_WINDOW=900  # seconds (15 minutes)
+ADMIN_RATE_LIMIT_WINDOW_SECONDS=900  # seconds (15 minutes)
 ```
 
 ### Session Store Configuration

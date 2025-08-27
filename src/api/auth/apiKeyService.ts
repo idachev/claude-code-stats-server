@@ -71,6 +71,7 @@ export class ApiKeyService {
 
   /**
    * Regenerates API key for an existing user
+   * Also sets isActive to true (reactivates the user)
    * Throws error if user doesn't exist
    * Returns the raw API key (to be shown once) and stores the hash in DB
    */
@@ -91,16 +92,17 @@ export class ApiKeyService {
       // Hash the API key using bcrypt
       const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
 
-      // Update existing user with the new hashed API key
+      // Update existing user with the new hashed API key and set isActive to true
       await db
         .update(users)
         .set({
           apiKeyHash,
+          isActive: true, // Reactivate user when regenerating key
           updatedAt: new Date(),
         })
         .where(eq(users.username, username));
 
-      logger.info(`Regenerated API key for user: ${username}`);
+      logger.info(`Regenerated API key and reactivated user: ${username}`);
 
       // Return the raw API key (to be shown to user once)
       return apiKey;
@@ -177,6 +179,44 @@ export class ApiKeyService {
     } catch (error) {
       logger.error(error, `Failed to check API key existence for user: ${username}`);
       return false;
+    }
+  }
+
+  /**
+   * Deactivates a user by setting isActive to false and regenerating the API key
+   * This invalidates the old API key immediately
+   */
+  async deactivateUser(username: string): Promise<void> {
+    try {
+      // Check if user exists
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+
+      if (!existingUser) {
+        throw new Error(`User ${username} not found`);
+      }
+
+      // Generate a new API key hash to invalidate the old one
+      const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
+      const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
+      const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
+
+      // Update user: set isActive to false and regenerate API key hash
+      await db
+        .update(users)
+        .set({
+          isActive: false,
+          apiKeyHash, // New hash invalidates old API key
+          updatedAt: new Date(),
+        })
+        .where(eq(users.username, username));
+
+      logger.info(`Deactivated user and invalidated API key: ${username}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        throw error;
+      }
+      logger.error(error, `Failed to deactivate user: ${username}`);
+      throw new Error("Failed to deactivate user");
     }
   }
 }

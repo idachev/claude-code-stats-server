@@ -43,15 +43,21 @@ export class UserRepository {
       whereConditions.push(ilike(users.username, `%${filters.search}%`));
     }
 
-    // Filter by tags - get user IDs that have the specified tags
+    // Filter by tags - get user IDs that have the specified tags (case-insensitive)
     let userIdsWithTags: number[] | null = null;
     if (filters?.tags && filters.tags.length > 0) {
+      // Convert filter tags to lowercase for case-insensitive comparison
+      const lowerCaseTags = filters.tags.map(tag => tag.toLowerCase());
+
       const usersWithTags = await db
         .select({ userId: tags.userId })
         .from(tags)
-        .where(inArray(tags.name, filters.tags))
+        .where(sql`LOWER(${tags.name}) IN (${sql.join(
+          lowerCaseTags.map(tag => sql`${tag}`),
+          sql`, `
+        )})`)
         .groupBy(tags.userId)
-        .having(sql`count(distinct ${tags.name}) = ${filters.tags.length}`);
+        .having(sql`count(distinct LOWER(${tags.name})) = ${filters.tags.length}`);
 
       userIdsWithTags = usersWithTags.map((row) => row.userId);
 
@@ -97,6 +103,7 @@ export class UserRepository {
       .select({
         id: users.id,
         username: users.username,
+        isActive: users.isActive,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
       })
@@ -147,6 +154,7 @@ export class UserRepository {
     const usersWithTags: User[] = paginatedUsersResult.map((user) => ({
       id: user.id,
       username: user.username,
+      isActive: user.isActive,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       tags: userTagsMap.get(user.id) || [],
@@ -178,6 +186,7 @@ export class UserRepository {
       .select({
         id: users.id,
         username: users.username,
+        isActive: users.isActive,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
         tagName: tags.name,
@@ -195,6 +204,7 @@ export class UserRepository {
     const user: User = {
       id: result[0].id,
       username: result[0].username,
+      isActive: result[0].isActive,
       createdAt: result[0].createdAt,
       updatedAt: result[0].updatedAt,
       tags: result.filter((row) => row.tagName !== null).map((row) => row.tagName as string),

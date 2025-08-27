@@ -128,16 +128,16 @@ describe("Tag Router Integration Tests", () => {
       const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
 
       expect(response.status).toBe(200);
-      // The getTags method returns all unique tags - we'll see both "JavaScript" and "javascript"
-      // as they are different strings (even though case-insensitive they're the same)
+      // The getTags method now returns unique tags case-insensitively
+      // It returns the MIN() value for each group (first alphabetically by case)
+      // So we expect "JavaScript" (capital J) and "TypeScript" (capital T)
+      expect(response.body).toHaveLength(2); // Only 2 unique tags now
       expect(response.body).toContain("JavaScript");
       expect(response.body).toContain("TypeScript");
-      expect(response.body).toContain("javascript");
-      expect(response.body).toContain("typescript");
 
-      // Verify the results are sorted alphabetically
-      const sorted = [...response.body].sort();
-      expect(response.body).toEqual(sorted);
+      // Should NOT contain the lowercase versions
+      expect(response.body).not.toContain("javascript");
+      expect(response.body).not.toContain("typescript");
     });
   });
 

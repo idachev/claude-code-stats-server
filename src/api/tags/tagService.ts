@@ -5,15 +5,19 @@ import { TAG_MAX_LENGTH, TAG_MIN_LENGTH, TAG_NAME_PATTERN } from "./tagSchemas";
 
 export class TagService {
   /**
-   * Get all unique tag names in the system
+   * Get all unique tag names in the system (case-insensitive)
    */
   async getTags(): Promise<string[]> {
+    // Use raw SQL to get unique tags case-insensitively
+    // We'll return the first occurrence of each tag (preserving original casing)
     const result = await db
-      .selectDistinct({
-        name: tags.name,
+      .select({
+        name: sql<string>`MIN(${tags.name})`.as('name'),
+        lowerName: sql<string>`LOWER(${tags.name})`.as('lowerName'),
       })
       .from(tags)
-      .orderBy(tags.name);
+      .groupBy(sql`LOWER(${tags.name})`)
+      .orderBy(sql`LOWER(${tags.name})`);
 
     return result.map((row) => row.name);
   }

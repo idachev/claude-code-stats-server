@@ -22,6 +22,28 @@ export const tagRouter: Router = express.Router();
 const tagService = new TagService();
 const userService = new UserService();
 
+// GET /admin/tags - Get all unique tags in the system
+tagRegistry.registerPath({
+  method: "get",
+  path: "/admin/tags",
+  tags: ["Admin", "Tags"],
+  summary: "Get all unique tags",
+  description: "Retrieve all unique tags used in the system",
+  security: [{ AdminAuth: [] }],
+  responses: createApiResponseWithErrors(TagListSchema, "Tags retrieved successfully"),
+});
+
+tagRouter.get("/admin/tags", authenticateAdmin, async (_req: Request, res: Response) => {
+  try {
+    const tags = await tagService.getTags();
+    res.status(StatusCodes.OK).json(tags);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to get tags";
+    const errorResponse = createErrorResponse(errorMessage, StatusCodes.INTERNAL_SERVER_ERROR);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(errorResponse);
+  }
+});
+
 // GET /admin/users/:username/tags - Get tags for a specific user
 tagRegistry.registerPath({
   method: "get",

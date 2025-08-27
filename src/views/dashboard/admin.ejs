@@ -229,7 +229,7 @@
           <form id="manageTagsForm">
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-300 mb-2">Current Tags</label>
-              <div id="currentTagsList" class="mb-3 min-h-[40px] flex flex-wrap gap-2">
+              <div id="currentTagsList" class="mb-3 min-h-[40px] flex flex-wrap gap-2 items-start">
                 <!-- Tags will be rendered here -->
               </div>
             </div>
@@ -382,151 +382,8 @@
       const apiClient = new AdminApiClient();
       const templateLoader = await new TemplateLoader().init();
 
-      // Create enhanced UI manager with template support
-      class EnhancedAdminUIManager extends AdminUIManager {
-        constructor(apiClient, templateLoader, initialPageSize, pageSizes) {
-          super(apiClient);
-          this.templates = templateLoader;
-          // Set initial page size from server or default
-          this.pageLimit = initialPageSize || 20;
-          // Store available page sizes from server config
-          this.pageSizes = pageSizes || [10, 20, 50, 100];
-        }
-
-        /**
-         * Update URL query parameters without page reload
-         */
-        updateURLParameter(param, value) {
-          const url = new URL(window.location);
-          if (value) {
-            url.searchParams.set(param, value);
-          } else {
-            url.searchParams.delete(param);
-          }
-          window.history.replaceState({}, '', url);
-        }
-
-        // Override render methods to use templates
-        renderUsersTable(users) {
-          const tbody = document.querySelector('#users-table tbody');
-          if (!tbody) return;
-
-          if (users.length === 0) {
-            tbody.innerHTML = this.templates.renderEmptyState();
-            return;
-          }
-
-          tbody.innerHTML = users.map(user => this.templates.renderUserRow(user)).join('');
-        }
-
-        renderPagination(pagination) {
-          const container = document.getElementById('pagination-controls');
-          if (!container) {
-            return;
-          }
-          // Add pageSizes to pagination data for template
-          const paginationWithSizes = {
-            ...pagination,
-            pageSizes: this.pageSizes
-          };
-          container.innerHTML = this.templates.renderPagination(paginationWithSizes);
-
-          // Add event listener for the new page size selector
-          const pageSizeSelector = document.getElementById('page-size-selector');
-          if (pageSizeSelector) {
-            pageSizeSelector.addEventListener('change', (e) => {
-              this.pageLimit = parseInt(e.target.value);
-              this.currentPage = 1;
-              // Update URL parameter when page size changes
-              this.updateURLParameter('pageSize', this.pageLimit);
-              this.loadUsers();
-            });
-          }
-        }
-
-        setLoading(loading) {
-          this.isLoading = loading;
-          const tbody = document.querySelector('#users-table tbody');
-          if (loading && tbody) {
-            tbody.innerHTML = this.templates.renderLoadingState();
-          }
-        }
-
-        showToast(message, type = 'info') {
-          const toastContainer = document.getElementById('toastContainer');
-          if (!toastContainer) {
-            // Fallback to parent implementation
-            super.showToast(message, type);
-            return;
-          }
-
-          const toast = this.templates.createToast(message, type);
-          toastContainer.appendChild(toast);
-
-          // Animate in
-          setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-            toast.classList.add('translate-x-0');
-          }, 10);
-
-          // Remove after delay
-          setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => toast.remove(), 300);
-          }, 3000);
-        }
-
-        // Additional methods for API key modal
-        showApiKeyModal(apiKey) {
-          const modal = document.getElementById('apiKeyModal');
-          const display = document.getElementById('apiKeyDisplay');
-
-          if (modal && display) {
-            display.textContent = apiKey;
-            modal.classList.remove('hidden');
-          } else {
-            // Fallback to parent implementation
-            super.showApiKeyModal(apiKey);
-          }
-        }
-
-        async closeApiKeyModal() {
-          const modal = document.getElementById('apiKeyModal');
-          if (modal) {
-            modal.classList.add('hidden');
-          }
-
-          // Always refresh users after closing API key modal if needed
-          // This covers both create user and regenerate key scenarios
-          if (this.needsUserRefresh) {
-            this.needsUserRefresh = false;
-            await this.loadUsers();
-          }
-        }
-
-        async copyApiKey() {
-          const display = document.getElementById('apiKeyDisplay');
-          const btn = document.getElementById('copyApiKeyBtn');
-
-          if (display && btn) {
-            try {
-              await navigator.clipboard.writeText(display.textContent);
-              const originalText = btn.textContent;
-              btn.textContent = 'Copied!';
-              btn.classList.add('bg-green-600');
-
-              setTimeout(() => {
-                btn.textContent = originalText;
-                btn.classList.remove('bg-green-600');
-              }, 2000);
-            } catch (error) {
-              this.showError('Failed to copy to clipboard');
-            }
-          }
-        }
-      }
-
-      adminUI = new EnhancedAdminUIManager(apiClient, templateLoader, initialData.pageSize, initialData.pageSizes);
+      // Create UI manager with template support
+      adminUI = new AdminUIManager(apiClient, templateLoader, initialData.pageSize, initialData.pageSizes);
 
       // Make adminUI globally accessible for onclick handlers
       window.adminUI = adminUI;
@@ -562,6 +419,38 @@
 
       document.getElementById('closeApiKeyBtn')?.addEventListener('click', async () => {
         await adminUI.closeApiKeyModal();
+      });
+
+      // ESC key to close modals and dropdowns
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.keyCode === 27) {
+          // First check if tag dropdown is open
+          const tagDropdownMenu = document.getElementById('tagDropdownMenu');
+          if (tagDropdownMenu && !tagDropdownMenu.classList.contains('hidden')) {
+            tagDropdownMenu.classList.add('hidden');
+            return; // Close dropdown and stop
+          }
+
+          // Check and close any open modal
+          const createUserModal = document.getElementById('createUserModal');
+          const manageTagsModal = document.getElementById('manageTagsModal');
+          const apiKeyModal = document.getElementById('apiKeyModal');
+          const confirmationModal = document.getElementById('confirmationModal');
+          const sessionExpiredModal = document.getElementById('sessionExpiredModal');
+
+          // Close modals in priority order (most specific first)
+          if (confirmationModal && !confirmationModal.classList.contains('hidden')) {
+            // Trigger cancel action for confirmation modal
+            document.getElementById('confirmationCancelBtn')?.click();
+          } else if (apiKeyModal && !apiKeyModal.classList.contains('hidden')) {
+            adminUI.closeApiKeyModal();
+          } else if (manageTagsModal && !manageTagsModal.classList.contains('hidden')) {
+            adminUI.closeManageTagsModal();
+          } else if (createUserModal && !createUserModal.classList.contains('hidden')) {
+            adminUI.closeCreateUserModal();
+          }
+          // Note: Session expired modal should not be closeable with ESC
+        }
       });
 
       // Initialize search input with debouncing
@@ -621,11 +510,11 @@
             // Get all checked tags
             const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox-dropdown:checked'))
               .map(cb => cb.value);
-            
+
             // Update adminUI state
             adminUI.selectedTags = checkedTags;
             adminUI.currentPage = 1;
-            
+
             // Update button text
             const checkedCount = checkedTags.length;
             if (checkedCount > 0) {
@@ -641,7 +530,7 @@
                 clearTagsSection.classList.add('hidden');
               }
             }
-            
+
             // Load users with new filter
             adminUI.loadUsers();
           });
@@ -665,7 +554,7 @@
 
             // Update button text
             tagButtonText.textContent = 'All Tags';
-            
+
             // Hide clear button
             if (clearTagsSection) {
               clearTagsSection.classList.add('hidden');

@@ -6,12 +6,6 @@
 
 REMAINING TASKS (Nice-to-Have Only)
 
-4. Keyboard Shortcuts
-
-- Ctrl+N for new user
-- ESC to close modals
-- Enter to submit forms
-
 5. Mobile Optimization
 
 - Test responsive design on small screens
@@ -26,6 +20,7 @@ REMAINING TASKS (Nice-to-Have Only)
 
 # DONE
 
+* ESC to close modals
 * Cleanup old not used admin dashboard code
 * In Admin dashboard add random colors for the tags use the colors from the theme - use the same palet as it is used in the main dashboard for the different users charts legent
 * Let remove advance filters button and panel, merge the tags filtering in one drop down with checkboiixes - the same used in the main dashboard. Add the other filters in the advance panel next to the tags filter.

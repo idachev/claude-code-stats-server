@@ -173,6 +173,15 @@ class AdminApiClient {
   }
 
   /**
+   * Get all unique tags in the system
+   */
+  async getAllTags() {
+    return this.request("/admin/tags", {
+      method: "GET",
+    });
+  }
+
+  /**
    * Logout the admin
    */
   async logout() {

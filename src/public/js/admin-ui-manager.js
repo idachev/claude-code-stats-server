@@ -3,11 +3,13 @@
  */
 // biome-ignore lint/correctness/noUnusedVariables: This class is used in admin.ejs via script tag
 class AdminUIManager {
-  constructor() {
-    this.api = new AdminApiClient();
+  constructor(apiClient, templateLoader, initialPageSize, pageSizes) {
+    this.api = apiClient || new AdminApiClient();
+    this.templates = templateLoader;
     this.isLoading = false;
     this.currentPage = 1;
-    this.pageLimit = 20; // Match the HTML default
+    this.pageLimit = initialPageSize || 20;
+    this.pageSizes = pageSizes || [10, 20, 50, 100];
     this.sortBy = "createdAt";
     this.sortOrder = "desc";
     this.searchTerm = "";
@@ -177,6 +179,12 @@ class AdminUIManager {
       indicator.classList.remove("hidden");
     }
     this.isLoading = true;
+
+    // Use templates to show loading state in table
+    const tbody = document.querySelector("#users-table tbody");
+    if (tbody && this.templates) {
+      tbody.innerHTML = this.templates.renderLoadingState();
+    }
   }
 
   /**
@@ -251,62 +259,11 @@ class AdminUIManager {
     if (!tbody) return;
 
     if (users.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" class="px-6 py-8 text-center text-gray-500">
-            No users found
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML = this.templates.renderEmptyState();
       return;
     }
 
-    tbody.innerHTML = users
-      .map(
-        (user) => `
-      <tr class="hover:bg-dark-bg transition-colors">
-        <td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
-        <td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
-        <td class="px-6 py-4">
-          <div class="flex flex-wrap gap-1">
-            ${user.tags
-              .map(
-                (tag) => `
-              <span class="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
-                ${this.escapeHtml(tag)}
-              </span>
-            `,
-              )
-              .join("")}
-          </div>
-        </td>
-        <td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
-        <td class="px-6 py-4">
-          <div class="flex gap-2">
-            <button data-action="manage-tags" data-username="${this.escapeHtml(user.username)}"
-              class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-              </svg>
-            </button>
-            <button data-action="regenerate-key" data-username="${this.escapeHtml(user.username)}"
-              class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-              </svg>
-            </button>
-            <button data-action="deactivate" data-username="${this.escapeHtml(user.username)}"
-              class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-              </svg>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `,
-      )
-      .join("");
+    tbody.innerHTML = users.map((user) => this.templates.renderUserRow(user)).join("");
   }
 
   /**
@@ -316,104 +273,24 @@ class AdminUIManager {
     const container = document.getElementById("pagination-controls");
     if (!container) return;
 
-    if (pagination.totalPages <= 1) {
-      container.innerHTML = "";
-      return;
+    // Add pageSizes to pagination data for template
+    const paginationWithSizes = {
+      ...pagination,
+      pageSizes: this.pageSizes,
+    };
+    container.innerHTML = this.templates.renderPagination(paginationWithSizes);
+
+    // Add event listener for the new page size selector
+    const pageSizeSelector = document.getElementById("page-size-selector");
+    if (pageSizeSelector) {
+      pageSizeSelector.addEventListener("change", (e) => {
+        this.pageLimit = parseInt(e.target.value);
+        this.currentPage = 1;
+        // Update URL parameter when page size changes
+        this.updateURLParameter("pageSize", this.pageLimit);
+        this.loadUsers();
+      });
     }
-
-    const start = (pagination.page - 1) * pagination.limit + 1;
-    const end = Math.min(pagination.page * pagination.limit, pagination.total);
-
-    let html = `
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-400">
-          Showing ${start} to ${end} of ${pagination.total} users
-        </div>
-        <div class="flex gap-2">
-    `;
-
-    // Previous button
-    if (pagination.page > 1) {
-      html += `
-        <button data-page="${pagination.page - 1}"
-          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-          Previous
-        </button>
-      `;
-    }
-
-    // Page numbers
-    const pageNumbers = this.generatePageNumbers(pagination.page, pagination.totalPages);
-    pageNumbers.forEach((p) => {
-      if (p === "...") {
-        html += '<span class="px-2 text-gray-500">...</span>';
-      } else {
-        const isActive = p === pagination.page;
-        html += `
-          <button data-page="${p}"
-            class="pagination-btn px-3 py-1 ${
-              isActive
-                ? "bg-blue-600 text-white"
-                : "bg-dark-bg border border-dark-border text-gray-300 hover:bg-gray-700"
-            }
-            rounded transition-colors">
-            ${p}
-          </button>
-        `;
-      }
-    });
-
-    // Next button
-    if (pagination.page < pagination.totalPages) {
-      html += `
-        <button data-page="${pagination.page + 1}"
-          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-          Next
-        </button>
-      `;
-    }
-
-    html += `
-        </div>
-      </div>
-    `;
-
-    container.innerHTML = html;
-  }
-
-  /**
-   * Generate page numbers for pagination
-   */
-  generatePageNumbers(current, total) {
-    const pages = [];
-    const maxVisible = 7;
-
-    if (total <= maxVisible) {
-      for (let i = 1; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-
-      if (current > 3) {
-        pages.push("...");
-      }
-
-      const start = Math.max(2, current - 1);
-      const end = Math.min(total - 1, current + 1);
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (current < total - 2) {
-        pages.push("...");
-      }
-
-      pages.push(total);
-    }
-
-    return pages;
   }
 
   /**
@@ -450,6 +327,12 @@ class AdminUIManager {
       const response = await this.api.createUser({ username, tags });
       this.showSuccess(`User '${username}' created successfully`);
       this.needsUserRefresh = true; // Mark that users need to be refreshed
+
+      // Refresh tag dropdown if new tags were added
+      if (tags.length > 0) {
+        await this.refreshTagDropdown();
+      }
+
       this.showApiKeyModal(response.apiKey);
       this.closeCreateUserModal();
     } catch (error) {
@@ -613,7 +496,7 @@ class AdminUIManager {
             const color = window.TagColors.getTagColor(tag);
 
             return `
-          <span class="inline-flex items-center px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
+          <span class="inline-flex items-center px-2.5 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
             ${this.escapeHtml(tag)}
           </span>
         `;
@@ -648,6 +531,149 @@ class AdminUIManager {
   }
 
   /**
+   * Update URL query parameters without page reload
+   */
+  updateURLParameter(param, value) {
+    const url = new URL(window.location);
+    if (value) {
+      url.searchParams.set(param, value);
+    } else {
+      url.searchParams.delete(param);
+    }
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Refresh the tag dropdown with latest tags from server
+   */
+  async refreshTagDropdown() {
+    try {
+      const tags = await this.api.getAllTags();
+      const tagDropdownMenu = document.getElementById("tagDropdownMenu");
+
+      if (!tagDropdownMenu || !tags) return;
+
+      // Store currently selected tags
+      const checkedTags = new Set(
+        Array.from(document.querySelectorAll(".tag-checkbox-dropdown:checked")).map((cb) => cb.value),
+      );
+
+      // Rebuild the dropdown content
+      if (tags.length > 0) {
+        let dropdownHTML = '<div class="p-2">';
+
+        tags.forEach((tag) => {
+          const isChecked = checkedTags.has(tag) ? "checked" : "";
+          const color = window.TagColors.getTagColor(tag);
+          dropdownHTML += `
+            <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
+              <input type="checkbox" name="tags" value="${tag}" ${isChecked}
+                class="tag-checkbox-dropdown rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700">
+              <span class="tag-label-dropdown text-gray-300 text-sm px-2 py-1 rounded-full ${color.bg} ${color.text} border ${color.border}"
+                data-tag="${tag}">${tag}</span>
+            </label>
+          `;
+        });
+
+        dropdownHTML += "</div>";
+
+        // Add clear tags section
+        const hasCheckedTags = checkedTags.size > 0;
+        dropdownHTML += `
+          <div id="clearTagsSection" class="${hasCheckedTags ? "" : "hidden"} p-2 border-t border-dark-border">
+            <button type="button" id="clearTagsButton"
+              class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Clear all tags
+            </button>
+          </div>
+        `;
+
+        tagDropdownMenu.innerHTML = dropdownHTML;
+
+        // Reattach event listeners to new checkboxes
+        this.attachTagCheckboxListeners();
+      } else {
+        tagDropdownMenu.innerHTML = '<div class="p-3 text-gray-500 text-sm">No tags available</div>';
+      }
+    } catch (error) {
+      console.error("Failed to refresh tags:", error);
+    }
+  }
+
+  /**
+   * Attach event listeners to tag checkboxes (called after rebuilding dropdown)
+   */
+  attachTagCheckboxListeners() {
+    const tagCheckboxes = document.querySelectorAll(".tag-checkbox-dropdown");
+    const tagButtonText = document.getElementById("tagButtonText");
+    const clearTagsSection = document.getElementById("clearTagsSection");
+
+    tagCheckboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        // Get all checked tags
+        const checkedTags = Array.from(document.querySelectorAll(".tag-checkbox-dropdown:checked")).map(
+          (cb) => cb.value,
+        );
+
+        // Update adminUI state
+        this.selectedTags = checkedTags;
+        this.currentPage = 1;
+
+        // Update button text
+        const checkedCount = checkedTags.length;
+        if (checkedCount > 0) {
+          tagButtonText.textContent = `${checkedCount} tag${checkedCount > 1 ? "s" : ""} selected`;
+          // Show clear button
+          if (clearTagsSection) {
+            clearTagsSection.classList.remove("hidden");
+          }
+        } else {
+          tagButtonText.textContent = "All Tags";
+          // Hide clear button
+          if (clearTagsSection) {
+            clearTagsSection.classList.add("hidden");
+          }
+        }
+
+        // Load users with new filter
+        this.loadUsers();
+      });
+    });
+
+    // Handle clear tags button
+    const clearTagsButton = document.getElementById("clearTagsButton");
+    if (clearTagsButton) {
+      clearTagsButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Uncheck all tag checkboxes
+        tagCheckboxes.forEach((checkbox) => {
+          checkbox.checked = false;
+        });
+
+        // Clear adminUI state
+        this.selectedTags = [];
+        this.currentPage = 1;
+
+        // Update button text
+        tagButtonText.textContent = "All Tags";
+
+        // Hide clear button
+        if (clearTagsSection) {
+          clearTagsSection.classList.add("hidden");
+        }
+
+        // Reload users
+        this.loadUsers();
+      });
+    }
+  }
+
+  /**
    * Handle updating user tags
    */
   async handleUpdateTags() {
@@ -666,6 +692,10 @@ class AdminUIManager {
       await this.api.updateUserTags(username, tags);
       this.showSuccess(`Tags updated for ${username}`);
       this.closeManageTagsModal();
+
+      // Refresh tag dropdown with new tags
+      await this.refreshTagDropdown();
+
       await this.loadUsers();
     } catch (error) {
       this.showError(`Failed to update tags: ${error.message}`);

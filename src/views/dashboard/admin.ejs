@@ -54,26 +54,78 @@
       <main class="flex-1 px-6 py-6 max-w-full">
         <!-- Action Bar -->
         <div class="bg-dark-card rounded-lg border border-dark-border mb-6 p-4">
-          <div class="flex justify-between items-center">
-            <div class="flex gap-4 items-center">
+          <div class="flex justify-between items-center w-full">
+            <div class="flex gap-4 items-center flex-1">
               <!-- Search Input -->
               <input type="text" id="search-input" placeholder="Search by username..."
                 class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg w-64 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500">
 
-              <!-- Tag Filter -->
-              <select id="tag-filter"
-                class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
-                <option value="">All Tags</option>
-                <% initialData.tags.forEach(tag => { %>
-                <option value="<%= tag %>"><%= tag %></option>
-                <% }); %>
-              </select>
+              <!-- Tag Filter (Custom Dropdown with Checkboxes) -->
+              <div class="relative" id="tagDropdownContainer" style="min-width: 160px;">
+                <button type="button" id="tagDropdownButton"
+                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 hover:border-blue-500 focus:outline-none focus:border-blue-500 flex items-center gap-2 w-full">
+                  <span id="tagButtonText">All Tags</span>
+                  <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div id="tagDropdownMenu"
+                  class="hidden absolute z-10 mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg"
+                  style="min-width: 200px; max-height: 300px; overflow-y: auto;">
+                  <% if (initialData.tags && initialData.tags.length > 0) { %>
+                  <div class="p-2">
+                    <% initialData.tags.forEach(tag => { %>
+                    <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
+                      <input type="checkbox" name="tags" value="<%= tag %>"
+                        class="tag-checkbox-dropdown rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700">
+                      <span class="tag-label-dropdown text-gray-300 text-sm px-2 py-1 rounded-full" data-tag="<%= tag %>"><%= tag %></span>
+                    </label>
+                    <% }) %>
+                  </div>
+                  <div id="clearTagsSection" class="hidden p-2 border-t border-dark-border">
+                    <button type="button" id="clearTagsButton"
+                      class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                      </svg>
+                      Clear all tags
+                    </button>
+                  </div>
+                  <% } else { %>
+                  <div class="p-3 text-gray-500 text-sm">No tags available</div>
+                  <% } %>
+                </div>
+              </div>
 
-              <!-- Advanced Filters Toggle -->
-              <button id="advanced-filters-btn"
-                class="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
-                Advanced Filters
-              </button>
+              <!-- Sort By -->
+              <div class="custom-select-wrapper" style="min-width: 160px;">
+                <select id="sort-by"
+                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
+                  <option value="createdAt">Created Date</option>
+                  <option value="updatedAt">Updated Date</option>
+                  <option value="username">Username</option>
+                </select>
+                <div class="select-arrow">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Order -->
+              <div class="custom-select-wrapper" style="min-width: 160px;">
+                <select id="sort-order"
+                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
+                  <option value="desc">Descending</option>
+                  <option value="asc">Ascending</option>
+                </select>
+                <div class="select-arrow">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
 
               <!-- Loading Indicator (inline) -->
               <div id="loading-indicator" class="hidden flex items-center gap-2 text-blue-400">
@@ -81,47 +133,11 @@
                 <span class="text-sm">Loading...</span>
               </div>
             </div>
-            <button id="create-user-btn"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-              + Create User
-            </button>
-          </div>
-
-          <!-- Advanced Filters Panel (Hidden by default) -->
-          <div id="advanced-filters" class="hidden mt-4 pt-4 border-t border-dark-border">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Sort By</label>
-                <select id="sort-by"
-                  class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100">
-                  <option value="createdAt">Created Date</option>
-                  <option value="updatedAt">Updated Date</option>
-                  <option value="username">Username</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Order</label>
-                <select id="sort-order"
-                  class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100">
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
-                </select>
-              </div>
-            </div>
-            <div class="mt-4">
-              <label class="block text-sm font-medium text-gray-300 mb-1">Filter by Multiple Tags
-                (AND)</label>
-              <div id="tag-multi-select" class="flex flex-wrap gap-2">
-                <% initialData.tags.forEach(tag => { %>
-                <label class="inline-flex items-center">
-                  <input type="checkbox" class="tag-checkbox" value="<%= tag %>"
-                    class="mr-2 rounded bg-dark-bg border-gray-600 text-blue-600 focus:ring-blue-500">
-                  <span class="tag-label px-2 py-1 text-xs rounded-full" data-tag="<%= tag %>">
-                    <%= tag %>
-                  </span>
-                </label>
-                <% }); %>
-              </div>
+            <div class="flex-shrink-0">
+              <button id="create-user-btn"
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                Create User
+              </button>
             </div>
           </div>
         </div>
@@ -355,8 +371,8 @@
     // Initialize the Admin UI Manager
     let adminUI;
     document.addEventListener('DOMContentLoaded', async () => {
-      // Apply colors to tag filter checkboxes
-      document.querySelectorAll('.tag-label[data-tag]').forEach(tagElement => {
+      // Apply colors to tag filter checkboxes (in dropdown)
+      document.querySelectorAll('.tag-label-dropdown[data-tag]').forEach(tagElement => {
         const tag = tagElement.dataset.tag;
         const color = window.TagColors.getTagColor(tag);
         tagElement.classList.add(color.bg, color.text, 'border', color.border);
@@ -564,12 +580,6 @@
         });
       }
 
-      // Initialize advanced filters toggle
-      document.getElementById('advanced-filters-btn')?.addEventListener('click', () => {
-        const panel = document.getElementById('advanced-filters');
-        panel?.classList.toggle('hidden');
-      });
-
       // Initialize sort and filter controls
       document.getElementById('sort-by')?.addEventListener('change', (e) => {
         adminUI.sortBy = e.target.value;
@@ -583,24 +593,88 @@
         adminUI.loadUsers();
       });
 
-      // Multi-tag filter checkboxes
-      document.querySelectorAll('.tag-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', () => {
-          const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked'))
-            .map(cb => cb.value);
-          adminUI.selectedTags = checkedTags;
-          adminUI.currentPage = 1;
-          adminUI.loadUsers();
+      // Handle custom tag dropdown
+      const tagDropdownButton = document.getElementById('tagDropdownButton');
+      const tagDropdownMenu = document.getElementById('tagDropdownMenu');
+      const tagButtonText = document.getElementById('tagButtonText');
+      const clearTagsSection = document.getElementById('clearTagsSection');
 
-          // Sync with the tag dropdown
-          const tagFilter = document.getElementById('tag-filter');
-          if (tagFilter) {
-            // If multiple tags or no tags selected, set dropdown to "All Tags"
-            // If exactly one tag selected, set dropdown to that tag
-            tagFilter.value = checkedTags.length === 1 ? checkedTags[0] : '';
+      if (tagDropdownButton && tagDropdownMenu) {
+        // Toggle dropdown on button click
+        tagDropdownButton.addEventListener('click', function (e) {
+          e.stopPropagation();
+          tagDropdownMenu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+          if (!tagDropdownButton.contains(e.target) && !tagDropdownMenu.contains(e.target)) {
+            tagDropdownMenu.classList.add('hidden');
           }
         });
-      });
+
+        // Handle checkbox changes
+        const tagCheckboxes = document.querySelectorAll('.tag-checkbox-dropdown');
+        tagCheckboxes.forEach(checkbox => {
+          checkbox.addEventListener('change', function () {
+            // Get all checked tags
+            const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox-dropdown:checked'))
+              .map(cb => cb.value);
+            
+            // Update adminUI state
+            adminUI.selectedTags = checkedTags;
+            adminUI.currentPage = 1;
+            
+            // Update button text
+            const checkedCount = checkedTags.length;
+            if (checkedCount > 0) {
+              tagButtonText.textContent = `${checkedCount} tag${checkedCount > 1 ? 's' : ''} selected`;
+              // Show clear button
+              if (clearTagsSection) {
+                clearTagsSection.classList.remove('hidden');
+              }
+            } else {
+              tagButtonText.textContent = 'All Tags';
+              // Hide clear button
+              if (clearTagsSection) {
+                clearTagsSection.classList.add('hidden');
+              }
+            }
+            
+            // Load users with new filter
+            adminUI.loadUsers();
+          });
+        });
+
+        // Handle clear tags button
+        const clearTagsButton = document.getElementById('clearTagsButton');
+        if (clearTagsButton) {
+          clearTagsButton.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Uncheck all tag checkboxes
+            tagCheckboxes.forEach(checkbox => {
+              checkbox.checked = false;
+            });
+
+            // Clear adminUI state
+            adminUI.selectedTags = [];
+            adminUI.currentPage = 1;
+
+            // Update button text
+            tagButtonText.textContent = 'All Tags';
+            
+            // Hide clear button
+            if (clearTagsSection) {
+              clearTagsSection.classList.add('hidden');
+            }
+
+            // Reload users
+            adminUI.loadUsers();
+          });
+        }
+      }
 
       // Pagination will be rendered when users are loaded
     });

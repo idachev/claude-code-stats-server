@@ -3,7 +3,10 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Script to load test data from docs/data directory
-# Usage: ./load-test-data.sh [--dry-run]
+# Usage: ./load-test-data.sh [max_users] [--dry-run]
+# Parameters:
+#   max_users - Optional: Maximum number of users to create (default: unlimited)
+#   --dry-run - Optional: Run in dry-run mode without making actual changes
 # Requires: CLAUDE_CODE_STATS_SERVER_URL and
 # CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY environment variables
 
@@ -12,10 +15,34 @@ source "${SCRIPT_DIR}/common.sh"
 
 # Parse command line arguments
 DRY_RUN=false
-if [[ "$1" == "--dry-run" ]]; then
-  DRY_RUN=true
-  echo -e "${YELLOW}Running in DRY RUN mode - no actual changes will be made${NC}"
-fi
+MAX_USERS=""
+
+# Function to check if argument is a number
+is_number() {
+  [[ "$1" =~ ^[0-9]+$ ]]
+}
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=true
+      echo -e "${YELLOW}Running in DRY RUN mode - no actual changes will be made${NC}"
+      shift
+      ;;
+    *)
+      if is_number "$1"; then
+        MAX_USERS="$1"
+        echo -e "${BLUE}Maximum users to create: ${MAX_USERS}${NC}"
+      else
+        echo -e "${RED}Invalid argument: $1${NC}"
+        echo "Usage: $0 [max_users] [--dry-run]"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
 
 # Arrays of common English first and last names for generating usernames
 FIRST_NAMES=(
@@ -215,15 +242,29 @@ main() {
   fi
 
   echo -e "${GREEN}Found ${#data_files[@]} test data file(s)${NC}"
+
+  # Determine how many users to create
+  local users_to_create
+  if [[ -n "${MAX_USERS}" ]]; then
+    users_to_create=${MAX_USERS}
+    echo -e "${BLUE}Will create up to ${users_to_create} users${NC}"
+  else
+    users_to_create=${#data_files[@]}
+    echo -e "${BLUE}Will create ${users_to_create} users (one per data file)${NC}"
+  fi
   echo ""
 
-  # Process each data file
+  # Process data files, reusing them if needed
   local success_count=0
   local fail_count=0
+  local user_index=0
+  local file_index=0
 
-  for data_file in "${data_files[@]}"; do
+  while [[ ${user_index} -lt ${users_to_create} ]]; do
+    # Get data file cyclically if we need more users than files
+    local data_file="${data_files[$file_index]}"
     echo "========================================="
-    echo -e "${YELLOW}Processing: $(basename "${data_file}")${NC}"
+    echo -e "${YELLOW}User $((user_index + 1))/${users_to_create} - Processing: $(basename "${data_file}")${NC}"
 
     # Generate a unique username for this file
     local username=""
@@ -244,6 +285,9 @@ main() {
     if [[ $attempts -eq $max_attempts ]]; then
       echo -e "${RED}Failed to generate unique username after ${max_attempts} attempts${NC}"
       ((fail_count++))
+      ((user_index++))
+      # Cycle to next file for next iteration
+      file_index=$(( (file_index + 1) % ${#data_files[@]} ))
       continue
     fi
 
@@ -265,15 +309,22 @@ main() {
     fi
 
     echo ""
+
+    # Move to next user and cycle through files
+    ((user_index++))
+    file_index=$(( (file_index + 1) % ${#data_files[@]} ))
   done
 
   # Print summary
   echo "========================================="
   echo -e "${YELLOW}SUMMARY${NC}"
   echo "========================================="
-  echo -e "${GREEN}Successfully processed: ${success_count} file(s)${NC}"
+  echo -e "${GREEN}Successfully created: ${success_count} user(s)${NC}"
   if [[ ${fail_count} -gt 0 ]]; then
-    echo -e "${RED}Failed: ${fail_count} file(s)${NC}"
+    echo -e "${RED}Failed: ${fail_count} user(s)${NC}"
+  fi
+  if [[ -n "${MAX_USERS}" ]] && [[ ${#data_files[@]} -lt ${MAX_USERS} ]]; then
+    echo -e "${BLUE}Note: Reused ${#data_files[@]} data file(s) to create ${success_count} user(s)${NC}"
   fi
 
   if [[ ${#CREATED_USERS[@]} -gt 0 ]]; then

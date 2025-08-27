@@ -30,6 +30,117 @@ describe("Tag Router Integration Tests", () => {
     await cleanupTestDatabase();
   });
 
+  describe("GET /admin/tags", () => {
+    it("should get all unique tags with admin auth", async () => {
+      // Clear tags first
+      await tagService.setUserTags(testUser.id, []);
+      await tagService.setUserTags(testUser2.id, []);
+
+      // Setup: Add tags to multiple users
+      await tagService.setUserTags(testUser.id, ["frontend", "react", "typescript"]);
+      await tagService.setUserTags(testUser2.id, ["backend", "nodejs", "typescript"]); // typescript is shared
+
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(expect.arrayContaining(["backend", "frontend", "nodejs", "react", "typescript"]));
+      // Verify it's sorted alphabetically
+      const expectedSorted = ["backend", "frontend", "nodejs", "react", "typescript"];
+      expect(response.body).toEqual(expectedSorted);
+    });
+
+    it("should return empty array when no tags exist", async () => {
+      // Clear all tags - ensure we start with a clean state
+      await tagService.setUserTags(testUser.id, []);
+      await tagService.setUserTags(testUser2.id, []);
+
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    it("should return unique tags only", async () => {
+      // Clear tags first
+      await tagService.setUserTags(testUser.id, []);
+      await tagService.setUserTags(testUser2.id, []);
+
+      // Setup: Add same tag to multiple users
+      await tagService.setUserTags(testUser.id, ["shared-tag", "unique1"]);
+      await tagService.setUserTags(testUser2.id, ["shared-tag", "unique2"]);
+
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(["shared-tag", "unique1", "unique2"]);
+      // Verify each tag appears only once
+      const tagCounts = response.body.reduce((acc: Record<string, number>, tag: string) => {
+        acc[tag] = (acc[tag] || 0) + 1;
+        return acc;
+      }, {});
+      Object.values(tagCounts).forEach((count) => {
+        expect(count).toBe(1);
+      });
+    });
+
+    it("should return 401 without admin auth", async () => {
+      const response = await request(app).get("/admin/tags");
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toMatch(/admin|Authentication required/i);
+    });
+
+    it("should return 401 with invalid API key", async () => {
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", "invalid-key");
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error).toBe("Invalid admin API key");
+    });
+
+    it("should handle tags with special characters", async () => {
+      // Clear tags first
+      await tagService.setUserTags(testUser.id, []);
+      await tagService.setUserTags(testUser2.id, []);
+
+      // Setup: Add tags with special allowed characters
+      await tagService.setUserTags(testUser.id, ["tag-with-hyphens", "tag.with.dots", "tag_with_underscores"]);
+      await tagService.setUserTags(testUser2.id, ["tag with spaces"]);
+
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(["tag with spaces", "tag-with-hyphens", "tag.with.dots", "tag_with_underscores"]);
+    });
+
+    it("should handle case sensitivity correctly", async () => {
+      // Clear tags first
+      await tagService.setUserTags(testUser.id, []);
+      await tagService.setUserTags(testUser2.id, []);
+
+      // Setup: Add tags with different cases to different users
+      // The database constraint allows different users to have tags with different cases
+      // but prevents the same user from having duplicate tags with different cases
+      await tagService.setUserTags(testUser.id, ["JavaScript", "TypeScript"]);
+      await tagService.setUserTags(testUser2.id, ["javascript", "typescript"]); // Different case, different user - allowed
+
+      const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
+
+      expect(response.status).toBe(200);
+      // The getTags method returns all unique tags - we'll see both "JavaScript" and "javascript"
+      // as they are different strings (even though case-insensitive they're the same)
+      expect(response.body).toContain("JavaScript");
+      expect(response.body).toContain("TypeScript");
+      expect(response.body).toContain("javascript");
+      expect(response.body).toContain("typescript");
+
+      // Verify the results are sorted alphabetically
+      const sorted = [...response.body].sort();
+      expect(response.body).toEqual(sorted);
+    });
+  });
+
   describe("GET /admin/users/:username/tags", () => {
     it("should get user tags with admin auth", async () => {
       // Setup: Add tags to user
@@ -42,6 +153,9 @@ describe("Tag Router Integration Tests", () => {
     });
 
     it("should return empty array when user has no tags", async () => {
+      // Clear any existing tags for testUser2
+      await tagService.setUserTags(testUser2.id, []);
+
       const response = await request(app)
         .get(`/admin/users/${testUser2.username}/tags`)
         .set("X-Admin-Key", adminApiKey);

@@ -7,6 +7,7 @@ class AdminUIManager {
     this.api = apiClient || new AdminApiClient();
     this.templates = templateLoader;
     this.isLoading = false;
+    this.loadingTimer = null; // Timer for delayed loading indicator
     this.currentPage = 1;
     this.pageLimit = initialPageSize || 20;
     this.pageSizes = pageSizes || [10, 20, 50, 100];
@@ -27,6 +28,21 @@ class AdminUIManager {
   async init() {
     await this.setupEventListeners();
     await this.loadInitialData();
+
+    // Clean up timers on page unload
+    window.addEventListener("beforeunload", () => {
+      this.cleanup();
+    });
+  }
+
+  /**
+   * Cleanup method to clear timers and prevent memory leaks
+   */
+  cleanup() {
+    if (this.loadingTimer) {
+      clearTimeout(this.loadingTimer);
+      this.loadingTimer = null;
+    }
   }
 
   /**
@@ -174,28 +190,43 @@ class AdminUIManager {
    * Show loading indicator
    */
   showLoading() {
-    const indicator = document.getElementById("loading-indicator");
-    if (indicator) {
-      indicator.classList.remove("hidden");
-    }
     this.isLoading = true;
 
-    // Use templates to show loading state in table
-    const tbody = document.querySelector("#users-table tbody");
-    if (tbody && this.templates) {
-      tbody.innerHTML = this.templates.renderLoadingState();
+    // Clear any existing timer
+    if (this.loadingTimer) {
+      clearTimeout(this.loadingTimer);
     }
+
+    // Only show loading indicator after 1250ms delay
+    // This prevents flickering for fast responses
+    this.loadingTimer = setTimeout(() => {
+      // Only show if still loading
+      if (this.isLoading) {
+        const indicator = document.getElementById("loading-indicator");
+        if (indicator) {
+          indicator.classList.remove("hidden");
+        }
+      }
+    }, 1250);
   }
 
   /**
    * Hide loading indicator
    */
   hideLoading() {
+    this.isLoading = false;
+
+    // Clear the timer if it hasn't fired yet
+    if (this.loadingTimer) {
+      clearTimeout(this.loadingTimer);
+      this.loadingTimer = null;
+    }
+
+    // Hide the indicator immediately
     const indicator = document.getElementById("loading-indicator");
     if (indicator) {
       indicator.classList.add("hidden");
     }
-    this.isLoading = false;
   }
 
   /**

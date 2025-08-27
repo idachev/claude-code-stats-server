@@ -14,7 +14,6 @@ class TemplateLoader {
       apiKeyModal: null,
       toast: null,
       emptyState: null,
-      loadingState: null,
     };
   }
 
@@ -136,27 +135,9 @@ class TemplateLoader {
       .map((size) => `<option value="${size}" ${pagination.limit === size ? "selected" : ""}>${size}</option>`)
       .join("");
 
-    if (pagination.totalPages <= 1 && pagination.total <= 10) {
-      // Still show page size selector even with single page if there are items
-      if (pagination.total === 0) {
-        return "";
-      }
-      return `
-      <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-400">
-          Showing ${pagination.total} users
-        </div>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-400">Items per page:</label>
-            <select id="page-size-selector"
-              class="px-2 py-1 bg-dark-bg border border-dark-border rounded text-gray-100 text-sm focus:outline-none focus:border-blue-500">
-              ${pageSizeOptions}
-            </select>
-          </div>
-        </div>
-      </div>
-    `;
+    // Return empty if there are no results at all
+    if (pagination.total === 0) {
+      return "";
     }
 
     const start = (pagination.page - 1) * pagination.limit + 1;
@@ -167,57 +148,65 @@ class TemplateLoader {
         <div class="text-sm text-gray-400">
           Showing ${start} to ${end} of ${pagination.total} users
         </div>
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-400">Items per page:</label>
-            <select id="page-size-selector"
-              class="px-2 py-1 bg-dark-bg border border-dark-border rounded text-gray-100 text-sm focus:outline-none focus:border-blue-500">
-              ${pageSizeOptions}
-            </select>
-          </div>
-          <div class="flex gap-2">
+        <div class="flex items-center gap-3">
+          <div class="flex gap-1 items-center">
     `;
 
-    // Previous button
-    if (pagination.page > 1) {
-      html += `
-        <button data-page="${pagination.page - 1}"
-          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-          Previous
-        </button>
-      `;
-    }
-
-    // Page numbers
+    // Page numbers on the left
     const pageNumbers = this.generatePageNumbers(pagination.page, pagination.totalPages);
     pageNumbers.forEach((p) => {
       if (p === "...") {
-        html += '<span class="px-2 text-gray-500">...</span>';
+        html += this.renderPaginationEllipsis();
       } else {
-        const isActive = p === pagination.page;
-        html += `
-          <button data-page="${p}"
-            class="pagination-btn px-3 py-1 ${
-              isActive
-                ? "bg-blue-600 text-white"
-                : "bg-dark-bg border border-dark-border text-gray-300 hover:bg-gray-700"
-            }
-            rounded transition-colors">
-            ${p}
-          </button>
-        `;
+        html += this.renderPageNumberButton(p, p === pagination.page);
       }
     });
 
-    // Next button
-    if (pagination.page < pagination.totalPages) {
-      html += `
-        <button data-page="${pagination.page + 1}"
-          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-          Next
-        </button>
-      `;
-    }
+    html += `
+          </div>
+          <div class="flex gap-1 items-center">
+    `;
+
+    // Navigation controls on the right
+    // First page button - always visible
+    html += this.renderNavigationButton({
+      page: pagination.page > 1 ? 1 : null,
+      title: "First page",
+      iconPath: "M11 19l-7-7 7-7m8 14l-7-7 7-7",
+      disabled: pagination.page <= 1,
+    });
+
+    // Previous button - always visible
+    html += this.renderNavigationButton({
+      page: pagination.page > 1 ? pagination.page - 1 : null,
+      title: "Previous page",
+      iconPath: "M15 19l-7-7 7-7",
+      disabled: pagination.page <= 1,
+    });
+
+    // Page size selector in the middle of navigation
+    html += `
+            <select id="page-size-selector"
+              class="px-3 py-1 h-[30px] mx-1 bg-dark-bg border border-dark-border rounded text-gray-100 text-sm focus:outline-none focus:border-blue-500">
+              ${pageSizeOptions}
+            </select>
+    `;
+
+    // Next button - always visible
+    html += this.renderNavigationButton({
+      page: pagination.page < pagination.totalPages ? pagination.page + 1 : null,
+      title: "Next page",
+      iconPath: "M9 5l7 7-7 7",
+      disabled: pagination.page >= pagination.totalPages,
+    });
+
+    // Last page button - always visible
+    html += this.renderNavigationButton({
+      page: pagination.page < pagination.totalPages ? pagination.totalPages : null,
+      title: "Last page",
+      iconPath: "M13 5l7 7-7 7M5 5l7 7-7 7",
+      disabled: pagination.page >= pagination.totalPages,
+    });
 
     html += `
           </div>
@@ -229,34 +218,125 @@ class TemplateLoader {
   }
 
   /**
+   * Render a navigation button (First, Previous, Next, Last)
+   * @param {Object} config - Button configuration
+   * @param {number|null} config.page - Page number to navigate to (null for disabled)
+   * @param {string} config.title - Button title/tooltip
+   * @param {string} config.iconPath - SVG path for the icon
+   * @param {boolean} config.disabled - Whether the button is disabled
+   */
+  renderNavigationButton(config) {
+    const { page, title, iconPath, disabled = false } = config;
+
+    if (disabled) {
+      return `
+        <button disabled
+          class="px-2 py-1 h-[30px] flex items-center justify-center bg-dark-bg border border-dark-border rounded text-gray-600 cursor-not-allowed opacity-50"
+          title="${title}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+          </svg>
+        </button>
+      `;
+    }
+
+    return `
+      <button data-page="${page}"
+        class="pagination-btn px-2 py-1 h-[30px] flex items-center justify-center bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors"
+        title="${title}">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${iconPath}"></path>
+        </svg>
+      </button>
+    `;
+  }
+
+  /**
+   * Render a page number button
+   * @param {number} pageNumber - The page number
+   * @param {boolean} isActive - Whether this is the current page
+   */
+  renderPageNumberButton(pageNumber, isActive) {
+    return `
+      <button data-page="${pageNumber}"
+        class="pagination-btn px-3 py-1 h-[30px] flex items-center justify-center ${
+          isActive ? "bg-blue-600 text-white" : "bg-dark-bg border border-dark-border text-gray-300 hover:bg-gray-700"
+        }
+        rounded transition-colors">
+        ${pageNumber}
+      </button>
+    `;
+  }
+
+  /**
+   * Render a separator for pagination controls
+   */
+  renderPaginationSeparator() {
+    return '<div class="w-px h-6 bg-dark-border mx-1"></div>';
+  }
+
+  /**
+   * Render ellipsis for page numbers
+   */
+  renderPaginationEllipsis() {
+    return '<span class="px-2 text-gray-500">...</span>';
+  }
+
+  /**
    * Generate page numbers for pagination
+   * Rules:
+   * 1. Always show first and last pages
+   * 2. If total > 7, show ellipsis on left if current is not in [1,2,3]
+   * 3. If total > 7, show ellipsis on right if current is not in [total-2, total-1, total]
+   * 4. Always show current page and its immediate neighbors when possible
    */
   generatePageNumbers(current, total) {
     const pages = [];
-    const maxVisible = 7;
 
-    if (total <= maxVisible) {
+    // If 7 or fewer pages, show all
+    if (total <= 7) {
       for (let i = 1; i <= total; i++) {
         pages.push(i);
       }
-    } else {
-      pages.push(1);
+      return pages;
+    }
 
-      if (current > 3) {
-        pages.push("...");
-      }
+    // Always show first page
+    pages.push(1);
 
-      const start = Math.max(2, current - 1);
-      const end = Math.min(total - 1, current + 1);
+    // Determine if we need left ellipsis
+    // Show left ellipsis if current is not in [1, 2, 3]
+    const needLeftEllipsis = current > 3;
 
-      for (let i = start; i <= end; i++) {
+    if (needLeftEllipsis) {
+      pages.push("...");
+    }
+
+    // Add pages around current (current-1, current, current+1)
+    // Making sure we don't duplicate pages
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) {
         pages.push(i);
       }
+    }
 
-      if (current < total - 2) {
+    // Determine if we need right ellipsis
+    // Show right ellipsis if current is not in [total-2, total-1, total]
+    const needRightEllipsis = current < total - 2;
+
+    if (needRightEllipsis) {
+      // Check if there's actually a gap between the last added page and the last page
+      const lastAddedPage = pages[pages.length - 1];
+      if (typeof lastAddedPage === "number" && lastAddedPage < total - 1) {
         pages.push("...");
       }
+    }
 
+    // Always show last page if not already included
+    if (!pages.includes(total)) {
       pages.push(total);
     }
 
@@ -264,25 +344,11 @@ class TemplateLoader {
   }
 
   /**
-   * Render loading state
-   */
-  renderLoadingState() {
-    return `
-      <tr>
-        <td colspan="5" class="px-6 py-8 text-center">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <div class="mt-2 text-gray-400">Loading...</div>
-        </td>
-      </tr>
-    `;
-  }
-
-  /**
    * Render empty state
    */
   renderEmptyState(message = "No users found") {
     return `
-      <tr>
+      <tr class="empty-state">
         <td colspan="5" class="px-6 py-4 text-center text-gray-500">
           ${this.escapeHtml(message)}
         </td>

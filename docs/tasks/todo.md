@@ -2,7 +2,7 @@
 
 * Implement playwrite integration tests for admin dashboard - cover all cases full coverage
 *  Let add GET http://localhost:3000/favicon.ico - please add the manifest with all possible fav icon formatts
-* Can you add a flag to mark user as deactivated it should be only visible in the admin dashboars, also on deactive operaiton set this flag to true, on key regeneraiton set it to false, update the admin dashboard list to distinguish the deactivated users
+* Can you add a flag to mark user as deactivated it should be only visible in the admin dashboars, also on deactive operaiton set this flag to true, on key regeneraiton set it to false, update the admin dashboard list to distinguish the deactivated users. Do not skip deactivated users from stats query - we will use this flag only in the admin dashboard.
 
 REMAINING TASKS (Nice-to-Have Only)
 

@@ -16,7 +16,7 @@ const envSchema = z.object({
   // - Wildcard "*" to allow all origins (use with caution in production)
   CORS_ORIGIN: z.string().min(1).default("http://localhost:8080"),
 
-  COMMON_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(1000),
+  COMMON_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
 
   COMMON_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(1000),
 

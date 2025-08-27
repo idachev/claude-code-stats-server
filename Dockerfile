@@ -44,6 +44,7 @@ COPY --from=build --chown=node:node /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=build --chown=node:node /app/drizzle.config.ts ./drizzle.config.ts
 COPY --from=build --chown=node:node /app/drizzle ./drizzle
 COPY --from=build --chown=node:node /app/src/db ./src/db
+COPY --from=build --chown=node:node /app/src/public ./src/public
 COPY --from=build --chown=node:node /app/src/common/utils/envConfig.ts ./src/common/utils/envConfig.ts
 
 # Install drizzle-kit for migrations (it's a dev dependency)

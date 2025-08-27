@@ -10,14 +10,15 @@ export class TagService {
   async getTags(): Promise<string[]> {
     // Use raw SQL to get unique tags case-insensitively
     // We'll return the first occurrence of each tag (preserving original casing)
+    // Using MIN() with COLLATE "C" to ensure consistent behavior across environments
     const result = await db
       .select({
-        name: sql<string>`MIN(${tags.name})`.as("name"),
+        name: sql<string>`MIN(${tags.name} COLLATE "C")`.as("name"),
         lowerName: sql<string>`LOWER(${tags.name})`.as("lowerName"),
       })
       .from(tags)
       .groupBy(sql`LOWER(${tags.name})`)
-      .orderBy(sql`LOWER(${tags.name})`);
+      .orderBy(sql`MIN(LOWER(${tags.name}) COLLATE "C")`);
 
     return result.map((row) => row.name);
   }

@@ -1,5 +1,6 @@
 # TODO
 
+* Add all filter sorting arguments to admin dashboard URL like the pageSize
 * Implement playwrite integration tests for admin dashboard - cover all cases full coverage
 *  Let add GET http://localhost:3000/favicon.ico - please add the manifest with all possible fav icon formatts
 

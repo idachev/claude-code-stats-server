@@ -2,14 +2,14 @@
 
 > 📊 **Track, visualize, and optimize your Claude Code AI assistant usage with powerful analytics**
 
-Transform your Claude Code usage data into actionable insights. 
-Monitor costs, track token consumption, and identify usage patterns across your team with beautiful, 
+Transform your Claude Code usage data into actionable insights.
+Monitor costs, track token consumption, and identify usage patterns across your team with beautiful,
 interactive dashboards.
 
 ## 🎯 Why Claude Code Stats Server?
 
-[Claude Code](https://www.anthropic.com/claude-code) is Anthropic's command-line AI coding assistant that embeds 
-Claude Code directly into your terminal. While it turns hours-long workflows into single commands, 
+[Claude Code](https://www.anthropic.com/claude-code) is Anthropic's command-line AI coding assistant that embeds
+Claude Code directly into your terminal. While it turns hours-long workflows into single commands,
 understanding your usage patterns and costs can be challenging. This server solves that by:
 
 - **📈 Real-time Cost Tracking** - Know exactly how much you're spending daily, weekly, and monthly
@@ -32,7 +32,10 @@ The dashboard provides comprehensive insights into your Claude Code usage:
 - **🔍 Advanced Filtering** - Focus on specific users or models
 
 ### Dashboard URL
-Access your dashboard at: `http://your-server:3000/dashboard`
+The root URL (`http://your-server:3000/`) automatically redirects to the dashboard.
+Direct access: `http://your-server:3000/dashboard`
+
+API documentation (Swagger UI): `http://your-server:3000/swagger`
 
 Query parameters:
 - `?period=week` (default) - Show last 7 days
@@ -74,7 +77,7 @@ Docker Hub: [idachev/claude-code-stats-server](https://hub.docker.com/r/idachev/
 
 ## 📤 Uploading Your Stats
 
-The stats server ingests data from [ccusage](https://github.com/ryoppippi/ccusage), a Claude Code usage tracking CLI tool 
+The stats server ingests data from [ccusage](https://github.com/ryoppippi/ccusage), a Claude Code usage tracking CLI tool
 that provides detailed JSON output of your token consumption and costs.
 
 ### Automatic Upload Script
@@ -113,15 +116,33 @@ curl -X POST \
 
 ## 🔑 User Management
 
-Use our helper scripts for easy user and API key management:
+### Admin Dashboard
+Access the powerful web-based admin dashboard for comprehensive user management:
+- **URL**: `http://your-server:3000/dashboard/admin`
+- **Authentication**: Session-based with CSRF protection (login with admin API key)
+
+#### Key Features:
+- **👤 User Management**: Create users, regenerate API keys, deactivate accounts
+- **🏷️ Tag System**: Organize users with tags for better categorization
+- **🔍 Advanced Search**: Real-time search by username with debouncing
+- **🎯 Smart Filtering**: Filter by single or multiple tags (AND logic)
+- **📊 Pagination**: Customizable page sizes (10, 20, 50, 100 items)
+- **🔄 Sorting**: Sort by username, creation date, or last update
+- **💾 Loading States**: Skeleton loaders and progress indicators
+- **🔔 Toast Notifications**: Non-intrusive feedback for all actions
+- **🔐 Security**: CSRF protection on all state-changing operations
+- **📱 Responsive**: Full-width layout optimized for desktop use
+
+### CLI Scripts
+Use our helper scripts for programmatic user and API key management:
 
 ```bash
 # Set admin credentials
 export CLAUDE_CODE_STATS_SERVER_URL="http://your-server:3000"
 export CLAUDE_CODE_STATS_SERVER_ADMIN_API_KEY="your-admin-key"
 
-# Create a new user
-./utils/helpers/create-user.sh developer1
+# Create a new user with tags
+./utils/helpers/create-user.sh developer1 --tags "team-alpha,backend"
 
 # Regenerate API key for existing user
 ./utils/helpers/regenerate-user.sh developer1

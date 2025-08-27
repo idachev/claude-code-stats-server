@@ -11,6 +11,29 @@ services:
     volumes:
       - ./docker-secrets:/run/secrets
       - claude-code-stats-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U localdev -d claude_code_stats"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Migration service - runs database migrations and exits
+  claude-code-stats-migrate:
+    image: claude-code-stats-server:latest
+    container_name: claude-code-stats-migrate
+    environment:
+      - DB_HOST=claude-code-stats-db
+      - DB_PORT=5432
+      - DB_USER=localdev
+      - DB_PASSWORD=db-test-pass
+      - DB_NAME=claude_code_stats
+    depends_on:
+      claude-code-stats-db:
+        condition: service_healthy
+    # Override the default CMD to run migrations
+    command: ["pnpm", "db:migrate"]
+    # This service will exit after running migrations
+    restart: "no"
 
   claude-code-stats-server:
     image: claude-code-stats-server:latest
@@ -25,6 +48,13 @@ services:
         - DB_NAME=claude_code_stats
     ports:
       - 3000:3000
+    depends_on:
+      # Wait for migrations to complete before starting the server
+      claude-code-stats-migrate:
+        condition: service_completed_successfully
+      claude-code-stats-db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   claude-code-stats-db-data:

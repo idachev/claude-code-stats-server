@@ -23,12 +23,14 @@ We're using PostgreSQL as our primary database with Drizzle ORM for the followin
 ## Database Schema
 
 ### Table: `users`
-Stores unique users who upload statistics.
+Stores unique users who upload statistics with authentication.
 
 ```sql
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    username VARCHAR(128) UNIQUE NOT NULL,
+    api_key_hash VARCHAR(255),
+    is_active BOOLEAN DEFAULT true NOT NULL,
     created_at TIMESTAMP DEFAULT now() NOT NULL,
     updated_at TIMESTAMP DEFAULT now() NOT NULL
 );
@@ -38,7 +40,9 @@ CREATE UNIQUE INDEX username_idx ON users(username);
 
 **Columns:**
 - `id`: Auto-incrementing primary key
-- `username`: Unique identifier for each user (from ccusage upload)
+- `username`: Unique identifier for each user (3-128 characters, alphanumeric with ._-)
+- `api_key_hash`: Bcrypt hash of the user's API key for authentication
+- `is_active`: Soft delete flag (false means deactivated, not deleted)
 - `created_at`: Timestamp when user was first created
 - `updated_at`: Timestamp when user record was last modified
 
@@ -116,6 +120,55 @@ CREATE INDEX usage_stats_model_idx ON model_usage(usage_stats_id, model);
 
 **Indexes:**
 - Composite index on (usage_stats_id, model) for efficient joins and model-specific queries
+
+### Table: `tags`
+Stores tags associated with users for categorization and filtering.
+
+```sql
+CREATE TABLE tags (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT now() NOT NULL,
+    UNIQUE(user_id, name)
+);
+
+CREATE INDEX user_tags_idx ON tags(user_id);
+CREATE INDEX tag_name_idx ON tags(name);
+```
+
+**Columns:**
+- `id`: Auto-incrementing primary key
+- `user_id`: Foreign key to users table
+- `name`: Tag name for categorization
+- `created_at`: Timestamp when tag was created
+
+**Indexes:**
+- Composite unique index on (user_id, name) to prevent duplicate tags per user
+- Index on user_id for fast user-specific queries
+- Index on name for filtering by tag
+
+### Table: `session`
+Stores Express session data for admin dashboard authentication.
+
+```sql
+CREATE TABLE session (
+    sid VARCHAR NOT NULL COLLATE "default",
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (sid)
+);
+
+CREATE INDEX IDX_session_expire ON session(expire);
+```
+
+**Columns:**
+- `sid`: Session ID (primary key)
+- `sess`: Session data stored as JSON
+- `expire`: Session expiration timestamp
+
+**Indexes:**
+- Index on expire for automatic session cleanup
 
 ## Drizzle Schema Definition
 
@@ -227,7 +280,7 @@ CREATE TABLE "usage_stats" (
   -- ... other columns
 );
 
-ALTER TABLE "usage_stats" ADD CONSTRAINT "usage_stats_user_id_users_id_fk" 
+ALTER TABLE "usage_stats" ADD CONSTRAINT "usage_stats_user_id_users_id_fk"
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade;
 
 CREATE UNIQUE INDEX "user_date_idx" ON "usage_stats" ("user_id","date");
@@ -414,6 +467,6 @@ services:
 
 ---
 
-**Document Version**: 2.0
-**Last Updated**: 2025-08-20
+**Document Version**: 3.0
+**Last Updated**: 2025-08-26
 **Technology**: PostgreSQL 17 with Drizzle ORM

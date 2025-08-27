@@ -1,207 +1,219 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Claude Code Stats Sanity Tests", () => {
-	const baseURL = "http://localhost:3000";
-	const adminApiKey = process.env.ADMIN_API_KEY;
+  const baseURL = "http://localhost:3000";
+  const adminApiKey = process.env.ADMIN_API_KEY;
 
-	expect(adminApiKey, "ADMIN_API_KEY environment variable must be set for tests").toBeDefined();
+  expect(adminApiKey, "ADMIN_API_KEY environment variable must be set for tests").toBeDefined();
 
-	test("Health endpoint returns correct structure", async ({ request }) => {
-		const response = await request.get(`${baseURL}/health`);
-		expect(response.ok()).toBeTruthy();
+  test("Health endpoint returns correct structure", async ({ request }) => {
+    const response = await request.get(`${baseURL}/health`);
+    expect(response.ok()).toBeTruthy();
 
-		const json = await response.json();
-		expect(json).toHaveProperty("status");
-		expect(json).toHaveProperty("database");
-		expect(json).toHaveProperty("timestamp");
-		expect(json.status).toBe("ok");
-		expect(json.database).toBe(true);
-	});
+    const json = await response.json();
+    expect(json).toHaveProperty("status");
+    expect(json).toHaveProperty("database");
+    expect(json).toHaveProperty("timestamp");
+    expect(json.status).toBe("ok");
+    expect(json.database).toBe(true);
+  });
 
-	test("Swagger documentation is available", async ({ page, request }) => {
-		// First check that the Swagger JSON is available
-		const swaggerJsonResponse = await request.get(`${baseURL}/swagger.json`);
-		expect(swaggerJsonResponse.ok()).toBeTruthy();
+  test("Root path redirects to dashboard", async ({ page }) => {
+    // Navigate to root and check that it redirects to dashboard
+    const _response = await page.goto(baseURL);
 
-		const swaggerJson = await swaggerJsonResponse.json();
-		expect(swaggerJson).toHaveProperty("openapi");
-		expect(swaggerJson).toHaveProperty("info");
-		expect(swaggerJson.info.title).toContain("Claude Code Stats API");
-		expect(swaggerJson).toHaveProperty("paths");
+    // Check that we ended up at /dashboard
+    expect(page.url()).toBe(`${baseURL}/dashboard`);
 
-		// Then check the Swagger UI
-		await page.goto(baseURL); // Swagger UI is at the root
+    // Verify dashboard loads
+    await page.waitForSelector("#dashboardForm", { timeout: 10000 });
+    await expect(page.locator("h1")).toContainText("Stats");
+  });
 
-		// Wait for Swagger UI to load
-		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
+  test("Swagger documentation is available at /swagger", async ({ page, request }) => {
+    // First check that the Swagger JSON is available
+    const swaggerJsonResponse = await request.get(`${baseURL}/swagger.json`);
+    expect(swaggerJsonResponse.ok()).toBeTruthy();
 
-		// Check if the title is present
-		const title = await page.locator(".info .title").textContent();
-		expect(title).toContain("Claude Code Stats API");
+    const swaggerJson = await swaggerJsonResponse.json();
+    expect(swaggerJson).toHaveProperty("openapi");
+    expect(swaggerJson).toHaveProperty("info");
+    expect(swaggerJson.info.title).toContain("Claude Code Stats API");
+    expect(swaggerJson).toHaveProperty("paths");
 
-		// Check for key endpoints (use first() to handle multiple matches)
-		await expect(page.locator('.opblock-summary-path:has-text("/health")')).toBeVisible();
-		await expect(page.locator('.opblock-summary-path:has-text("/claude-code-stats")').first()).toBeVisible();
-		await expect(page.locator('.opblock-summary-path:has-text("/admin/users")').first()).toBeVisible();
-	});
+    // Then check the Swagger UI at /swagger
+    await page.goto(`${baseURL}/swagger`);
 
-	test("Dashboard loads with correct elements", async ({ page }) => {
-		await page.goto(`${baseURL}/dashboard`);
+    // Wait for Swagger UI to load
+    await page.waitForSelector(".swagger-ui", { timeout: 10000 });
 
-		// Wait for the dashboard form to load
-		await page.waitForSelector("#dashboardForm", { timeout: 10000 });
+    // Check if the title is present
+    const title = await page.locator(".info .title").textContent();
+    expect(title).toContain("Claude Code Stats API");
 
-		// Check main title
-		await expect(page.locator("h1")).toContainText("Stats");
+    // Check for key endpoints (use first() to handle multiple matches)
+    await expect(page.locator('.opblock-summary-path:has-text("/health")')).toBeVisible();
+    await expect(page.locator('.opblock-summary-path:has-text("/claude-code-stats")').first()).toBeVisible();
+    await expect(page.locator('.opblock-summary-path:has-text("/admin/users")').first()).toBeVisible();
+  });
 
-		// Check for key filter elements
-		await expect(page.locator("#periodSelect")).toBeVisible();
-		await expect(page.locator("#metricSelect")).toBeVisible();
-		await expect(page.locator("#groupBySelect")).toBeVisible();
-	});
+  test("Dashboard loads with correct elements", async ({ page }) => {
+    await page.goto(`${baseURL}/dashboard`);
 
-	test("Stats retrieval endpoint works", async ({ request }) => {
-		// Retrieve data without authentication (public endpoint)
-		const getResponse = await request.get(`${baseURL}/claude-code-stats?period=week`);
-		expect(getResponse.ok()).toBeTruthy();
+    // Wait for the dashboard form to load
+    await page.waitForSelector("#dashboardForm", { timeout: 10000 });
 
-		const responseData = await getResponse.json();
-		expect(responseData).toHaveProperty("period");
-		expect(responseData).toHaveProperty("stats");
-		expect(Array.isArray(responseData.stats)).toBe(true);
-		expect(responseData).toHaveProperty("startDate");
-		expect(responseData).toHaveProperty("endDate");
-		expect(responseData).toHaveProperty("summary");
+    // Check main title
+    await expect(page.locator("h1")).toContainText("Stats");
 
-		// Check summary structure
-		if (responseData.summary) {
-			expect(responseData.summary).toHaveProperty("totalCost");
-			expect(responseData.summary).toHaveProperty("totalTokens");
-			expect(responseData.summary).toHaveProperty("uniqueUsers");
-			expect(responseData.summary).toHaveProperty("totalDays");
-		}
-	});
+    // Check for key filter elements
+    await expect(page.locator("#periodSelect")).toBeVisible();
+    await expect(page.locator("#metricSelect")).toBeVisible();
+    await expect(page.locator("#groupBySelect")).toBeVisible();
+  });
 
-	test("Dashboard filters work correctly", async ({ page }) => {
-		await page.goto(`${baseURL}/dashboard`);
-		await page.waitForSelector("#dashboardForm", { timeout: 10000 });
+  test("Stats retrieval endpoint works", async ({ request }) => {
+    // Retrieve data without authentication (public endpoint)
+    const getResponse = await request.get(`${baseURL}/claude-code-stats?period=week`);
+    expect(getResponse.ok()).toBeTruthy();
 
-		// Test period filter
-		const periodSelect = page.locator("#periodSelect");
-		await periodSelect.selectOption("all");
+    const responseData = await getResponse.json();
+    expect(responseData).toHaveProperty("period");
+    expect(responseData).toHaveProperty("stats");
+    expect(Array.isArray(responseData.stats)).toBe(true);
+    expect(responseData).toHaveProperty("startDate");
+    expect(responseData).toHaveProperty("endDate");
+    expect(responseData).toHaveProperty("summary");
 
-		// Form should auto-submit on change due to JavaScript
-		await page.waitForTimeout(1000);
+    // Check summary structure
+    if (responseData.summary) {
+      expect(responseData.summary).toHaveProperty("totalCost");
+      expect(responseData.summary).toHaveProperty("totalTokens");
+      expect(responseData.summary).toHaveProperty("uniqueUsers");
+      expect(responseData.summary).toHaveProperty("totalDays");
+    }
+  });
 
-		// Verify page still loads
-		await expect(page.locator("#dashboardForm")).toBeVisible();
+  test("Dashboard filters work correctly", async ({ page }) => {
+    await page.goto(`${baseURL}/dashboard`);
+    await page.waitForSelector("#dashboardForm", { timeout: 10000 });
 
-		// Test metric filter
-		const metricSelect = page.locator("#metricSelect");
-		await metricSelect.selectOption("cost");
-		await page.waitForTimeout(1000);
+    // Test period filter
+    const periodSelect = page.locator("#periodSelect");
+    await periodSelect.selectOption("all");
 
-		// Test group by filter
-		const groupBySelect = page.locator("#groupBySelect");
-		await groupBySelect.selectOption("model");
-		await page.waitForTimeout(1000);
+    // Form should auto-submit on change due to JavaScript
+    await page.waitForTimeout(1000);
 
-		// Verify page still has the form
-		await expect(page.locator("#dashboardForm")).toBeVisible();
-	});
+    // Verify page still loads
+    await expect(page.locator("#dashboardForm")).toBeVisible();
 
-	test("Stats upload requires authentication", async ({ request }) => {
-		// Test without username parameter - should fail with 400
-		const noUsernameResponse = await request.post(`${baseURL}/claude-code-stats`, {
-			data: {
-				daily: [],
-			},
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
-		expect(noUsernameResponse.status()).toBe(400);
+    // Test metric filter
+    const metricSelect = page.locator("#metricSelect");
+    await metricSelect.selectOption("cost");
+    await page.waitForTimeout(1000);
 
-		// Test with username but without API key - should fail with 401
-		const noKeyResponse = await request.post(`${baseURL}/claude-code-stats?username=test-user`, {
-			data: {
-				daily: [],
-			},
-			headers: {
-				"Content-Type": "application/json",
-			},
-		});
-		expect(noKeyResponse.status()).toBe(401);
+    // Test group by filter
+    const groupBySelect = page.locator("#groupBySelect");
+    await groupBySelect.selectOption("model");
+    await page.waitForTimeout(1000);
 
-		// Test with username and invalid API key - should fail with 401
-		const invalidResponse = await request.post(`${baseURL}/claude-code-stats?username=test-user`, {
-			data: {
-				daily: [],
-			},
-			headers: {
-				"Content-Type": "application/json",
-				"X-API-Key": "invalid-api-key",
-			},
-		});
-		expect(invalidResponse.status()).toBe(401);
-	});
+    // Verify page still has the form
+    await expect(page.locator("#dashboardForm")).toBeVisible();
+  });
 
-	test("Admin endpoints require authentication", async ({ request }) => {
-		// Test without admin key - should fail
-		const noKeyResponse = await request.get(`${baseURL}/admin/users`);
-		expect(noKeyResponse.status()).toBe(401);
+  test("Stats upload requires authentication", async ({ request }) => {
+    // Test without username parameter - should fail with 400
+    const noUsernameResponse = await request.post(`${baseURL}/claude-code-stats`, {
+      data: {
+        daily: [],
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    expect(noUsernameResponse.status()).toBe(400);
 
-		// Test with invalid admin key - should fail
-		const invalidResponse = await request.get(`${baseURL}/admin/users`, {
-			headers: {
-				"X-Admin-Key": "invalid-admin-key",
-			},
-		});
-		expect(invalidResponse.status()).toBe(401);
+    // Test with username but without API key - should fail with 401
+    const noKeyResponse = await request.post(`${baseURL}/claude-code-stats?username=test-user`, {
+      data: {
+        daily: [],
+      },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    expect(noKeyResponse.status()).toBe(401);
 
-		// Test with valid admin key - should work
-		const validResponse = await request.get(`${baseURL}/admin/users`, {
-			headers: {
-				"X-Admin-Key": adminApiKey,
-			},
-		});
-		expect(validResponse.ok()).toBeTruthy();
-	});
+    // Test with username and invalid API key - should fail with 401
+    const invalidResponse = await request.post(`${baseURL}/claude-code-stats?username=test-user`, {
+      data: {
+        daily: [],
+      },
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": "invalid-api-key",
+      },
+    });
+    expect(invalidResponse.status()).toBe(401);
+  });
 
-	test("Swagger UI Try it out functionality", async ({ page }) => {
-		await page.goto(baseURL); // Swagger UI is at the root
-		await page.waitForSelector(".swagger-ui", { timeout: 10000 });
+  test("Admin endpoints require authentication", async ({ request }) => {
+    // Test without admin key - should fail
+    const noKeyResponse = await request.get(`${baseURL}/admin/users`);
+    expect(noKeyResponse.status()).toBe(401);
 
-		// Expand the health endpoint using a more specific selector
-		const healthEndpoint = page
-			.locator(".opblock-tag-section")
-			.filter({ hasText: "Health" })
-			.locator(".opblock")
-			.first();
-		await healthEndpoint.click();
+    // Test with invalid admin key - should fail
+    const invalidResponse = await request.get(`${baseURL}/admin/users`, {
+      headers: {
+        "X-Admin-Key": "invalid-admin-key",
+      },
+    });
+    expect(invalidResponse.status()).toBe(401);
 
-		// Wait for the endpoint to expand
-		await page.waitForTimeout(500);
+    // Test with valid admin key - should work
+    const validResponse = await request.get(`${baseURL}/admin/users`, {
+      headers: {
+        "X-Admin-Key": adminApiKey,
+      },
+    });
+    expect(validResponse.ok()).toBeTruthy();
+  });
 
-		// Check if Try it out button is visible
-		const tryItOutBtn = page.locator(".btn.try-out__btn").first();
-		await expect(tryItOutBtn).toBeVisible();
+  test("Swagger UI Try it out functionality", async ({ page }) => {
+    await page.goto(`${baseURL}/swagger`);
+    await page.waitForSelector(".swagger-ui", { timeout: 10000 });
 
-		// Click Try it out
-		await tryItOutBtn.click();
+    // Expand the health endpoint using a more specific selector
+    const healthEndpoint = page
+      .locator(".opblock-tag-section")
+      .filter({ hasText: "Health" })
+      .locator(".opblock")
+      .first();
+    await healthEndpoint.click();
 
-		// Wait for the execute button to appear
-		await page.waitForTimeout(500);
+    // Wait for the endpoint to expand
+    await page.waitForTimeout(500);
 
-		// Execute the request
-		const executeBtn = page.locator(".btn.execute").first();
-		await executeBtn.click();
+    // Check if Try it out button is visible
+    const tryItOutBtn = page.locator(".btn.try-out__btn").first();
+    await expect(tryItOutBtn).toBeVisible();
 
-		// Wait for response
-		await page.waitForSelector(".responses-inner", { timeout: 10000 });
+    // Click Try it out
+    await tryItOutBtn.click();
 
-		// Verify successful response
-		const responseCode = page.locator(".response .response-col_status").first();
-		await expect(responseCode).toContainText("200");
-	});
+    // Wait for the execute button to appear
+    await page.waitForTimeout(500);
+
+    // Execute the request
+    const executeBtn = page.locator(".btn.execute").first();
+    await executeBtn.click();
+
+    // Wait for response
+    await page.waitForSelector(".responses-inner", { timeout: 10000 });
+
+    // Verify successful response
+    const responseCode = page.locator(".response .response-col_status").first();
+    await expect(responseCode).toContainText("200");
+  });
 });

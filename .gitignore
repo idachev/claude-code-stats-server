@@ -46,3 +46,8 @@ tmp
 
 *.sln
 *.sw?
+
+version.txt
+
+src/public/css/theme.css
+src/public/css/theme.css.map

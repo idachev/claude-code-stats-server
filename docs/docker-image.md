@@ -40,6 +40,26 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d claude_code_stats"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Run migrations automatically
+  migrate:
+    image: idachev/claude-code-stats-server:latest
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: claude_code_stats
+      DB_USER: postgres
+      DB_PASSWORD: secretpassword
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["pnpm", "db:migrate"]
+    restart: "no"
 
   stats-server:
     image: idachev/claude-code-stats-server:latest
@@ -54,7 +74,8 @@ services:
       ADMIN_API_KEY: your-admin-key
       NODE_ENV: production
     depends_on:
-      - postgres
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
@@ -64,6 +85,8 @@ Then run:
 ```bash
 docker-compose up -d
 ```
+
+The setup now includes automatic database migrations that run before the application starts.
 
 ## Environment Variables
 
@@ -81,7 +104,7 @@ docker-compose up -d
 - `NODE_ENV` - Environment mode (`development` or `production`, default: `development`)
 - `PORT` - Server port (default: `3000`)
 - `HOST` - Server host (default: `localhost`)
-- `CORS_ORIGIN` - CORS allowed origin (default: `http://localhost:3000`)
+- `CORS_ORIGIN` - CORS allowed origins. Supports single or multiple (comma-separated) URLs, or `*` for all origins (default: `http://localhost:3000`)
 - `COMMON_RATE_LIMIT_WINDOW_MS` - Rate limit window in milliseconds (default: `1000`)
 - `COMMON_RATE_LIMIT_MAX_REQUESTS` - Max requests per window (default: `20`)
 - `DB_MAX_CONNECTIONS` - Max database connections (default: `20`)

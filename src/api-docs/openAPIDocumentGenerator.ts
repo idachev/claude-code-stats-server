@@ -4,6 +4,7 @@ import { healthRegistry } from "@/api/health/healthRouter";
 import { statsRegistry } from "@/api/stats/statsRouter";
 import { tagRegistry } from "@/api/tags/tagRouter";
 import { userRegistry } from "@/api/user/userRouter";
+import { adminViewRegistry } from "@/api/views/adminViewRouter";
 import { viewsRegistry } from "@/api/views/viewsRouter";
 import { ErrorResponseSchema } from "@/common/models/errorResponse";
 import { registerSecuritySchemes } from "./securitySchemes";
@@ -11,33 +12,40 @@ import { registerSecuritySchemes } from "./securitySchemes";
 export type OpenAPIDocument = ReturnType<OpenApiGeneratorV3["generateDocument"]>;
 
 export function generateOpenAPIDocument(): OpenAPIDocument {
-	const registry = new OpenAPIRegistry([healthRegistry, userRegistry, statsRegistry, viewsRegistry, tagRegistry]);
+  const registry = new OpenAPIRegistry([
+    healthRegistry,
+    userRegistry,
+    statsRegistry,
+    viewsRegistry,
+    tagRegistry,
+    adminViewRegistry, // Add admin view endpoints
+  ]);
 
-	// Register common schemas
-	registry.register("ErrorResponse", ErrorResponseSchema);
+  // Register common schemas
+  registry.register("ErrorResponse", ErrorResponseSchema);
 
-	// Register security schemes
-	registerSecuritySchemes(registry);
+  // Register security schemes
+  registerSecuritySchemes(registry);
 
-	const generator = new OpenApiGeneratorV3(registry.definitions);
+  const generator = new OpenApiGeneratorV3(registry.definitions);
 
-	return generator.generateDocument({
-		openapi: "3.0.0",
-		info: {
-			version: "1.0.0",
-			title: "Claude Code Stats API",
-			description: "API for managing Claude Code usage statistics",
-		},
-		servers: [
-			{
-				url: "http://localhost:3000",
-				description: "Development server",
-			},
-		],
-		externalDocs: {
-			description: "View the raw OpenAPI Specification in JSON format",
-			url: "/swagger.json",
-		},
-		security: [],
-	});
+  return generator.generateDocument({
+    openapi: "3.0.0",
+    info: {
+      version: "1.0.0",
+      title: "Claude Code Stats API",
+      description: "API for managing Claude Code usage statistics",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Development server",
+      },
+    ],
+    externalDocs: {
+      description: "View the raw OpenAPI Specification in JSON format",
+      url: "/swagger.json",
+    },
+    security: [],
+  });
 }

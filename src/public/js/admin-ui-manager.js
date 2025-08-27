@@ -225,18 +225,18 @@ class AdminUIManager {
       const tbody = document.querySelector("#users-table tbody");
       if (tbody) {
         tbody.innerHTML = `
-					<tr>
-						<td colspan="5" class="px-6 py-8 text-center">
-							<div class="text-red-400">
-								<p class="mb-2">Failed to load users</p>
-								<button class="retry-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-									data-retry="loadUsers">
-									Try Again
-								</button>
-							</div>
-						</td>
-					</tr>
-				`;
+          <tr>
+            <td colspan="5" class="px-6 py-8 text-center">
+              <div class="text-red-400">
+                <p class="mb-2">Failed to load users</p>
+                <button class="retry-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  data-retry="loadUsers">
+                  Try Again
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
       }
     } finally {
       this.hideLoading();
@@ -252,59 +252,59 @@ class AdminUIManager {
 
     if (users.length === 0) {
       tbody.innerHTML = `
-				<tr>
-					<td colspan="5" class="px-6 py-8 text-center text-gray-500">
-						No users found
-					</td>
-				</tr>
-			`;
+        <tr>
+          <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+            No users found
+          </td>
+        </tr>
+      `;
       return;
     }
 
     tbody.innerHTML = users
       .map(
         (user) => `
-			<tr class="hover:bg-dark-bg transition-colors">
-				<td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
-				<td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
-				<td class="px-6 py-4">
-					<div class="flex flex-wrap gap-1">
-						${user.tags
+      <tr class="hover:bg-dark-bg transition-colors">
+        <td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
+        <td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
+        <td class="px-6 py-4">
+          <div class="flex flex-wrap gap-1">
+            ${user.tags
               .map(
                 (tag) => `
-							<span class="px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
-								${this.escapeHtml(tag)}
-							</span>
-						`,
+              <span class="inline-flex items-center px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+                ${this.escapeHtml(tag)}
+              </span>
+            `,
               )
               .join("")}
-					</div>
-				</td>
-				<td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
-				<td class="px-6 py-4">
-					<div class="flex gap-2">
-						<button data-action="manage-tags" data-username="${this.escapeHtml(user.username)}"
-							class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-							</svg>
-						</button>
-						<button data-action="regenerate-key" data-username="${this.escapeHtml(user.username)}"
-							class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-							</svg>
-						</button>
-						<button data-action="deactivate" data-username="${this.escapeHtml(user.username)}"
-							class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
-							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-							</svg>
-						</button>
-					</div>
-				</td>
-			</tr>
-		`,
+          </div>
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
+        <td class="px-6 py-4">
+          <div class="flex gap-2">
+            <button data-action="manage-tags" data-username="${this.escapeHtml(user.username)}"
+              class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+              </svg>
+            </button>
+            <button data-action="regenerate-key" data-username="${this.escapeHtml(user.username)}"
+              class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+              </svg>
+            </button>
+            <button data-action="deactivate" data-username="${this.escapeHtml(user.username)}"
+              class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `,
       )
       .join("");
   }
@@ -325,21 +325,21 @@ class AdminUIManager {
     const end = Math.min(pagination.page * pagination.limit, pagination.total);
 
     let html = `
-			<div class="flex items-center justify-between">
-				<div class="text-sm text-gray-400">
-					Showing ${start} to ${end} of ${pagination.total} users
-				</div>
-				<div class="flex gap-2">
-		`;
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-400">
+          Showing ${start} to ${end} of ${pagination.total} users
+        </div>
+        <div class="flex gap-2">
+    `;
 
     // Previous button
     if (pagination.page > 1) {
       html += `
-				<button data-page="${pagination.page - 1}"
-					class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-					Previous
-				</button>
-			`;
+        <button data-page="${pagination.page - 1}"
+          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
+          Previous
+        </button>
+      `;
     }
 
     // Page numbers
@@ -350,33 +350,33 @@ class AdminUIManager {
       } else {
         const isActive = p === pagination.page;
         html += `
-					<button data-page="${p}"
-						class="pagination-btn px-3 py-1 ${
+          <button data-page="${p}"
+            class="pagination-btn px-3 py-1 ${
               isActive
                 ? "bg-blue-600 text-white"
                 : "bg-dark-bg border border-dark-border text-gray-300 hover:bg-gray-700"
             }
-						rounded transition-colors">
-						${p}
-					</button>
-				`;
+            rounded transition-colors">
+            ${p}
+          </button>
+        `;
       }
     });
 
     // Next button
     if (pagination.page < pagination.totalPages) {
       html += `
-				<button data-page="${pagination.page + 1}"
-					class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-					Next
-				</button>
-			`;
+        <button data-page="${pagination.page + 1}"
+          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
+          Next
+        </button>
+      `;
     }
 
     html += `
-				</div>
-			</div>
-		`;
+        </div>
+      </div>
+    `;
 
     container.innerHTML = html;
   }
@@ -613,10 +613,10 @@ class AdminUIManager {
             const color = window.TagColors.getTagColor(tag);
 
             return `
-					<span class="px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
-						${this.escapeHtml(tag)}
-					</span>
-				`;
+          <span class="inline-flex items-center px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
+            ${this.escapeHtml(tag)}
+          </span>
+        `;
           })
           .join("");
       } else {
@@ -787,11 +787,11 @@ class AdminUIManager {
     const toast = document.createElement("div");
     toast.className = `toast-notification fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full z-[70]`;
     toast.innerHTML = `
-			<div class="flex items-center gap-3">
-				${this.getToastIcon(type)}
-				<span>${this.escapeHtml(message)}</span>
-			</div>
-		`;
+      <div class="flex items-center gap-3">
+        ${this.getToastIcon(type)}
+        <span>${this.escapeHtml(message)}</span>
+      </div>
+    `;
 
     document.body.appendChild(toast);
 
@@ -815,14 +815,14 @@ class AdminUIManager {
   getToastIcon(type) {
     const icons = {
       success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-			</svg>`,
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>`,
       error: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-			</svg>`,
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>`,
       info: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-			</svg>`,
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>`,
     };
 
     return icons[type] || icons.info;

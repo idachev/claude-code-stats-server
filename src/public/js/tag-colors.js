@@ -43,7 +43,7 @@ window.TagColors = (() => {
   function createTagElement(tag, escapeHtml) {
     const color = getTagColor(tag);
     const escapedTag = escapeHtml ? escapeHtml(tag) : tag;
-    return `<span class="px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">${escapedTag}</span>`;
+    return `<span class="inline-flex items-center px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">${escapedTag}</span>`;
   }
 
   // Public API

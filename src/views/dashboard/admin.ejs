@@ -13,19 +13,19 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-		// Configure Tailwind with our custom theme colors
-		tailwind.config = {
-			theme: {
-				extend: {
-					colors: {
-						"dark-bg": "#1a1a1a",
-						"dark-card": "#2a2a2a",
-						"dark-border": "#3a3a3a",
-					},
-				},
-			},
-		};
-	</script>
+    // Configure Tailwind with our custom theme colors
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            "dark-bg": "#1a1a1a",
+            "dark-card": "#2a2a2a",
+            "dark-border": "#3a3a3a",
+          },
+        },
+      },
+    };
+  </script>
   </head>
 
   <body class="bg-dark-bg text-gray-100">
@@ -89,7 +89,7 @@
 
           <!-- Advanced Filters Panel (Hidden by default) -->
           <div id="advanced-filters" class="hidden mt-4 pt-4 border-t border-dark-border">
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-300 mb-1">Sort By</label>
                 <select id="sort-by"
@@ -105,16 +105,6 @@
                   class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100">
                   <option value="desc">Descending</option>
                   <option value="asc">Ascending</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-1">Items Per Page</label>
-                <select id="page-limit"
-                  class="w-full px-3 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100">
-                  <option value="10">10</option>
-                  <option value="20" selected>20</option>
-                  <option value="50">50</option>
-                  <option value="100">100</option>
                 </select>
               </div>
             </div>
@@ -302,299 +292,319 @@
 
     <!-- Initialize Admin UI -->
     <script>
-		// Initialize with server-rendered data
-		const initialData = <%- JSON.stringify({
-			users: initialData.users,
-			tags: initialData.tags,
-			sessionTimeout: initialData.sessionTimeout,
-			pagination: {
-				page: 1,
-				limit: 20,
-				total: initialData.users.length,
-				totalPages: Math.ceil(initialData.users.length / 20)
-			}
-		}) %>;
+    // Initialize with data from server
+    const initialData = <%- JSON.stringify({
+      tags: initialData.tags,
+      sessionTimeout: initialData.sessionTimeout,
+      csrfToken: initialData.csrfToken,
+      pageSize: initialData.pageSize,
+      pageSizes: initialData.pageSizes
+    }) %>;
 
-		// Session timer
-		let sessionTimeout = initialData.sessionTimeout;
-		let timeRemaining = sessionTimeout;
+    // Session timer
+    let sessionTimeout = initialData.sessionTimeout;
+    let timeRemaining = sessionTimeout;
 
-		function updateSessionTimer() {
-			const minutes = Math.floor(timeRemaining / 60);
-			const seconds = timeRemaining % 60;
-			document.getElementById('session-timer').textContent =
-				`${minutes}:${seconds.toString().padStart(2, '0')}`;
+    function updateSessionTimer() {
+      const minutes = Math.floor(timeRemaining / 60);
+      const seconds = timeRemaining % 60;
+      document.getElementById('session-timer').textContent =
+        `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-			if (timeRemaining > 0) {
-				timeRemaining--;
-				setTimeout(updateSessionTimer, 1000);
-			} else {
-				showSessionExpiredModal();
-			}
-		}
-		
-		function showSessionExpiredModal() {
-			const modal = document.getElementById('sessionExpiredModal');
-			const countdownEl = document.getElementById('redirectCountdown');
-			const okBtn = document.getElementById('sessionExpiredOkBtn');
-			
-			if (modal) {
-				modal.classList.remove('hidden');
-				
-				// Auto-redirect countdown
-				let countdown = 3;
-				const countdownInterval = setInterval(() => {
-					countdown--;
-					if (countdownEl) {
-						countdownEl.textContent = countdown.toString();
-					}
-					if (countdown <= 0) {
-						clearInterval(countdownInterval);
-						window.location.href = '/dashboard/admin';
-					}
-				}, 1000);
-				
-				// OK button handler
-				if (okBtn) {
-					okBtn.onclick = () => {
-						clearInterval(countdownInterval);
-						window.location.href = '/dashboard/admin';
-					};
-				}
-			}
-		}
+      if (timeRemaining > 0) {
+        timeRemaining--;
+        setTimeout(updateSessionTimer, 1000);
+      } else {
+        showSessionExpiredModal();
+      }
+    }
 
-		updateSessionTimer();
+    function showSessionExpiredModal() {
+      const modal = document.getElementById('sessionExpiredModal');
+      const countdownEl = document.getElementById('redirectCountdown');
+      const okBtn = document.getElementById('sessionExpiredOkBtn');
 
-		// Initialize the Admin UI Manager
-		let adminUI;
-		document.addEventListener('DOMContentLoaded', async () => {
-			// Apply colors to tag filter checkboxes
-			document.querySelectorAll('.tag-label[data-tag]').forEach(tagElement => {
-				const tag = tagElement.dataset.tag;
-				const color = window.TagColors.getTagColor(tag);
-				tagElement.classList.add(color.bg, color.text, 'border', color.border);
-			});
+      if (modal) {
+        modal.classList.remove('hidden');
 
-			const apiClient = new AdminApiClient();
-			const templateLoader = await new TemplateLoader().init();
+        // Auto-redirect countdown
+        let countdown = 3;
+        const countdownInterval = setInterval(() => {
+          countdown--;
+          if (countdownEl) {
+            countdownEl.textContent = countdown.toString();
+          }
+          if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            window.location.href = '/dashboard/admin';
+          }
+        }, 1000);
 
-			// Create enhanced UI manager with template support
-			class EnhancedAdminUIManager extends AdminUIManager {
-				constructor(apiClient, templateLoader) {
-					super(apiClient);
-					this.templates = templateLoader;
-				}
+        // OK button handler
+        if (okBtn) {
+          okBtn.onclick = () => {
+            clearInterval(countdownInterval);
+            window.location.href = '/dashboard/admin';
+          };
+        }
+      }
+    }
 
-				// Override render methods to use templates
-				renderUsersTable(users) {
-					const tbody = document.querySelector('#users-table tbody');
-					if (!tbody) return;
+    updateSessionTimer();
 
-					if (users.length === 0) {
-						tbody.innerHTML = this.templates.renderEmptyState();
-						return;
-					}
+    // Initialize the Admin UI Manager
+    let adminUI;
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Apply colors to tag filter checkboxes
+      document.querySelectorAll('.tag-label[data-tag]').forEach(tagElement => {
+        const tag = tagElement.dataset.tag;
+        const color = window.TagColors.getTagColor(tag);
+        tagElement.classList.add(color.bg, color.text, 'border', color.border);
+      });
 
-					tbody.innerHTML = users.map(user => this.templates.renderUserRow(user)).join('');
-				}
+      const apiClient = new AdminApiClient();
+      const templateLoader = await new TemplateLoader().init();
 
-				renderPagination(pagination) {
-					const container = document.getElementById('pagination-controls');
-					if (!container) {
-						return;
-					}
-					container.innerHTML = this.templates.renderPagination(pagination);
-				}
+      // Create enhanced UI manager with template support
+      class EnhancedAdminUIManager extends AdminUIManager {
+        constructor(apiClient, templateLoader, initialPageSize, pageSizes) {
+          super(apiClient);
+          this.templates = templateLoader;
+          // Set initial page size from server or default
+          this.pageLimit = initialPageSize || 20;
+          // Store available page sizes from server config
+          this.pageSizes = pageSizes || [10, 20, 50, 100];
+        }
 
-				setLoading(loading) {
-					this.isLoading = loading;
-					const tbody = document.querySelector('#users-table tbody');
-					if (loading && tbody) {
-						tbody.innerHTML = this.templates.renderLoadingState();
-					}
-				}
+        /**
+         * Update URL query parameters without page reload
+         */
+        updateURLParameter(param, value) {
+          const url = new URL(window.location);
+          if (value) {
+            url.searchParams.set(param, value);
+          } else {
+            url.searchParams.delete(param);
+          }
+          window.history.replaceState({}, '', url);
+        }
 
-				showToast(message, type = 'info') {
-					const toastContainer = document.getElementById('toastContainer');
-					if (!toastContainer) {
-						// Fallback to parent implementation
-						super.showToast(message, type);
-						return;
-					}
+        // Override render methods to use templates
+        renderUsersTable(users) {
+          const tbody = document.querySelector('#users-table tbody');
+          if (!tbody) return;
 
-					const toast = this.templates.createToast(message, type);
-					toastContainer.appendChild(toast);
+          if (users.length === 0) {
+            tbody.innerHTML = this.templates.renderEmptyState();
+            return;
+          }
 
-					// Animate in
-					setTimeout(() => {
-						toast.classList.remove('translate-x-full');
-						toast.classList.add('translate-x-0');
-					}, 10);
+          tbody.innerHTML = users.map(user => this.templates.renderUserRow(user)).join('');
+        }
 
-					// Remove after delay
-					setTimeout(() => {
-						toast.classList.add('translate-x-full');
-						setTimeout(() => toast.remove(), 300);
-					}, 3000);
-				}
+        renderPagination(pagination) {
+          const container = document.getElementById('pagination-controls');
+          if (!container) {
+            return;
+          }
+          // Add pageSizes to pagination data for template
+          const paginationWithSizes = {
+            ...pagination,
+            pageSizes: this.pageSizes
+          };
+          container.innerHTML = this.templates.renderPagination(paginationWithSizes);
 
-				// Additional methods for API key modal
-				showApiKeyModal(apiKey) {
-					const modal = document.getElementById('apiKeyModal');
-					const display = document.getElementById('apiKeyDisplay');
+          // Add event listener for the new page size selector
+          const pageSizeSelector = document.getElementById('page-size-selector');
+          if (pageSizeSelector) {
+            pageSizeSelector.addEventListener('change', (e) => {
+              this.pageLimit = parseInt(e.target.value);
+              this.currentPage = 1;
+              // Update URL parameter when page size changes
+              this.updateURLParameter('pageSize', this.pageLimit);
+              this.loadUsers();
+            });
+          }
+        }
 
-					if (modal && display) {
-						display.textContent = apiKey;
-						modal.classList.remove('hidden');
-					} else {
-						// Fallback to parent implementation
-						super.showApiKeyModal(apiKey);
-					}
-				}
+        setLoading(loading) {
+          this.isLoading = loading;
+          const tbody = document.querySelector('#users-table tbody');
+          if (loading && tbody) {
+            tbody.innerHTML = this.templates.renderLoadingState();
+          }
+        }
 
-				async closeApiKeyModal() {
-					const modal = document.getElementById('apiKeyModal');
-					if (modal) {
-						modal.classList.add('hidden');
-					}
+        showToast(message, type = 'info') {
+          const toastContainer = document.getElementById('toastContainer');
+          if (!toastContainer) {
+            // Fallback to parent implementation
+            super.showToast(message, type);
+            return;
+          }
 
-					// Always refresh users after closing API key modal if needed
-					// This covers both create user and regenerate key scenarios
-					if (this.needsUserRefresh) {
-						this.needsUserRefresh = false;
-						await this.loadUsers();
-					}
-				}
+          const toast = this.templates.createToast(message, type);
+          toastContainer.appendChild(toast);
 
-				async copyApiKey() {
-					const display = document.getElementById('apiKeyDisplay');
-					const btn = document.getElementById('copyApiKeyBtn');
+          // Animate in
+          setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+          }, 10);
 
-					if (display && btn) {
-						try {
-							await navigator.clipboard.writeText(display.textContent);
-							const originalText = btn.textContent;
-							btn.textContent = 'Copied!';
-							btn.classList.add('bg-green-600');
+          // Remove after delay
+          setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+          }, 3000);
+        }
 
-							setTimeout(() => {
-								btn.textContent = originalText;
-								btn.classList.remove('bg-green-600');
-							}, 2000);
-						} catch (error) {
-							this.showError('Failed to copy to clipboard');
-						}
-					}
-				}
-			}
+        // Additional methods for API key modal
+        showApiKeyModal(apiKey) {
+          const modal = document.getElementById('apiKeyModal');
+          const display = document.getElementById('apiKeyDisplay');
 
-			adminUI = new EnhancedAdminUIManager(apiClient, templateLoader);
+          if (modal && display) {
+            display.textContent = apiKey;
+            modal.classList.remove('hidden');
+          } else {
+            // Fallback to parent implementation
+            super.showApiKeyModal(apiKey);
+          }
+        }
 
-			// Make adminUI globally accessible for onclick handlers
-			window.adminUI = adminUI;
+        async closeApiKeyModal() {
+          const modal = document.getElementById('apiKeyModal');
+          if (modal) {
+            modal.classList.add('hidden');
+          }
 
-			// Sync initial filter values from HTML dropdowns
-			const sortByEl = document.getElementById('sort-by');
-			const sortOrderEl = document.getElementById('sort-order');
-			const pageLimitEl = document.getElementById('page-limit');
+          // Always refresh users after closing API key modal if needed
+          // This covers both create user and regenerate key scenarios
+          if (this.needsUserRefresh) {
+            this.needsUserRefresh = false;
+            await this.loadUsers();
+          }
+        }
 
-			if (sortByEl) adminUI.sortBy = sortByEl.value;
-			if (sortOrderEl) adminUI.sortOrder = sortOrderEl.value;
-			if (pageLimitEl) adminUI.pageLimit = parseInt(pageLimitEl.value);
+        async copyApiKey() {
+          const display = document.getElementById('apiKeyDisplay');
+          const btn = document.getElementById('copyApiKeyBtn');
 
-			// Load initial data after everything is set up
-			// This will fetch users with proper filters and render with correct colors
-			adminUI.loadInitialData();
+          if (display && btn) {
+            try {
+              await navigator.clipboard.writeText(display.textContent);
+              const originalText = btn.textContent;
+              btn.textContent = 'Copied!';
+              btn.classList.add('bg-green-600');
 
-			// Initialize button event listeners
-			document.getElementById('create-user-btn')?.addEventListener('click', () => {
-				adminUI.showCreateUserModal();
-			});
+              setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('bg-green-600');
+              }, 2000);
+            } catch (error) {
+              this.showError('Failed to copy to clipboard');
+            }
+          }
+        }
+      }
 
-			document.getElementById('cancel-create-user-btn')?.addEventListener('click', () => {
-				adminUI.closeCreateUserModal();
-			});
+      adminUI = new EnhancedAdminUIManager(apiClient, templateLoader, initialData.pageSize, initialData.pageSizes);
 
-			document.getElementById('cancel-manage-tags-btn')?.addEventListener('click', () => {
-				adminUI.closeManageTagsModal();
-			});
+      // Make adminUI globally accessible for onclick handlers
+      window.adminUI = adminUI;
 
-			document.getElementById('copyApiKeyBtn')?.addEventListener('click', () => {
-				adminUI.copyApiKey();
-			});
+      // Sync initial filter values from HTML dropdowns
+      const sortByEl = document.getElementById('sort-by');
+      const sortOrderEl = document.getElementById('sort-order');
 
-			document.getElementById('closeApiKeyBtn')?.addEventListener('click', async () => {
-				await adminUI.closeApiKeyModal();
-			});
+      if (sortByEl) adminUI.sortBy = sortByEl.value;
+      if (sortOrderEl) adminUI.sortOrder = sortOrderEl.value;
+      // Page limit defaults to 20 as set in adminUI constructor
 
-			// Initialize search input with debouncing
-			let searchTimeout;
-			const searchInput = document.getElementById('search-input');
-			if (searchInput) {
-				searchInput.addEventListener('input', (e) => {
-					clearTimeout(searchTimeout);
-					const searchValue = e.target.value.trim();
+      // Load initial data after everything is set up
+      // This will fetch users with proper filters and render with correct colors
+      adminUI.loadInitialData();
 
-					// Debounce search by 300ms
-					searchTimeout = setTimeout(() => {
-						adminUI.searchTerm = searchValue;
-						adminUI.currentPage = 1; // Reset to first page on search
-						adminUI.loadUsers();
-					}, 300);
-				});
-			}
+      // Initialize button event listeners
+      document.getElementById('create-user-btn')?.addEventListener('click', () => {
+        adminUI.showCreateUserModal();
+      });
 
-			// Initialize advanced filters toggle
-			document.getElementById('advanced-filters-btn')?.addEventListener('click', () => {
-				const panel = document.getElementById('advanced-filters');
-				panel?.classList.toggle('hidden');
-			});
+      document.getElementById('cancel-create-user-btn')?.addEventListener('click', () => {
+        adminUI.closeCreateUserModal();
+      });
 
-			// Initialize sort and filter controls
-			document.getElementById('sort-by')?.addEventListener('change', (e) => {
-				adminUI.sortBy = e.target.value;
-				adminUI.currentPage = 1;
-				adminUI.loadUsers();
-			});
+      document.getElementById('cancel-manage-tags-btn')?.addEventListener('click', () => {
+        adminUI.closeManageTagsModal();
+      });
 
-			document.getElementById('sort-order')?.addEventListener('change', (e) => {
-				adminUI.sortOrder = e.target.value;
-				adminUI.currentPage = 1;
-				adminUI.loadUsers();
-			});
+      document.getElementById('copyApiKeyBtn')?.addEventListener('click', () => {
+        adminUI.copyApiKey();
+      });
 
-			document.getElementById('page-limit')?.addEventListener('change', (e) => {
-				adminUI.pageLimit = parseInt(e.target.value);
-				adminUI.currentPage = 1;
-				adminUI.loadUsers();
-			});
+      document.getElementById('closeApiKeyBtn')?.addEventListener('click', async () => {
+        await adminUI.closeApiKeyModal();
+      });
 
-			// Multi-tag filter checkboxes
-			document.querySelectorAll('.tag-checkbox').forEach(checkbox => {
-				checkbox.addEventListener('change', () => {
-					const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked'))
-						.map(cb => cb.value);
-					adminUI.selectedTags = checkedTags;
-					adminUI.currentPage = 1;
-					adminUI.loadUsers();
+      // Initialize search input with debouncing
+      let searchTimeout;
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          clearTimeout(searchTimeout);
+          const searchValue = e.target.value.trim();
 
-					// Sync with the tag dropdown
-					const tagFilter = document.getElementById('tag-filter');
-					if (tagFilter) {
-						// If multiple tags or no tags selected, set dropdown to "All Tags"
-						// If exactly one tag selected, set dropdown to that tag
-						tagFilter.value = checkedTags.length === 1 ? checkedTags[0] : '';
-					}
-				});
-			});
+          // Debounce search by 300ms
+          searchTimeout = setTimeout(() => {
+            adminUI.searchTerm = searchValue;
+            adminUI.currentPage = 1; // Reset to first page on search
+            adminUI.loadUsers();
+          }, 300);
+        });
+      }
 
-			// Render initial pagination if we have server-rendered data
-			if (initialData.pagination) {
-				adminUI.renderPagination(initialData.pagination);
-			}
-		});
-	</script>
+      // Initialize advanced filters toggle
+      document.getElementById('advanced-filters-btn')?.addEventListener('click', () => {
+        const panel = document.getElementById('advanced-filters');
+        panel?.classList.toggle('hidden');
+      });
+
+      // Initialize sort and filter controls
+      document.getElementById('sort-by')?.addEventListener('change', (e) => {
+        adminUI.sortBy = e.target.value;
+        adminUI.currentPage = 1;
+        adminUI.loadUsers();
+      });
+
+      document.getElementById('sort-order')?.addEventListener('change', (e) => {
+        adminUI.sortOrder = e.target.value;
+        adminUI.currentPage = 1;
+        adminUI.loadUsers();
+      });
+
+      // Multi-tag filter checkboxes
+      document.querySelectorAll('.tag-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', () => {
+          const checkedTags = Array.from(document.querySelectorAll('.tag-checkbox:checked'))
+            .map(cb => cb.value);
+          adminUI.selectedTags = checkedTags;
+          adminUI.currentPage = 1;
+          adminUI.loadUsers();
+
+          // Sync with the tag dropdown
+          const tagFilter = document.getElementById('tag-filter');
+          if (tagFilter) {
+            // If multiple tags or no tags selected, set dropdown to "All Tags"
+            // If exactly one tag selected, set dropdown to that tag
+            tagFilter.value = checkedTags.length === 1 ? checkedTags[0] : '';
+          }
+        });
+      });
+
+      // Pagination will be rendered when users are loaded
+    });
+  </script>
   </body>
 
 </html>

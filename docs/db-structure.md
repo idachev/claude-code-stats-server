@@ -280,7 +280,7 @@ CREATE TABLE "usage_stats" (
   -- ... other columns
 );
 
-ALTER TABLE "usage_stats" ADD CONSTRAINT "usage_stats_user_id_users_id_fk" 
+ALTER TABLE "usage_stats" ADD CONSTRAINT "usage_stats_user_id_users_id_fk"
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE cascade;
 
 CREATE UNIQUE INDEX "user_date_idx" ON "usage_stats" ("user_id","date");

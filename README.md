@@ -2,14 +2,14 @@
 
 > 📊 **Track, visualize, and optimize your Claude Code AI assistant usage with powerful analytics**
 
-Transform your Claude Code usage data into actionable insights. 
-Monitor costs, track token consumption, and identify usage patterns across your team with beautiful, 
+Transform your Claude Code usage data into actionable insights.
+Monitor costs, track token consumption, and identify usage patterns across your team with beautiful,
 interactive dashboards.
 
 ## 🎯 Why Claude Code Stats Server?
 
-[Claude Code](https://www.anthropic.com/claude-code) is Anthropic's command-line AI coding assistant that embeds 
-Claude Code directly into your terminal. While it turns hours-long workflows into single commands, 
+[Claude Code](https://www.anthropic.com/claude-code) is Anthropic's command-line AI coding assistant that embeds
+Claude Code directly into your terminal. While it turns hours-long workflows into single commands,
 understanding your usage patterns and costs can be challenging. This server solves that by:
 
 - **📈 Real-time Cost Tracking** - Know exactly how much you're spending daily, weekly, and monthly
@@ -77,7 +77,7 @@ Docker Hub: [idachev/claude-code-stats-server](https://hub.docker.com/r/idachev/
 
 ## 📤 Uploading Your Stats
 
-The stats server ingests data from [ccusage](https://github.com/ryoppippi/ccusage), a Claude Code usage tracking CLI tool 
+The stats server ingests data from [ccusage](https://github.com/ryoppippi/ccusage), a Claude Code usage tracking CLI tool
 that provides detailed JSON output of your token consumption and costs.
 
 ### Automatic Upload Script

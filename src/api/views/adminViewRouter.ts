@@ -4,6 +4,7 @@ import { StatusCodes } from "http-status-codes";
 import { pino } from "pino";
 import { z } from "zod";
 import { TagService } from "@/api/tags/tagService";
+import { PAGINATION } from "@/common/constants";
 import { adminDashboardAuth } from "@/common/middleware/adminDashboardAuth";
 import { adminLoginRateLimiter } from "@/common/middleware/adminRateLimiter";
 import { csrfProtection } from "@/common/middleware/csrfProtection";
@@ -59,6 +60,13 @@ adminViewRouter.get(
       const tagsList = await tagService.getTags();
       const tagData = tagsList || [];
 
+      // Read page size from query parameter, use default if not provided
+      const pageSize = parseInt(req.query.pageSize as string) || PAGINATION.DEFAULT_PAGE_SIZE;
+      // Validate page size to prevent invalid values
+      const validatedPageSize = (PAGINATION.PAGE_SIZES as readonly number[]).includes(pageSize)
+        ? pageSize
+        : PAGINATION.DEFAULT_PAGE_SIZE;
+
       // Render admin dashboard without initial user data
       res.render("dashboard/admin", {
         title: "Admin Dashboard",
@@ -67,6 +75,9 @@ adminViewRouter.get(
           tags: tagData,
           csrfToken: req.session.csrfToken,
           sessionTimeout: parseInt(process.env.ADMIN_SESSION_TIMEOUT_SECONDS || "900"),
+          pageSize: validatedPageSize, // Pass the page size to client
+          pageSizes: PAGINATION.PAGE_SIZES, // Pass available page sizes
+          defaultPageSize: PAGINATION.DEFAULT_PAGE_SIZE, // Pass default page size
         },
       });
     } catch (error) {

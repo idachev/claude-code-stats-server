@@ -79,28 +79,28 @@ class TemplateLoader {
       .map((tag) => {
         const color = this.getTagColor(tag);
         return `
-			<span class="px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
-				${this.escapeHtml(tag)}
-			</span>
-		`;
+      <span class="inline-flex items-center px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
+        ${this.escapeHtml(tag)}
+      </span>
+    `;
       })
       .join("");
 
     return `
-			<tr class="hover:bg-dark-bg transition-colors">
-				<td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
-				<td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
-				<td class="px-6 py-4">
-					<div class="flex flex-wrap gap-1">
-						${tagsHtml}
-					</div>
-				</td>
-				<td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
-				<td class="px-6 py-4">
-					${this.renderUserActions(user.username)}
-				</td>
-			</tr>
-		`;
+      <tr class="hover:bg-dark-bg transition-colors">
+        <td class="px-6 py-4 text-sm text-gray-300">${user.id}</td>
+        <td class="px-6 py-4 text-sm font-medium text-gray-100">${this.escapeHtml(user.username)}</td>
+        <td class="px-6 py-4">
+          <div class="flex flex-wrap gap-1">
+            ${tagsHtml}
+          </div>
+        </td>
+        <td class="px-6 py-4 text-sm text-gray-400">${this.formatDate(user.createdAt)}</td>
+        <td class="px-6 py-4">
+          ${this.renderUserActions(user.username)}
+        </td>
+      </tr>
+    `;
   }
 
   /**
@@ -109,50 +109,83 @@ class TemplateLoader {
   renderUserActions(username) {
     const escapedUsername = this.escapeHtml(username);
     return `
-			<div class="flex gap-2">
-				<button data-action="manage-tags" data-username="${escapedUsername}"
-					class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
-					${this.getIcon("tag")}
-				</button>
-				<button data-action="regenerate-key" data-username="${escapedUsername}"
-					class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
-					${this.getIcon("key")}
-				</button>
-				<button data-action="deactivate" data-username="${escapedUsername}"
-					class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
-					${this.getIcon("ban")}
-				</button>
-			</div>
-		`;
+      <div class="flex gap-2">
+        <button data-action="manage-tags" data-username="${escapedUsername}"
+          class="user-action-btn text-green-400 hover:text-green-300 transition-colors" title="Manage Tags">
+          ${this.getIcon("tag")}
+        </button>
+        <button data-action="regenerate-key" data-username="${escapedUsername}"
+          class="user-action-btn text-yellow-400 hover:text-yellow-300 transition-colors" title="Regenerate API Key">
+          ${this.getIcon("key")}
+        </button>
+        <button data-action="deactivate" data-username="${escapedUsername}"
+          class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
+          ${this.getIcon("ban")}
+        </button>
+      </div>
+    `;
   }
 
   /**
    * Render pagination controls
+   * @param {Object} pagination - Pagination data including pageSizes array
    */
   renderPagination(pagination) {
-    if (pagination.totalPages <= 1) {
-      return "";
+    // Generate page size options dynamically from passed data
+    const pageSizeOptions = pagination.pageSizes
+      .map((size) => `<option value="${size}" ${pagination.limit === size ? "selected" : ""}>${size}</option>`)
+      .join("");
+
+    if (pagination.totalPages <= 1 && pagination.total <= 10) {
+      // Still show page size selector even with single page if there are items
+      if (pagination.total === 0) {
+        return "";
+      }
+      return `
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-400">
+          Showing ${pagination.total} users
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-400">Items per page:</label>
+            <select id="page-size-selector"
+              class="px-2 py-1 bg-dark-bg border border-dark-border rounded text-gray-100 text-sm focus:outline-none focus:border-blue-500">
+              ${pageSizeOptions}
+            </select>
+          </div>
+        </div>
+      </div>
+    `;
     }
 
     const start = (pagination.page - 1) * pagination.limit + 1;
     const end = Math.min(pagination.page * pagination.limit, pagination.total);
 
     let html = `
-			<div class="flex items-center justify-between">
-				<div class="text-sm text-gray-400">
-					Showing ${start} to ${end} of ${pagination.total} users
-				</div>
-				<div class="flex gap-2">
-		`;
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-400">
+          Showing ${start} to ${end} of ${pagination.total} users
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-400">Items per page:</label>
+            <select id="page-size-selector"
+              class="px-2 py-1 bg-dark-bg border border-dark-border rounded text-gray-100 text-sm focus:outline-none focus:border-blue-500">
+              ${pageSizeOptions}
+            </select>
+          </div>
+          <div class="flex gap-2">
+    `;
 
     // Previous button
     if (pagination.page > 1) {
       html += `
-				<button data-page="${pagination.page - 1}"
-					class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-					Previous
-				</button>
-			`;
+        <button data-page="${pagination.page - 1}"
+          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
+          Previous
+        </button>
+      `;
     }
 
     // Page numbers
@@ -163,33 +196,34 @@ class TemplateLoader {
       } else {
         const isActive = p === pagination.page;
         html += `
-					<button data-page="${p}"
-						class="pagination-btn px-3 py-1 ${
+          <button data-page="${p}"
+            class="pagination-btn px-3 py-1 ${
               isActive
                 ? "bg-blue-600 text-white"
                 : "bg-dark-bg border border-dark-border text-gray-300 hover:bg-gray-700"
             }
-						rounded transition-colors">
-						${p}
-					</button>
-				`;
+            rounded transition-colors">
+            ${p}
+          </button>
+        `;
       }
     });
 
     // Next button
     if (pagination.page < pagination.totalPages) {
       html += `
-				<button data-page="${pagination.page + 1}"
-					class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
-					Next
-				</button>
-			`;
+        <button data-page="${pagination.page + 1}"
+          class="pagination-btn px-3 py-1 bg-dark-bg border border-dark-border rounded text-gray-300 hover:bg-gray-700 transition-colors">
+          Next
+        </button>
+      `;
     }
 
     html += `
-				</div>
-			</div>
-		`;
+          </div>
+        </div>
+      </div>
+    `;
 
     return html;
   }
@@ -234,13 +268,13 @@ class TemplateLoader {
    */
   renderLoadingState() {
     return `
-			<tr>
-				<td colspan="5" class="px-6 py-8 text-center">
-					<div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-					<div class="mt-2 text-gray-400">Loading...</div>
-				</td>
-			</tr>
-		`;
+      <tr>
+        <td colspan="5" class="px-6 py-8 text-center">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="mt-2 text-gray-400">Loading...</div>
+        </td>
+      </tr>
+    `;
   }
 
   /**
@@ -248,12 +282,12 @@ class TemplateLoader {
    */
   renderEmptyState(message = "No users found") {
     return `
-			<tr>
-				<td colspan="5" class="px-6 py-4 text-center text-gray-500">
-					${this.escapeHtml(message)}
-				</td>
-			</tr>
-		`;
+      <tr>
+        <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+          ${this.escapeHtml(message)}
+        </td>
+      </tr>
+    `;
   }
 
   /**
@@ -288,11 +322,11 @@ class TemplateLoader {
       const toast = document.createElement("div");
       toast.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform`;
       toast.innerHTML = `
-				<div class="flex items-center gap-3">
-					${this.getIcon(type)}
-					<span>${this.escapeHtml(message)}</span>
-				</div>
-			`;
+        <div class="flex items-center gap-3">
+          ${this.getIcon(type)}
+          <span>${this.escapeHtml(message)}</span>
+        </div>
+      `;
 
       return toast;
     }
@@ -304,29 +338,29 @@ class TemplateLoader {
   getIcon(name) {
     const icons = {
       tag: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+        </svg>`,
       key: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+        </svg>`,
       ban: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+        </svg>`,
       success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>`,
       error: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>`,
       info: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>`,
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>`,
     };
 
     return icons[name] || "";

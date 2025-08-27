@@ -9,18 +9,18 @@ import { db } from "@/db/index";
 export async function cleanupTestDatabase(): Promise<void> {
   try {
     await db.execute(sql`
-			-- Disable foreign key checks temporarily for cleanup
-			SET session_replication_role = 'replica';
+      -- Disable foreign key checks temporarily for cleanup
+      SET session_replication_role = 'replica';
 
-			-- Truncate all tables in correct order (respecting foreign keys)
-			TRUNCATE TABLE model_usage CASCADE;
-			TRUNCATE TABLE usage_stats CASCADE;
-			TRUNCATE TABLE tags CASCADE;
-			TRUNCATE TABLE users CASCADE;
+      -- Truncate all tables in correct order (respecting foreign keys)
+      TRUNCATE TABLE model_usage CASCADE;
+      TRUNCATE TABLE usage_stats CASCADE;
+      TRUNCATE TABLE tags CASCADE;
+      TRUNCATE TABLE users CASCADE;
 
-			-- Re-enable foreign key checks
-			SET session_replication_role = 'origin';
-		`);
+      -- Re-enable foreign key checks
+      SET session_replication_role = 'origin';
+    `);
   } catch (error) {
     console.error("Failed to cleanup test database:", error);
     throw error;

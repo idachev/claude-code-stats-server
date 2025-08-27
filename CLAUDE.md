@@ -39,8 +39,8 @@ responses: {
 import { yourRegistry } from "@/api/your/yourRouter";
 // ...
 const registry = new OpenAPIRegistry([
-  healthRegistry, 
-  userRegistry, 
+  healthRegistry,
+  userRegistry,
   statsRegistry,
   yourRegistry  // ADD THIS
 ]);
@@ -136,9 +136,9 @@ app.use("/", viewRouter);
 
 4. **Use the base layout** for consistent styling:
 ```ejs
-<%- include('layouts/base', { 
+<%- include('layouts/base', {
   title: 'Your Page Title',
-  body: include('partials/your-content', { data }) 
+  body: include('partials/your-content', { data })
 }) %>
 ```
 
@@ -331,3 +331,13 @@ See README.md for detailed project structure and setup instructions.
 - If EJS formatting fails, ensure JS-Beautify is installed: `pnpm add -D js-beautify`
 - CSS formatting only runs if CSS files exist in the project
 - For EJS syntax errors, check that template tags are properly closed
+
+# IMPORTANT
+
+Do not start to test what you just finish unless I explicitly tell you to do so. First,
+I will review your work and if I find it satisfactory, I will then instruct you to proceed with
+testing. This approach ensures that we maintain high standards and avoid unnecessary iterations.
+Please wait for my confirmation before moving forward with any testing activities.
+
+Do not make a summary of the changes you made unless I explicitly ask you to do so.
+Just state `ALL TASKS DONE`

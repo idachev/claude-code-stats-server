@@ -157,7 +157,7 @@ The script generates realistic English usernames by combining:
 **Tag Assignment:**
 Each user is randomly assigned 1-3 tags from:
 - `Backend` - Backend development skills
-- `Frontend` - Frontend development skills  
+- `Frontend` - Frontend development skills
 - `Fullstack` - Full-stack development skills
 - `Max-Acc1` - Account type 1 designation
 - `Max-Acc2` - Account type 2 designation

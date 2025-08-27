@@ -26,11 +26,11 @@ class LoadingManager {
     loader.id = "globalLoader";
     loader.className = "fixed inset-0 bg-black bg-opacity-50 z-[100] hidden flex items-center justify-center";
     loader.innerHTML = `
-			<div class="bg-dark-card border border-dark-border rounded-lg p-6 flex flex-col items-center">
-				<div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-				<p class="mt-4 text-gray-300">Loading...</p>
-			</div>
-		`;
+      <div class="bg-dark-card border border-dark-border rounded-lg p-6 flex flex-col items-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-gray-300">Loading...</p>
+      </div>
+    `;
     document.body.appendChild(loader);
   }
 
@@ -75,11 +75,11 @@ class LoadingManager {
     }
 
     container.innerHTML = `
-			<div id="${loaderId}" class="flex flex-col items-center justify-center py-8">
-				<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-				<p class="mt-3 text-gray-400">${this.escapeHtml(message)}</p>
-			</div>
-		`;
+      <div id="${loaderId}" class="flex flex-col items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p class="mt-3 text-gray-400">${this.escapeHtml(message)}</p>
+      </div>
+    `;
 
     this.activeLoaders.add(loaderId);
     return loaderId;
@@ -119,25 +119,25 @@ class LoadingManager {
     const errorMessage = typeof error === "string" ? error : error.message || "An error occurred";
 
     container.innerHTML = `
-			<div class="bg-red-900/20 border border-red-600/30 rounded-lg p-6 text-center">
-				<svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-				</svg>
-				<p class="text-red-400 text-lg font-medium mb-2">Error</p>
-				<p class="text-gray-300 mb-4">${this.escapeHtml(errorMessage)}</p>
-				${
+      <div class="bg-red-900/20 border border-red-600/30 rounded-lg p-6 text-center">
+        <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <p class="text-red-400 text-lg font-medium mb-2">Error</p>
+        <p class="text-gray-300 mb-4">${this.escapeHtml(errorMessage)}</p>
+        ${
           retryCallback
             ? `
-					<button data-retry="${retryCallback}"
-						class="retry-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-						Try Again
-					</button>
-				`
+          <button data-retry="${retryCallback}"
+            class="retry-btn px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+            Try Again
+          </button>
+        `
             : ""
         }
-			</div>
-		`;
+      </div>
+    `;
   }
 
   /**
@@ -161,15 +161,15 @@ class LoadingManager {
     if (!container) return;
 
     container.innerHTML = `
-			<div class="text-center py-12">
-				<svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-						d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-				</svg>
-				<p class="text-gray-400 text-lg mb-4">${this.escapeHtml(message)}</p>
-				${actionButton ? actionButton : ""}
-			</div>
-		`;
+      <div class="text-center py-12">
+        <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+        </svg>
+        <p class="text-gray-400 text-lg mb-4">${this.escapeHtml(message)}</p>
+        ${actionButton ? actionButton : ""}
+      </div>
+    `;
   }
 
   /**
@@ -181,10 +181,10 @@ class LoadingManager {
       html += '<tr class="animate-pulse">';
       for (let j = 0; j < columns; j++) {
         html += `
-					<td class="px-6 py-4">
-						<div class="h-4 bg-gray-700 rounded ${j === 1 ? "w-32" : "w-20"}"></div>
-					</td>
-				`;
+          <td class="px-6 py-4">
+            <div class="h-4 bg-gray-700 rounded ${j === 1 ? "w-32" : "w-20"}"></div>
+          </td>
+        `;
       }
       html += "</tr>";
     }
@@ -301,14 +301,14 @@ class LoadingManager {
       // Set loading state
       button.disabled = true;
       button.innerHTML = `
-				<span class="inline-flex items-center">
-					<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-					</svg>
-					${this.escapeHtml(loadingText)}
-				</span>
-			`;
+        <span class="inline-flex items-center">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          ${this.escapeHtml(loadingText)}
+        </span>
+      `;
       button.classList.add("opacity-75", "cursor-not-allowed");
     } else {
       // Restore original state

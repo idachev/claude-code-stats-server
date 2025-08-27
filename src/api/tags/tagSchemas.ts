@@ -1,24 +1,19 @@
 import { z } from "zod";
-import { UsernameSchema } from "@/api/user/userModel";
+import {
+  TAG_MAX_LENGTH,
+  TAG_MIN_LENGTH,
+  TAG_NAME_PATTERN,
+  TagNameBaseSchema,
+  TagNameSchema,
+  UsernameSchema,
+} from "@/common/schemas/validationSchemas";
 
-// Tag constraints
-export const TAG_MIN_LENGTH = 2;
-export const TAG_MAX_LENGTH = 64;
-
-// Validation pattern for tag names: [0-9A-Za-z .-_]
-export const TAG_NAME_PATTERN = /^[0-9A-Za-z .\-_]+$/;
-
-// Schema for individual tag name
-export const TagNameSchema = z
-	.string()
-	.min(TAG_MIN_LENGTH, `Tag name must be at least ${TAG_MIN_LENGTH} characters`)
-	.max(TAG_MAX_LENGTH, `Tag name cannot exceed ${TAG_MAX_LENGTH} characters`)
-	.regex(TAG_NAME_PATTERN, "Tag name can only contain letters, numbers, spaces, dots, hyphens, and underscores")
-	.transform((val) => val.trim());
+// Re-export for backward compatibility
+export { TAG_MIN_LENGTH, TAG_MAX_LENGTH, TAG_NAME_PATTERN, TagNameBaseSchema, TagNameSchema };
 
 // Request body for assigning tags to a user
 export const AssignTagsSchema = z.object({
-	tags: z.array(TagNameSchema),
+  tags: z.array(TagNameBaseSchema),
 });
 
 export type AssignTagsDto = z.infer<typeof AssignTagsSchema>;
@@ -28,16 +23,16 @@ export const TagListSchema = z.array(z.string());
 
 // Username parameter schema
 export const UsernameParamSchema = z.object({
-	username: UsernameSchema,
+  username: UsernameSchema,
 });
 
 // Tag name parameter schema
 export const TagNameParamSchema = z.object({
-	tagName: TagNameSchema,
+  tagName: TagNameBaseSchema,
 });
 
 // Combined params for delete endpoint
 export const DeleteTagParamsSchema = z.object({
-	username: UsernameSchema,
-	tagName: TagNameSchema,
+  username: UsernameSchema,
+  tagName: TagNameBaseSchema,
 });

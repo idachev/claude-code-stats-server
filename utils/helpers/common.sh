@@ -45,9 +45,9 @@ validate_username() {
     exit 1
   fi
 
-  if [[ ! "$username" =~ ^[a-zA-Z0-9._-]{3,50}$ ]]; then
+  if [[ ! "$username" =~ ^[a-zA-Z0-9._-]{3,128}$ ]]; then
     echo -e "${RED}Error: Invalid username format${NC}"
-    echo "Username must be 3-50 characters and contain only letters, numbers, dots, underscores, and hyphens"
+    echo "Username must be 3-128 characters and contain only letters, numbers, dots, underscores, and hyphens"
     exit 1
   fi
 }

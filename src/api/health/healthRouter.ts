@@ -10,25 +10,25 @@ export const healthRegistry = new OpenAPIRegistry();
 export const healthRouter: Router = express.Router();
 
 const HealthStatusSchema = z.object({
-	status: z.string(),
-	database: z.boolean(),
-	timestamp: z.string(),
+  status: z.string(),
+  database: z.boolean(),
+  timestamp: z.string(),
 });
 
 healthRegistry.registerPath({
-	method: "get",
-	path: "/health",
-	tags: ["Health"],
-	responses: createApiResponseWithErrors(HealthStatusSchema, "Success"),
+  method: "get",
+  path: "/health",
+  tags: ["Health"],
+  responses: createApiResponseWithErrors(HealthStatusSchema, "Success"),
 });
 
 healthRouter.get("/", async (_req: Request, res: Response) => {
-	const dbHealth = await checkDatabaseHealth();
-	const healthStatus = {
-		status: dbHealth ? "ok" : "degraded",
-		database: dbHealth,
-		timestamp: new Date().toISOString(),
-	};
+  const dbHealth = await checkDatabaseHealth();
+  const healthStatus = {
+    status: dbHealth ? "ok" : "degraded",
+    database: dbHealth,
+    timestamp: new Date().toISOString(),
+  };
 
-	res.status(StatusCodes.OK).json(healthStatus);
+  res.status(StatusCodes.OK).json(healthStatus);
 });

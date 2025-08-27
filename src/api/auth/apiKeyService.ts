@@ -2,167 +2,221 @@ import crypto from "node:crypto";
 import bcrypt from "bcrypt";
 import { eq } from "drizzle-orm";
 import { pino } from "pino";
+import { TagService } from "@/api/tags/tagService";
 import { db, users } from "@/db/index";
 
 const logger = pino({ name: "ApiKeyService" });
 
 export class ApiKeyService {
-	private readonly SALT_ROUNDS = 12; // bcrypt salt rounds for security
-	private readonly API_KEY_PREFIX = "ccs_";
-	private readonly API_KEY_RANDOM_BYTES = 32; // 32 bytes = 64 hex chars
-	private readonly API_KEY_EXPECTED_LENGTH = this.API_KEY_PREFIX.length + this.API_KEY_RANDOM_BYTES * 2; // prefix + hex chars
+  private readonly SALT_ROUNDS = 12; // bcrypt salt rounds for security
+  private readonly API_KEY_PREFIX = "ccs_";
+  private readonly API_KEY_RANDOM_BYTES = 32; // 32 bytes = 64 hex chars
+  private readonly API_KEY_EXPECTED_LENGTH = this.API_KEY_PREFIX.length + this.API_KEY_RANDOM_BYTES * 2; // prefix + hex chars
+  private tagService: TagService;
 
-	/**
-	 * Creates a new user with an API key
-	 * Throws error if user already exists
-	 * Returns the raw API key (to be shown once) and stores the hash in DB
-	 */
-	async createUserWithApiKey(username: string): Promise<string> {
-		try {
-			// Check if user already exists
-			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+  constructor() {
+    this.tagService = new TagService();
+  }
 
-			if (existingUser) {
-				throw new Error(`User ${username} already exists`);
-			}
+  /**
+   * Creates a new user with an API key
+   * Throws error if user already exists
+   * Returns the raw API key (to be shown once) and stores the hash in DB
+   */
+  async createUserWithApiKey(username: string, tags?: string[]): Promise<string> {
+    try {
+      // Check if user already exists
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username));
 
-			// Generate a secure random API key
-			// Format: prefix + 32 random bytes as hex
-			const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
-			const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
+      if (existingUser) {
+        throw new Error(`User ${username} already exists`);
+      }
 
-			// Hash the API key using bcrypt
-			const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
+      // Generate a secure random API key
+      // Format: prefix + 32 random bytes as hex
+      const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
+      const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
 
-			// Create new user with the hashed API key
-			await db.insert(users).values({
-				username,
-				apiKeyHash,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			});
+      // Hash the API key using bcrypt
+      const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
 
-			logger.info(`Created new user with API key: ${username}`);
+      // Create new user with the hashed API key
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          apiKeyHash,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
 
-			// Return the raw API key (to be shown to user once)
-			return apiKey;
-		} catch (error) {
-			if (error instanceof Error && error.message.includes("already exists")) {
-				throw error;
-			}
-			logger.error(error, `Failed to create user with API key: ${username}`);
-			throw new Error("Failed to create user with API key");
-		}
-	}
+      // Add tags if provided
+      if (tags && tags.length > 0) {
+        await this.tagService.setUserTags(newUser.id, tags);
+      }
 
-	/**
-	 * Regenerates API key for an existing user
-	 * Throws error if user doesn't exist
-	 * Returns the raw API key (to be shown once) and stores the hash in DB
-	 */
-	async regenerateApiKey(username: string): Promise<string> {
-		try {
-			// Check if user exists
-			const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+      logger.info(`Created new user with API key: ${username}`);
 
-			if (!existingUser) {
-				throw new Error(`User ${username} not found`);
-			}
+      // Return the raw API key (to be shown to user once)
+      return apiKey;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("already exists")) {
+        throw error;
+      }
+      logger.error(error, `Failed to create user with API key: ${username}`);
+      throw new Error("Failed to create user with API key");
+    }
+  }
 
-			// Generate a secure random API key
-			// Format: prefix + 32 random bytes as hex
-			const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
-			const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
+  /**
+   * Regenerates API key for an existing user
+   * Also sets isActive to true (reactivates the user)
+   * Throws error if user doesn't exist
+   * Returns the raw API key (to be shown once) and stores the hash in DB
+   */
+  async regenerateApiKey(username: string): Promise<string> {
+    try {
+      // Check if user exists
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username));
 
-			// Hash the API key using bcrypt
-			const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
+      if (!existingUser) {
+        throw new Error(`User ${username} not found`);
+      }
 
-			// Update existing user with the new hashed API key
-			await db
-				.update(users)
-				.set({
-					apiKeyHash,
-					updatedAt: new Date(),
-				})
-				.where(eq(users.username, username));
+      // Generate a secure random API key
+      // Format: prefix + 32 random bytes as hex
+      const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
+      const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
 
-			logger.info(`Regenerated API key for user: ${username}`);
+      // Hash the API key using bcrypt
+      const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
 
-			// Return the raw API key (to be shown to user once)
-			return apiKey;
-		} catch (error) {
-			if (error instanceof Error && error.message.includes("not found")) {
-				throw error;
-			}
-			logger.error(error, `Failed to regenerate API key for user: ${username}`);
-			throw new Error("Failed to regenerate API key");
-		}
-	}
+      // Update existing user with the new hashed API key and set isActive to true
+      await db
+        .update(users)
+        .set({
+          apiKeyHash,
+          isActive: true, // Reactivate user when regenerating key
+          updatedAt: new Date(),
+        })
+        .where(eq(users.username, username));
 
-	/**
-	 * Validates an API key for a given username
-	 * Returns true if the API key is valid for the user
-	 */
-	async validateApiKey(username: string, apiKey: string): Promise<boolean> {
-		try {
-			// Check API key format
-			// Format: prefix + 64 hex chars
-			if (!apiKey || !apiKey.startsWith(this.API_KEY_PREFIX) || apiKey.length !== this.API_KEY_EXPECTED_LENGTH) {
-				return false;
-			}
+      logger.info(`Regenerated API key and reactivated user: ${username}`);
 
-			// Get user's API key hash from database
-			const [user] = await db.select().from(users).where(eq(users.username, username));
+      // Return the raw API key (to be shown to user once)
+      return apiKey;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        throw error;
+      }
+      logger.error(error, `Failed to regenerate API key for user: ${username}`);
+      throw new Error("Failed to regenerate API key");
+    }
+  }
 
-			if (!user || !user.apiKeyHash) {
-				return false;
-			}
+  /**
+   * Validates an API key for a given username
+   * Returns true if the API key is valid for the user
+   */
+  async validateApiKey(username: string, apiKey: string): Promise<boolean> {
+    try {
+      // Check API key format
+      // Format: prefix + 64 hex chars
+      if (!apiKey || !apiKey.startsWith(this.API_KEY_PREFIX) || apiKey.length !== this.API_KEY_EXPECTED_LENGTH) {
+        return false;
+      }
 
-			// Compare the provided API key with the stored hash
-			const isValid = await bcrypt.compare(apiKey, user.apiKeyHash);
+      // Get user's API key hash from database
+      const [user] = await db.select().from(users).where(eq(users.username, username));
 
-			if (!isValid) {
-				logger.warn(`Invalid API key attempt for user: ${username}`);
-			}
+      if (!user || !user.apiKeyHash) {
+        return false;
+      }
 
-			return isValid;
-		} catch (error) {
-			logger.error(error, `Failed to validate API key for user: ${username}`);
-			return false;
-		}
-	}
+      // Compare the provided API key with the stored hash
+      const isValid = await bcrypt.compare(apiKey, user.apiKeyHash);
 
-	/**
-	 * Revokes a user's API key by removing it from the database
-	 */
-	async revokeApiKey(username: string): Promise<void> {
-		try {
-			await db
-				.update(users)
-				.set({
-					apiKeyHash: null,
-					updatedAt: new Date(),
-				})
-				.where(eq(users.username, username));
+      if (!isValid) {
+        logger.warn(`Invalid API key attempt for user: ${username}`);
+      }
 
-			logger.info(`Revoked API key for user: ${username}`);
-		} catch (error) {
-			logger.error(error, `Failed to revoke API key for user: ${username}`);
-			throw new Error("Failed to revoke API key");
-		}
-	}
+      return isValid;
+    } catch (error) {
+      logger.error(error, `Failed to validate API key for user: ${username}`);
+      return false;
+    }
+  }
 
-	/**
-	 * Checks if a user has an API key set
-	 */
-	async hasApiKey(username: string): Promise<boolean> {
-		try {
-			const [user] = await db.select({ apiKeyHash: users.apiKeyHash }).from(users).where(eq(users.username, username));
+  /**
+   * Revokes a user's API key by removing it from the database
+   */
+  async revokeApiKey(username: string): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({
+          apiKeyHash: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.username, username));
 
-			return !!user?.apiKeyHash;
-		} catch (error) {
-			logger.error(error, `Failed to check API key existence for user: ${username}`);
-			return false;
-		}
-	}
+      logger.info(`Revoked API key for user: ${username}`);
+    } catch (error) {
+      logger.error(error, `Failed to revoke API key for user: ${username}`);
+      throw new Error("Failed to revoke API key");
+    }
+  }
+
+  /**
+   * Checks if a user has an API key set
+   */
+  async hasApiKey(username: string): Promise<boolean> {
+    try {
+      const [user] = await db.select({ apiKeyHash: users.apiKeyHash }).from(users).where(eq(users.username, username));
+
+      return !!user?.apiKeyHash;
+    } catch (error) {
+      logger.error(error, `Failed to check API key existence for user: ${username}`);
+      return false;
+    }
+  }
+
+  /**
+   * Deactivates a user by setting isActive to false and regenerating the API key
+   * This invalidates the old API key immediately
+   */
+  async deactivateUser(username: string): Promise<void> {
+    try {
+      // Check if user exists
+      const [existingUser] = await db.select().from(users).where(eq(users.username, username));
+
+      if (!existingUser) {
+        throw new Error(`User ${username} not found`);
+      }
+
+      // Generate a new API key hash to invalidate the old one
+      const randomBytes = crypto.randomBytes(this.API_KEY_RANDOM_BYTES);
+      const apiKey = `${this.API_KEY_PREFIX}${randomBytes.toString("hex")}`;
+      const apiKeyHash = await bcrypt.hash(apiKey, this.SALT_ROUNDS);
+
+      // Update user: set isActive to false and regenerate API key hash
+      await db
+        .update(users)
+        .set({
+          isActive: false,
+          apiKeyHash, // New hash invalidates old API key
+          updatedAt: new Date(),
+        })
+        .where(eq(users.username, username));
+
+      logger.info(`Deactivated user and invalidated API key: ${username}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("not found")) {
+        throw error;
+      }
+      logger.error(error, `Failed to deactivate user: ${username}`);
+      throw new Error("Failed to deactivate user");
+    }
+  }
 }

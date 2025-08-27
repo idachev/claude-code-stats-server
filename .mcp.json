@@ -1,28 +1,28 @@
 {
-	"mcpServers": {
-		"context7": {
-			"type": "stdio",
-			"command": "npx",
-			"args": ["-y", "@upstash/context7-mcp@latest"],
-			"env": {}
-		},
-		"postgres": {
-			"command": "npx",
-			"args": [
-				"-y",
-				"@modelcontextprotocol/server-postgres",
-				"postgresql://localdev:db-test-pass@localhost:9099/claude_code_stats"
-			]
-		},
-		"atlassian": {
-			"type": "sse",
-			"url": "https://mcp.atlassian.com/v1/sse"
-		},
-		"playwright": {
-			"type": "stdio",
-			"command": "npx",
-			"args": ["-y", "@playwright/mcp@latest"],
-			"env": {}
-		}
-	}
+  "mcpServers": {
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "env": {}
+    },
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://localdev:db-test-pass@localhost:9099/claude_code_stats"
+      ]
+    },
+    "atlassian": {
+      "type": "sse",
+      "url": "https://mcp.atlassian.com/v1/sse"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "env": {}
+    }
+  }
 }

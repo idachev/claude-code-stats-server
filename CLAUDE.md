@@ -39,8 +39,8 @@ responses: {
 import { yourRegistry } from "@/api/your/yourRouter";
 // ...
 const registry = new OpenAPIRegistry([
-  healthRegistry, 
-  userRegistry, 
+  healthRegistry,
+  userRegistry,
   statsRegistry,
   yourRegistry  // ADD THIS
 ]);
@@ -136,9 +136,9 @@ app.use("/", viewRouter);
 
 4. **Use the base layout** for consistent styling:
 ```ejs
-<%- include('layouts/base', { 
+<%- include('layouts/base', {
   title: 'Your Page Title',
-  body: include('partials/your-content', { data }) 
+  body: include('partials/your-content', { data })
 }) %>
 ```
 
@@ -178,7 +178,110 @@ gh api repos/{owner}/{repo}/pulls/{pull_number}/comments --paginate \
   --jq '.[] | {path: .path, line: .line, body: .body, user: .user.login}'
 ```
 
-### 14. Common Commands
+### 14. Docker & Database Migrations
+
+The Docker image now includes migration capabilities. The same image can be used for both:
+- Running the application (default)
+- Executing database migrations (by overriding the command)
+
+See `docker-compose-all.yaml` for an example setup with automatic migrations.
+
+### 15. Admin Dashboard & Session Management
+
+The admin dashboard provides user management capabilities:
+- **Route**: `/dashboard/admin` (session-protected)
+- **Authentication**: Session-based using express-session with PostgreSQL store
+- **Features**: User CRUD, tag management, soft deletes (deactivation)
+
+Key architectural patterns:
+- Separate middleware for API auth (`adminAuth.ts`) vs dashboard auth (`adminDashboardAuth.ts`)
+- Sessions stored in PostgreSQL using `connect-pg-simple`
+- Validation schemas centralized in `/src/common/schemas/validationSchemas.ts`
+
+### 16. HTML Template Management
+
+**IMPORTANT: Keep HTML templates separate from JavaScript code**
+
+When building client-side UI components, avoid embedding HTML strings directly in JavaScript. Instead:
+
+1. **Use EJS Partials** for server-rendered components:
+```javascript
+// Good - Use separate EJS partial files
+<%- include('partials/admin/user-row', { user }) %>
+
+// Bad - HTML strings in JavaScript
+const html = `<tr><td>${user.name}</td></tr>`;
+```
+
+2. **Use HTML `<template>` Elements** for client-side templates:
+```html
+<!-- Define template in HTML -->
+<template id="userRowTemplate">
+  <tr class="user-row">
+    <td class="username"></td>
+    <td class="tags"></td>
+  </tr>
+</template>
+```
+
+3. **Create a Template Loader** for managing templates:
+```javascript
+// Centralized template management
+class TemplateLoader {
+  renderUserRow(user) {
+    // Use template or generate from structured data
+  }
+}
+```
+
+4. **Benefits of Separation**:
+- Better IDE support (syntax highlighting, autocomplete)
+- Easier maintenance and debugging
+- Reusable templates across components
+- Clear separation of concerns
+- Better performance through template caching
+
+5. **File Organization**:
+```
+src/views/partials/admin/  # Server-side EJS partials
+  user-row.ejs
+  pagination.ejs
+  modal.ejs
+
+src/public/js/             # Client-side JavaScript
+  template-loader.js       # Template management
+  admin-ui-manager.js      # UI logic (no HTML strings)
+```
+
+### 17. Admin Dashboard Architecture
+
+The admin dashboard follows a modular JavaScript architecture:
+
+1. **Separation of Concerns**:
+   - API communication (AdminApiClient)
+   - UI state management (AdminUIManager)
+   - Template rendering (TemplateLoader)
+   - Loading/error handling (LoadingManager)
+
+2. **Security Features**:
+   - CSRF protection on all mutations
+   - Session-based authentication with timeout
+   - XSS prevention through HTML escaping
+   - Secure API key display with copy functionality
+
+3. **Performance Optimizations**:
+   - Debounced search (300ms delay)
+   - Template caching
+   - Skeleton loaders for perceived performance
+   - Optimized database queries (no N+1 problems)
+
+4. **User Experience**:
+   - Real-time search and filtering
+   - Advanced multi-tag filtering
+   - Toast notifications for feedback
+   - Responsive error handling with retry options
+
+### 18. Common Commands
 ```bash
 # Development
 pnpm start:dev          # Start dev server with hot reload on port 3000
@@ -228,3 +331,13 @@ See README.md for detailed project structure and setup instructions.
 - If EJS formatting fails, ensure JS-Beautify is installed: `pnpm add -D js-beautify`
 - CSS formatting only runs if CSS files exist in the project
 - For EJS syntax errors, check that template tags are properly closed
+
+# IMPORTANT
+
+Do not start to test what you just finish unless I explicitly tell you to do so. First,
+I will review your work and if I find it satisfactory, I will then instruct you to proceed with
+testing. This approach ensures that we maintain high standards and avoid unnecessary iterations.
+Please wait for my confirmation before moving forward with any testing activities.
+
+Do not make a summary of the changes you made unless I explicitly ask you to do so.
+Just state `ALL TASKS DONE`

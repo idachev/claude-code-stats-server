@@ -1,0 +1,22 @@
+<!-- Toast Notification Template -->
+<div id="toastContainer" class="fixed top-4 right-4 z-[70] space-y-2"></div>
+
+<template id="toastTemplate">
+  <div
+    class="toast-notification px-6 py-3 rounded-lg shadow-lg text-white transition-all duration-300 transform translate-x-full">
+    <div class="flex items-center gap-3">
+      <svg class="toast-icon w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Success icon -->
+        <path class="success-path hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        <!-- Error icon -->
+        <path class="error-path hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        <!-- Info icon -->
+        <path class="info-path hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span class="toast-message"></span>
+    </div>
+  </div>
+</template>

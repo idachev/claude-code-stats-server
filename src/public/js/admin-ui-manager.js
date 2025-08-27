@@ -481,7 +481,7 @@ class AdminUIManager {
       this.needsUserRefresh = true; // Refresh to show updated status
       this.showApiKeyModal(response.apiKey);
     } catch (error) {
-      this.showError(`Failed to ${isInactive ? 'activate user' : 'regenerate API key'}: ${error.message}`);
+      this.showError(`Failed to ${isInactive ? "activate user" : "regenerate API key"}: ${error.message}`);
     }
   }
 

@@ -202,9 +202,14 @@ describe("userService", () => {
     it("handles database errors for findByUsername", async () => {
       // Create a service with a faulty repository to simulate error
       class FaultyRepository extends UserRepository {
-        async findByUsernameAsync(
-          _username: string,
-        ): Promise<{ tags: string[]; username: string; id: number; isActive: boolean; createdAt: Date; updatedAt: Date } | null> {
+        async findByUsernameAsync(_username: string): Promise<{
+          tags: string[];
+          username: string;
+          id: number;
+          isActive: boolean;
+          createdAt: Date;
+          updatedAt: Date;
+        } | null> {
           throw new Error("Database query failed");
         }
       }

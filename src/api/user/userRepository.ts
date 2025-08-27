@@ -47,15 +47,17 @@ export class UserRepository {
     let userIdsWithTags: number[] | null = null;
     if (filters?.tags && filters.tags.length > 0) {
       // Convert filter tags to lowercase for case-insensitive comparison
-      const lowerCaseTags = filters.tags.map(tag => tag.toLowerCase());
+      const lowerCaseTags = filters.tags.map((tag) => tag.toLowerCase());
 
       const usersWithTags = await db
         .select({ userId: tags.userId })
         .from(tags)
-        .where(sql`LOWER(${tags.name}) IN (${sql.join(
-          lowerCaseTags.map(tag => sql`${tag}`),
-          sql`, `
-        )})`)
+        .where(
+          sql`LOWER(${tags.name}) IN (${sql.join(
+            lowerCaseTags.map((tag) => sql`${tag}`),
+            sql`, `,
+          )})`,
+        )
         .groupBy(tags.userId)
         .having(sql`count(distinct LOWER(${tags.name})) = ${filters.tags.length}`);
 

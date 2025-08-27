@@ -12,8 +12,8 @@ export class TagService {
     // We'll return the first occurrence of each tag (preserving original casing)
     const result = await db
       .select({
-        name: sql<string>`MIN(${tags.name})`.as('name'),
-        lowerName: sql<string>`LOWER(${tags.name})`.as('lowerName'),
+        name: sql<string>`MIN(${tags.name})`.as("name"),
+        lowerName: sql<string>`LOWER(${tags.name})`.as("lowerName"),
       })
       .from(tags)
       .groupBy(sql`LOWER(${tags.name})`)

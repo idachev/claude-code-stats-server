@@ -97,7 +97,7 @@ class TemplateLoader {
     // Add status badge
     const statusBadge = !user.isActive
       ? `<span class="ml-2 inline-flex items-center px-2 py-1 text-xs rounded-full bg-red-900 text-red-300 border border-red-800">Inactive</span>`
-      : '';
+      : "";
 
     return `
       <tr class="${rowClasses}">
@@ -143,12 +143,14 @@ class TemplateLoader {
       `;
 
     // Show deactivate button only for active users
-    const deactivateButton = isActive ? `
+    const deactivateButton = isActive
+      ? `
       <button data-action="deactivate" data-username="${escapedUsername}"
         class="user-action-btn text-red-400 hover:text-red-300 transition-colors" title="Deactivate User">
         ${this.getIcon("ban")}
       </button>
-    ` : '';
+    `
+      : "";
 
     return `
       <div class="flex gap-2">

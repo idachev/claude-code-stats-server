@@ -1,7 +1,8 @@
-1. In Admin dashboard add random colors for the tags use the colors from the theme - use the same palet as it is used in the main dashboard for the different users charts legent
-2. Cleanup old not used admin dashboard code
-3. Let add GET http://localhost:3000/favicon.ico - please add the manifest with all possible fav icon formatts
-4. Can you add a flag to mark user as deactivated it should be only visible in the admin dashboars, also on deactive operaiton set this flag to true, on key regeneraiton set it to false, update the admin dashboard list to distinguish the deactivated users
+*  In Admin dashboard add random colors for the tags use the colors from the theme - use the same palet as it is used in the main dashboard for the different users charts legent
+*  Cleanup old not used admin dashboard code
+*  Let add GET http://localhost:3000/favicon.ico - please add the manifest with all possible fav icon formatts
+* Let remove advance filters button and panel, merge the tags filtering in one drop down with checkboiixes - the same used in the main dashboard. Add the other filters in the advance panel next to the tags filter.
+* Can you add a flag to mark user as deactivated it should be only visible in the admin dashboars, also on deactive operaiton set this flag to true, on key regeneraiton set it to false, update the admin dashboard list to distinguish the deactivated users
 
 REMAINING TASKS (Nice-to-Have Only)
 

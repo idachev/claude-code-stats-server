@@ -606,16 +606,18 @@ class AdminUIManager {
       // The API might return the user directly or wrapped in a user property
       const user = response.user || response;
 
-      // Display current tags
+      // Display current tags with colors
       if (user.tags && user.tags.length > 0) {
         currentTagsList.innerHTML = user.tags
-          .map(
-            (tag) => `
-					<span class="px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+          .map((tag) => {
+            const color = window.TagColors.getTagColor(tag);
+
+            return `
+					<span class="px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
 						${this.escapeHtml(tag)}
 					</span>
-				`,
-          )
+				`;
+          })
           .join("");
       } else {
         currentTagsList.innerHTML = '<span class="text-gray-500">No tags</span>';

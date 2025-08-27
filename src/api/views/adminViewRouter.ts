@@ -4,7 +4,6 @@ import { StatusCodes } from "http-status-codes";
 import { pino } from "pino";
 import { z } from "zod";
 import { TagService } from "@/api/tags/tagService";
-import { userService } from "@/api/user/userService";
 import { adminDashboardAuth } from "@/common/middleware/adminDashboardAuth";
 import { adminLoginRateLimiter } from "@/common/middleware/adminRateLimiter";
 import { csrfProtection } from "@/common/middleware/csrfProtection";
@@ -56,19 +55,15 @@ adminViewRouter.get(
   adminDashboardAuth, // Then check authentication
   async (req: Request, res: Response) => {
     try {
-      // Load initial data using internal services (no API calls)
-      // Use findAllSimple to get all users without pagination for initial render
-      const [usersResponse, tagsList] = await Promise.all([userService.findAllSimple(), tagService.getTags()]);
-
-      // Extract user data from service response
-      const userData = usersResponse.success && usersResponse.responseObject ? usersResponse.responseObject : [];
+      // Only load tags for filters, not users (users will be loaded client-side)
+      const tagsList = await tagService.getTags();
       const tagData = tagsList || [];
 
-      // Render admin dashboard with initial data
+      // Render admin dashboard without initial user data
       res.render("dashboard/admin", {
         title: "Admin Dashboard",
         initialData: {
-          users: userData,
+          users: [], // Empty array - data will be loaded client-side
           tags: tagData,
           csrfToken: req.session.csrfToken,
           sessionTimeout: parseInt(process.env.ADMIN_SESSION_TIMEOUT_SECONDS || "900"),

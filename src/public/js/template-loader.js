@@ -63,6 +63,12 @@ class TemplateLoader {
     this.formatDate = (dateString) => {
       return new Date(dateString).toLocaleString();
     };
+
+    // Use centralized tag color configuration
+    // TagColors must be loaded from tag-colors.js before this script
+    this.getTagColor = (tag) => {
+      return window.TagColors.getTagColor(tag);
+    };
   }
 
   /**
@@ -70,13 +76,14 @@ class TemplateLoader {
    */
   renderUserRow(user) {
     const tagsHtml = user.tags
-      .map(
-        (tag) => `
-			<span class="px-2 py-1 text-xs rounded-full bg-blue-600/20 text-blue-400 border border-blue-600/30">
+      .map((tag) => {
+        const color = this.getTagColor(tag);
+        return `
+			<span class="px-2 py-1 text-xs rounded-full ${color.bg} ${color.text} border ${color.border}">
 				${this.escapeHtml(tag)}
 			</span>
-		`,
-      )
+		`;
+      })
       .join("");
 
     return `

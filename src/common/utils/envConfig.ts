@@ -33,8 +33,8 @@ const envSchema = z.object({
   // Session configuration
   SESSION_SECRET: z.string().min(32).optional(),
   ADMIN_SESSION_TIMEOUT_SECONDS: z.coerce.number().int().positive().default(900),
-  ADMIN_MAX_LOGIN_ATTEMPTS: z.coerce.number().int().positive().default(5),
-  ADMIN_RATE_LIMIT_WINDOW_SECONDS: z.coerce.number().int().positive().default(900),
+  ADMIN_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(1000),
+  ADMIN_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
 
   // Session pool configuration
   SESSION_POOL_MAX: z.coerce.number().int().positive().default(10),

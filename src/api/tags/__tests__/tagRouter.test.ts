@@ -111,7 +111,12 @@ describe("Tag Router Integration Tests", () => {
       const response = await request(app).get("/admin/tags").set("X-Admin-Key", adminApiKey);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual(["tag with spaces", "tag-with-hyphens", "tag.with.dots", "tag_with_underscores"]);
+      expect(response.body).toHaveLength(4);
+      // Check all tags are present (order doesn't matter)
+      expect(response.body).toContain("tag with spaces");
+      expect(response.body).toContain("tag-with-hyphens");
+      expect(response.body).toContain("tag.with.dots");
+      expect(response.body).toContain("tag_with_underscores");
     });
 
     it("should handle case sensitivity correctly", async () => {

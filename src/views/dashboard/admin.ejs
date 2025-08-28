@@ -7,6 +7,13 @@
     <meta name="csrf-token" content="<%= initialData.csrfToken %>">
     <title><%= title %></title>
 
+    <!-- Favicon and App Icons -->
+    <link rel="icon" type="image/png" href="/public/images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/public/images/favicon.svg" />
+    <link rel="shortcut icon" href="/public/images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/images/apple-touch-icon.png" />
+    <link rel="manifest" href="/public/images/site.webmanifest" />
+
     <!-- Theme CSS -->
     <link rel="stylesheet" href="/public/css/theme.css" />
 
@@ -54,77 +61,86 @@
       <main class="flex-1 px-6 py-6 max-w-full">
         <!-- Action Bar -->
         <div class="bg-dark-card rounded-lg border border-dark-border mb-6 p-4">
-          <div class="flex justify-between items-center w-full">
-            <div class="flex gap-4 items-center flex-1">
+          <!-- Mobile-first responsive layout: stack on mobile, horizontal on larger screens -->
+          <div class="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center w-full">
+            <!-- Filter controls group -->
+            <div class="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center lg:flex-1">
               <!-- Search Input -->
               <input type="text" id="search-input" placeholder="Search by username..."
-                class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg w-64 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500">
+                class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg w-full sm:w-64 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-500">
 
-              <!-- Tag Filter (Custom Dropdown with Checkboxes) -->
-              <div class="relative" id="tagDropdownContainer" style="min-width: 160px;">
-                <button type="button" id="tagDropdownButton"
-                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 hover:border-blue-500 focus:outline-none focus:border-blue-500 flex items-center gap-2 w-full">
-                  <span id="tagButtonText">All Tags</span>
-                  <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div id="tagDropdownMenu"
-                  class="hidden absolute z-10 mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg"
-                  style="min-width: 200px; max-height: 300px; overflow-y: auto;">
-                  <% if (initialData.tags && initialData.tags.length > 0) { %>
-                  <div class="p-2">
-                    <% initialData.tags.forEach(tag => { %>
-                    <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
-                      <input type="checkbox" name="tags" value="<%= tag %>"
-                        class="tag-checkbox-dropdown rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700">
-                      <span class="tag-label-dropdown text-gray-300 text-sm px-2 py-1 rounded-full"
-                        data-tag="<%= tag %>"><%= tag %></span>
-                    </label>
-                    <% }) %>
+              <!-- Filter controls row -->
+              <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <!-- Tag Filter (Custom Dropdown with Checkboxes) -->
+                <div class="relative w-full sm:w-auto" id="tagDropdownContainer" style="min-width: 160px;">
+                  <button type="button" id="tagDropdownButton"
+                    class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 hover:border-blue-500 focus:outline-none focus:border-blue-500 flex items-center gap-2 w-full">
+                    <span id="tagButtonText">All Tags</span>
+                    <svg class="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <div id="tagDropdownMenu"
+                    class="hidden absolute z-10 mt-1 bg-dark-card border border-dark-border rounded-lg shadow-lg"
+                    style="min-width: 200px; max-height: 300px; overflow-y: auto;">
+                    <% if (initialData.tags && initialData.tags.length > 0) { %>
+                    <div class="p-2">
+                      <% initialData.tags.forEach(tag => { %>
+                      <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
+                        <input type="checkbox" name="tags" value="<%= tag %>"
+                          class="tag-checkbox-dropdown rounded border-gray-600 text-blue-500 focus:ring-blue-500 focus:ring-offset-0 bg-gray-700">
+                        <span class="tag-label-dropdown text-gray-300 text-sm px-2 py-1 rounded-full"
+                          data-tag="<%= tag %>"><%= tag %></span>
+                      </label>
+                      <% }) %>
+                    </div>
+                    <div id="clearTagsSection" class="hidden p-2 border-t border-dark-border">
+                      <button type="button" id="clearTagsButton"
+                        class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12">
+                          </path>
+                        </svg>
+                        Clear all tags
+                      </button>
+                    </div>
+                    <% } else { %>
+                    <div class="p-3 text-gray-500 text-sm">No tags available</div>
+                    <% } %>
                   </div>
-                  <div id="clearTagsSection" class="hidden p-2 border-t border-dark-border">
-                    <button type="button" id="clearTagsButton"
-                      class="w-full px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
+                </div>
+
+                <!-- Sort controls group -->
+                <div class="flex flex-col gap-4 sm:flex-row w-full sm:w-auto">
+                  <!-- Sort By -->
+                  <div class="custom-select-wrapper w-full sm:w-auto sm:max-w-40">
+                    <select id="sort-by"
+                      class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500 w-full">
+                      <option value="createdAt">Created Date</option>
+                      <option value="updatedAt">Updated Date</option>
+                      <option value="username">Username</option>
+                    </select>
+                    <div class="select-arrow">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
-                      Clear all tags
-                    </button>
+                    </div>
                   </div>
-                  <% } else { %>
-                  <div class="p-3 text-gray-500 text-sm">No tags available</div>
-                  <% } %>
-                </div>
-              </div>
 
-              <!-- Sort By -->
-              <div class="custom-select-wrapper" style="min-width: 160px;">
-                <select id="sort-by"
-                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
-                  <option value="createdAt">Created Date</option>
-                  <option value="updatedAt">Updated Date</option>
-                  <option value="username">Username</option>
-                </select>
-                <div class="select-arrow">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
-              </div>
-
-              <!-- Order -->
-              <div class="custom-select-wrapper" style="min-width: 160px;">
-                <select id="sort-order"
-                  class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500">
-                  <option value="desc">Descending</option>
-                  <option value="asc">Ascending</option>
-                </select>
-                <div class="select-arrow">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
+                  <!-- Order -->
+                  <div class="custom-select-wrapper w-full sm:w-auto sm:max-w-36">
+                    <select id="sort-order"
+                      class="px-4 py-2 bg-dark-bg border border-dark-border rounded-lg text-gray-100 focus:outline-none focus:border-blue-500 w-full">
+                      <option value="desc">Descending</option>
+                      <option value="asc">Ascending</option>
+                    </select>
+                    <div class="select-arrow">
+                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -134,9 +150,11 @@
                 <span class="text-sm">Loading...</span>
               </div>
             </div>
-            <div class="flex-shrink-0">
+
+            <!-- Create User button - separate row on mobile, aligned right on desktop -->
+            <div class="flex justify-stretch sm:justify-end lg:flex-shrink-0">
               <button id="create-user-btn"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap w-full sm:w-auto">
                 Create User
               </button>
             </div>

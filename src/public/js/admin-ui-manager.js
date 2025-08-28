@@ -8,13 +8,25 @@ class AdminUIManager {
     this.templates = templateLoader;
     this.isLoading = false;
     this.loadingTimer = null; // Timer for delayed loading indicator
-    this.currentPage = 1;
-    this.pageLimit = initialPageSize || 20;
+
+    // Read initial state from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+
+    // Page and pageLimit
+    this.currentPage = parseInt(urlParams.get("page")) || 1;
+    this.pageLimit = parseInt(urlParams.get("pageSize")) || initialPageSize || 20;
     this.pageSizes = pageSizes || [10, 20, 50, 100];
-    this.sortBy = "createdAt";
-    this.sortOrder = "desc";
-    this.searchTerm = "";
-    this.selectedTags = [];
+
+    // Sort parameters
+    this.sortBy = urlParams.get("sortBy") || "createdAt";
+    this.sortOrder = urlParams.get("sortOrder") || "desc";
+
+    // Search term
+    this.searchTerm = urlParams.get("search") || "";
+
+    // Tags - support multiple tag parameters
+    this.selectedTags = urlParams.getAll("tag");
+
     this.needsUserRefresh = false;
     this.availableTags = new Set();
 
@@ -26,6 +38,9 @@ class AdminUIManager {
    * Initialize UI manager
    */
   async init() {
+    // Set initial values in UI elements from URL parameters
+    this.syncUIFromState();
+
     await this.setupEventListeners();
     await this.loadInitialData();
 
@@ -237,6 +252,17 @@ class AdminUIManager {
     // Don't reload if already loading
     if (this.isLoading) return;
 
+    // Update URL parameters before loading
+    // Pass all current values, let updateURLParameters handle the logic
+    this.updateURLParameters({
+      page: this.currentPage,
+      pageSize: this.pageLimit,
+      search: this.searchTerm,
+      sortBy: this.sortBy,
+      sortOrder: this.sortOrder,
+      tags: this.selectedTags,
+    });
+
     this.showLoading();
 
     try {
@@ -318,8 +344,6 @@ class AdminUIManager {
       pageSizeSelector.addEventListener("change", (e) => {
         this.pageLimit = parseInt(e.target.value);
         this.currentPage = 1;
-        // Update URL parameter when page size changes
-        this.updateURLParameter("pageSize", this.pageLimit);
         this.loadUsers();
       });
     }
@@ -579,6 +603,77 @@ class AdminUIManager {
       url.searchParams.delete(param);
     }
     window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Update multiple URL parameters at once
+   */
+  updateURLParameters(params, existingUrl = null) {
+    const url = existingUrl || new URL(window.location);
+
+    // Handle each parameter
+    Object.entries(params).forEach(([key, value]) => {
+      if (key === "tags") {
+        // Special handling for tags - remove all and re-add
+        url.searchParams.delete("tag");
+        // Add new tag parameters only if there are selected tags
+        if (Array.isArray(value) && value.length > 0) {
+          value.forEach((tag) => url.searchParams.append("tag", tag));
+        }
+      } else if (value !== null && value !== undefined && value !== "") {
+        // Always update the parameter if it has a value
+        url.searchParams.set(key, value);
+      } else if (url.searchParams.has(key) && value === "") {
+        // Keep the parameter but with empty string if it was already there
+        url.searchParams.set(key, "");
+      }
+      // Never delete parameters (except tags handled above)
+    });
+
+    window.history.replaceState({}, "", url);
+  }
+
+  /**
+   * Sync UI elements with current state
+   */
+  syncUIFromState() {
+    // Sync search input
+    const searchInput = document.getElementById("search-input");
+    if (searchInput && this.searchTerm) {
+      searchInput.value = this.searchTerm;
+    }
+
+    // Sync sort by
+    const sortByEl = document.getElementById("sort-by");
+    if (sortByEl) {
+      sortByEl.value = this.sortBy;
+    }
+
+    // Sync sort order
+    const sortOrderEl = document.getElementById("sort-order");
+    if (sortOrderEl) {
+      sortOrderEl.value = this.sortOrder;
+    }
+
+    // Sync tag checkboxes
+    if (this.selectedTags.length > 0) {
+      document.querySelectorAll(".tag-checkbox-dropdown").forEach((checkbox) => {
+        checkbox.checked = this.selectedTags.includes(checkbox.value);
+      });
+
+      // Update button text
+      const tagButtonText = document.getElementById("tagButtonText");
+      if (tagButtonText) {
+        const count = this.selectedTags.length;
+        tagButtonText.textContent = `${count} tag${count > 1 ? "s" : ""} selected`;
+      }
+
+      // Show clear button if tags selected
+      const clearTagsSection = document.getElementById("clearTagsSection");
+      if (clearTagsSection) {
+        clearTagsSection.classList.remove("hidden");
+      }
+    }
   }
 
   /**

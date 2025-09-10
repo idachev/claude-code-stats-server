@@ -1,0 +1,56 @@
+# Dependencies (can be reinstalled via pnpm install)
+- node_modules/
+- .pnpm-store/
+
+# Build outputs (regenerated via pnpm build)
+- dist/
+- build/
+- out/
+
+# Test artifacts (regenerated during testing)
+- coverage/
+- test-results/
+- playwright-report/
+- .nyc_output/
+
+# Temporary files and caches
+- tmp/
+- temp/
+- *.tmp
+- *.temp
+- *.cache
+- .cache/
+- .playwright-mcp/
+
+# IDE and editor files
+- .idea/sonarlint
+
+- *.swp
+- *.swo
+- *~
+- .DS_Store
+- Thumbs.db
+
+# Environment and secrets (security - should not be backed up)
+- .env
+- .env.local
+- .env.*.local
+- *.key
+- *.pem
+- *.cert
+- *.crt
+
+# Log files
+- *.log
+- logs/
+
+- .yarn/
+- .pnp.*
+
+- *.pid
+
+# Development specific
+- .eslintcache
+- .stylelintcache
+- .prettiercache
+
